@@ -1,11 +1,11 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { PersonStatus } from '../constants/professions.constants';
 
 export class UpdatePersonStatusDto {
-  /**
-   * New status: 'active' | 'sick' | 'injured' | 'exploring' | 'transferred'
-   */
-  @IsString()
-  status: string;
+  @IsEnum(PersonStatus, {
+    message: `Status must be one of: ${Object.values(PersonStatus).join(', ')}`,
+  })
+  status: PersonStatus;
 
   @IsOptional()
   @IsString()
