@@ -32,6 +32,18 @@ export class Camp {
   @Column({ type: 'date', nullable: true })
   foundation_date: Date;
 
+  @Column({ type: 'text', nullable: true })
+  logo_url: string;
+
+  @Column({ type: 'text', nullable: true })
+  logo_public_id: string;
+
+  @Column({ type: 'text', nullable: true })
+  map_url: string;
+
+  @Column({ type: 'text', nullable: true })
+  map_public_id: string;
+
   @OneToMany(() => UserAccount, (ua) => ua.camp)
   userAccounts: UserAccount[];
 }

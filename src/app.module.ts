@@ -14,6 +14,7 @@ import { ExplorationsModule } from './explorations/explorations.module';
 import { TransfersModule } from './transfers/transfers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AiModule } from './ai/ai.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AiModule } from './ai/ai.module';
     TransfersModule,
     DashboardModule,
     AiModule,
+    UploadModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
