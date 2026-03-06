@@ -21,6 +21,15 @@ export class Resource {
   @Column({ type: 'text' })
   category: string;
 
+  @Column({ type: 'text', nullable: true })
+  image_url: string;
+
+  @Column({ type: 'text', nullable: true })
+  image_public_id: string;
+
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
   @OneToMany(() => Inventory, (inv) => inv.resource)
   inventories: Inventory[];
 

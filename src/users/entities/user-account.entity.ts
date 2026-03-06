@@ -12,6 +12,7 @@ import { Person } from './person.entity';
 import { Role } from './role.entity';
 import { Session } from '../../auth/entities/session.entity';
 import { TemporaryAssignment } from './temporary-assignment.entity';
+import { UserAsset } from './user-asset.entity';
 
 @Entity('user_account')
 export class UserAccount {
@@ -39,6 +40,12 @@ export class UserAccount {
   @Column({ type: 'timestamptz', nullable: true })
   last_access: Date;
 
+  @Column({ type: 'text', nullable: true })
+  avatar_url: string;
+
+  @Column({ type: 'text', nullable: true })
+  avatar_public_id: string;
+
   // Relations
   @ManyToOne(() => Camp, (c) => c.userAccounts)
   @JoinColumn({ name: 'camp_id' })
@@ -57,4 +64,7 @@ export class UserAccount {
 
   @OneToMany(() => TemporaryAssignment, (ta) => ta.userApprove)
   approvedAssignments: TemporaryAssignment[];
+
+  @OneToMany(() => UserAsset, (ua) => ua.userAccount)
+  userAssets: UserAsset[];
 }
