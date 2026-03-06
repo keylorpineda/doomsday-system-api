@@ -3,7 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 
 @ApiTags('dashboard')
-@Controller({ path: 'dashboard', version: '1' })
+@Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
