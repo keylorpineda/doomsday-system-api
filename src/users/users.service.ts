@@ -16,6 +16,4 @@ export class UsersService {
       relations: ['role'],
     });
   }
-
-  // TODO: implementar lógica de negocio
 }

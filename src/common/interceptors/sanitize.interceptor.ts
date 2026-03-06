@@ -6,10 +6,6 @@ import {
 } from '@nestjs/common';
 import { filterXSS } from 'xss';
 
-/**
- * Interceptor global que sanitiza todos los strings del body y query params
- * eliminando HTML y JavaScript malicioso antes de que lleguen a los servicios.
- */
 @Injectable()
 export class SanitizeInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler) {
