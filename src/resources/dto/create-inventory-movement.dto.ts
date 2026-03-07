@@ -11,10 +11,6 @@ export class CreateInventoryMovementDto {
   @Min(0)
   quantity: number;
 
-  /**
-   * 'income' | 'expense' | 'transfer_out' | 'transfer_in' |
-   * 'exploration_out' | 'exploration_in' | 'daily_ration' | 'daily_production'
-   */
   @IsString()
   type: string;
 

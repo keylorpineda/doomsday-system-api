@@ -32,10 +32,6 @@ import { UpdateInventoryDto } from './dto/update-inventory.dto';
 export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
-  /* ================================================================
-   *  INVENTORY  (rutas específicas antes de :id)
-   * ================================================================ */
-
   @Get('inventory/:campId')
   @Roles('admin', 'gestor_recursos', 'trabajador', 'encargado_viajes')
   @ApiOperation({ summary: 'Consultar inventario completo del campamento' })
@@ -68,10 +64,6 @@ export class ResourcesController {
     return this.resourcesService.initializeInventoryForCamp(campId);
   }
 
-  /* ================================================================
-   *  MOVEMENTS
-   * ================================================================ */
-
   @Get('movements/:campId')
   @Roles('admin', 'gestor_recursos', 'trabajador')
   @ApiOperation({ summary: 'Historial de movimientos de inventario del campamento' })
@@ -96,10 +88,6 @@ export class ResourcesController {
     return this.resourcesService.createMovement(dto, user?.userId);
   }
 
-  /* ================================================================
-   *  DAILY PROCESS
-   * ================================================================ */
-
   @Post('daily-process/:campId')
   @Roles('admin', 'gestor_recursos')
   @ApiOperation({ summary: 'Ejecutar proceso diario manualmente (producción + consumo)' })
@@ -123,10 +111,6 @@ export class ResourcesController {
       user?.userId,
     );
   }
-
-  /* ================================================================
-   *  CRUD RESOURCES (rutas genéricas :id al final)
-   * ================================================================ */
 
   @Get()
   @Roles('admin', 'gestor_recursos', 'trabajador', 'encargado_viajes')

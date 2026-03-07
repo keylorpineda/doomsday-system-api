@@ -56,10 +56,6 @@ export class ResourcesService {
     private readonly personRepo: Repository<Person>,
   ) {}
 
-  /* ================================================================
-   *  CRUD RESOURCES
-   * ================================================================ */
-
   async findAll(): Promise<Resource[]> {
     return this.resourceRepo.find({ order: { name: 'ASC' } });
   }
@@ -87,10 +83,6 @@ export class ResourcesService {
     const resource = await this.findResourceById(id);
     await this.resourceRepo.remove(resource);
   }
-
-  /* ================================================================
-   *  INVENTORY
-   * ================================================================ */
 
   async getInventoryByCamp(campId: number): Promise<Inventory[]> {
     await this.refreshAlertFlags(campId);
@@ -170,10 +162,6 @@ export class ResourcesService {
     return created;
   }
 
-  /* ================================================================
-   *  MOVEMENTS
-   * ================================================================ */
-
   async getMovementsByCamp(
     campId: number,
     limit = 50,
@@ -234,7 +222,6 @@ export class ResourcesService {
 
     const saved = await this.movementRepo.save(movement);
 
-    // Registro obligatorio en audit_log
     await this.auditRepo.save(
       this.auditRepo.create({
         user_id: userId,
@@ -254,10 +241,6 @@ export class ResourcesService {
 
     return { movement: saved, inventory };
   }
-
-  /* ================================================================
-   *  DAILY PROCESS  (CRON + manual trigger)
-   * ================================================================ */
 
   async executeDailyProcess(campId: number): Promise<{
     production: Record<string, number>;
@@ -281,8 +264,6 @@ export class ResourcesService {
       );
     }
 
-    /* ---------- PRODUCCIÓN ---------- */
-
     const activeWorkers = await this.personRepo
       .createQueryBuilder('person')
       .leftJoinAndSelect('person.profession', 'profession')
@@ -295,7 +276,6 @@ export class ResourcesService {
     for (const person of activeWorkers) {
       if (!person.profession) continue;
 
-      // Buscar configuración personalizada en BD
       const customFood = await this.dailyProdRepo.findOne({
         where: {
           camp_id: campId,
@@ -311,7 +291,6 @@ export class ResourcesService {
         },
       });
 
-      // Constantes como fallback
       const profConfig = Object.values(PROFESSIONS_CONFIG).find(
         (p) => p.name === person.profession.name,
       );
@@ -348,9 +327,6 @@ export class ResourcesService {
       }
     }
 
-    /* ---------- CONSUMO ---------- */
-
-    // Personas físicamente en el campamento
     const personsInCamp = await this.personRepo
       .createQueryBuilder('person')
       .leftJoin('person.userAccount', 'ua')
@@ -365,7 +341,6 @@ export class ResourcesService {
       })
       .getCount();
 
-    // Configuración personalizada de consumo (general, person_id = NULL)
     const generalConsFood = await this.dailyConsRepo.findOne({
       where: {
         camp_id: campId,
@@ -442,10 +417,6 @@ export class ResourcesService {
     this.logger.log('Proceso diario finalizado para todos los campamentos');
   }
 
-  /* ================================================================
-   *  MANUAL PRODUCTION ADJUSTMENT
-   * ================================================================ */
-
   async adjustProductionForPerson(
     personId: number,
     dto: AdjustDailyProductionDto,
@@ -486,12 +457,7 @@ export class ResourcesService {
     );
   }
 
-  /* ================================================================
-   *  HELPERS (private)
-   * ================================================================ */
-
   private async refreshAlertFlags(campId: number): Promise<void> {
-    // Activar alerta donde el stock es bajo
     await this.inventoryRepo
       .createQueryBuilder()
       .update(Inventory)
@@ -500,7 +466,6 @@ export class ResourcesService {
       .andWhere('current_quantity < minimum_stock_required')
       .execute();
 
-    // Desactivar alerta donde el stock es suficiente
     await this.inventoryRepo
       .createQueryBuilder()
       .update(Inventory)
