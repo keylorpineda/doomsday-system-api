@@ -5,20 +5,36 @@ import {
 import { Person } from '../../users/entities/person.entity';
 import { Profession } from '../../users/entities/profession.entity';
 import { UserAccount } from '../../users/entities/user-account.entity';
+import { Camp } from '../../camps/entities/camp.entity';
 
 @Entity('ai_admission')
 export class AiAdmission {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
 
-  @Column({ type: 'bigint' })
-  person_id: number;
+  @Column({ type: 'text', unique: true })
+  tracking_code: string;
 
-  @Column({ type: 'text', nullable: true })
-  suggested_status: string;
+  @Column({ type: 'bigint' })
+  camp_id: number;
 
   @Column({ type: 'bigint', nullable: true })
-  suggested_profession_id: number;
+  person_id: number | null;
+
+  @Column({ type: 'json' })
+  candidate_data: object;
+
+  @Column({ type: 'int', nullable: true })
+  score: number;
+
+  @Column({ type: 'text', default: 'PENDING_REVIEW' })
+  status: string;
+
+  @Column({ type: 'text', nullable: true })
+  suggested_decision: string;
+
+  @Column({ type: 'bigint', nullable: true })
+  suggested_profession_id: number | null;
 
   @Column({ type: 'text', nullable: true })
   justification: string;
@@ -27,23 +43,33 @@ export class AiAdmission {
   raw_ai_response: object;
 
   @Column({ type: 'bigint', nullable: true })
-  reviewed_by_user_id: number;
+  reviewed_by_user_id: number | null;
 
   @Column({ type: 'text', nullable: true })
   final_human_decision: string;
 
-  @Column({ type: 'timestamptz', nullable: true })
-  evaluation_date: Date;
+  @Column({ type: 'text', nullable: true })
+  admin_notes: string;
 
-  @ManyToOne(() => Person, (p) => p.aiAdmissions)
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  submission_date: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  review_date: Date;
+
+  @ManyToOne(() => Camp)
+  @JoinColumn({ name: 'camp_id' })
+  camp: Camp;
+
+  @ManyToOne(() => Person, (p) => p.aiAdmissions, { nullable: true })
   @JoinColumn({ name: 'person_id' })
   person: Person;
 
-  @ManyToOne(() => Profession)
+  @ManyToOne(() => Profession, { nullable: true })
   @JoinColumn({ name: 'suggested_profession_id' })
   suggestedProfession: Profession;
 
-  @ManyToOne(() => UserAccount)
+  @ManyToOne(() => UserAccount, { nullable: true })
   @JoinColumn({ name: 'reviewed_by_user_id' })
   reviewedBy: UserAccount;
 }

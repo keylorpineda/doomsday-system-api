@@ -4,10 +4,6 @@ import { Repository } from 'typeorm';
 import { Profession } from '../entities/profession.entity';
 import { PROFESSIONS_CONFIG } from '../constants/professions.constants';
 
-/**
- * Seeder para inicializar las profesiones en la base de datos
- * Se ejecuta automáticamente al iniciar la aplicación
- */
 @Injectable()
 export class ProfessionsSeeder implements OnModuleInit {
   private readonly logger = new Logger(ProfessionsSeeder.name);
@@ -28,13 +24,12 @@ export class ProfessionsSeeder implements OnModuleInit {
   async seedProfessions() {
     const existingProfessions = await this.professionRepo.find();
 
-    // Si ya existen profesiones, no hacer nada
     if (existingProfessions.length > 0) {
-      this.logger.log(`✅ Professions already seeded (${existingProfessions.length} found)`);
+      this.logger.log(`Professions already seeded (${existingProfessions.length} found)`);
       return;
     }
 
-    this.logger.log('🌱 Seeding professions...');
+    this.logger.log('Seeding professions...');
 
     const professionsToCreate = Object.values(PROFESSIONS_CONFIG).map((config) => ({
       name: config.name,
@@ -44,7 +39,7 @@ export class ProfessionsSeeder implements OnModuleInit {
 
     const createdProfessions = await this.professionRepo.save(professionsToCreate);
 
-    this.logger.log(`✅ Successfully seeded ${createdProfessions.length} professions:`);
+    this.logger.log(`Successfully seeded ${createdProfessions.length} professions:`);
     createdProfessions.forEach((p) => {
       this.logger.log(
         `   - ${p.name} (min: ${p.minimum_active_required}, can_explore: ${p.can_explore})`,
@@ -52,9 +47,6 @@ export class ProfessionsSeeder implements OnModuleInit {
     });
   }
 
-  /**
-   * Método para resetear las profesiones (útil para desarrollo)
-   */
   async resetProfessions() {
     this.logger.warn('⚠️  Resetting professions...');
     await this.professionRepo.delete({});
