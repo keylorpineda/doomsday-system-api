@@ -21,16 +21,16 @@ export class UserAsset {
   asset_id: number;
 
   @Column({ type: 'text', nullable: true })
-  relation_type: string; // earned, assigned, favorite, etc.
+  relation_type: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   acquired_at: Date;
 
   @Column({ type: 'boolean', default: false })
-  is_displayed: boolean; // Si el usuario quiere mostrar este asset en su perfil
+  is_displayed: boolean;
 
   @Column({ type: 'json', nullable: true })
-  context_data: object; // Datos adicionales sobre cómo se obtuvo o contexto
+  context_data: object;
 
   @ManyToOne(() => UserAccount, (ua) => ua.userAssets)
   @JoinColumn({ name: 'user_account_id' })

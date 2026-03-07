@@ -2,17 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PersonsService } from './persons.service';
 import { PROFESSIONS_CONFIG, DAILY_CONSUMPTION } from '../constants/professions.constants';
 
-/**
- * Servicio especializado en cálculos de producción y consumo
- * Responsabilidad: Calcular producción diaria, consumo y balances
- */
 @Injectable()
 export class ProductionService {
   constructor(private readonly personsService: PersonsService) {}
 
-  /**
-   * Calcula la producción diaria total de un campamento
-   */
   async calculateDailyProduction(campId: number): Promise<{
     totalFood: number;
     totalWater: number;
@@ -44,7 +37,6 @@ export class ProductionService {
       const professionId = person.profession.id;
       const professionName = person.profession.name;
 
-      // Buscar configuración de la profesión
       const professionConfig = Object.values(PROFESSIONS_CONFIG).find(
         (p) => p.name === professionName,
       );
@@ -84,9 +76,6 @@ export class ProductionService {
     };
   }
 
-  /**
-   * Calcula el consumo diario total de un campamento
-   */
   async calculateDailyConsumption(campId: number): Promise<{
     totalFood: number;
     totalWater: number;

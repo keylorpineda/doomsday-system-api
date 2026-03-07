@@ -5,10 +5,6 @@ import { Profession } from '../entities/profession.entity';
 import { CreateProfessionDto } from '../dto/create-profession.dto';
 import { PersonsService } from './persons.service';
 
-/**
- * Servicio especializado en la gestión de profesiones
- * Responsabilidad: CRUD de profesiones y alertas de trabajadores
- */
 @Injectable()
 export class ProfessionsService {
   constructor(
@@ -16,8 +12,6 @@ export class ProfessionsService {
     private readonly professionRepo: Repository<Profession>,
     private readonly personsService: PersonsService,
   ) {}
-
-  // ==================== CRUD OPERATIONS ====================
 
   async findAll(): Promise<Profession[]> {
     return this.professionRepo.find({
@@ -43,19 +37,12 @@ export class ProfessionsService {
     return this.professionRepo.save(profession);
   }
 
-  // ==================== WORKER MANAGEMENT ====================
-
-  /**
-   * Verifica si una profesión tiene el mínimo de trabajadores activos
-   * Si no, genera una alerta/excepción
-   */
   async checkMinimumWorkers(
     professionId: number,
     excludePersonId?: number,
   ): Promise<{ needsWorkers: boolean; currentWorkers: number; minimumRequired: number }> {
     const profession = await this.findById(professionId);
 
-    // Contar trabajadores activos (excluyendo el que se va si es el caso)
     const activeWorkers = await this.personsService.countActiveWorkers(
       professionId,
       excludePersonId,
@@ -64,7 +51,6 @@ export class ProfessionsService {
     const needsWorkers = activeWorkers < profession.minimum_active_required;
 
     if (needsWorkers) {
-      // Aquí podrías enviar notificaciones, crear tareas automáticas, etc.
       console.warn(
         `⚠️ ALERTA: Profesión "${profession.name}" necesita trabajadores. ` +
           `Actual: ${activeWorkers}, Mínimo: ${profession.minimum_active_required}`,
@@ -78,9 +64,6 @@ export class ProfessionsService {
     };
   }
 
-  /**
-   * Obtiene profesiones que necesitan trabajadores urgentemente
-   */
   async getProfessionsNeedingWorkers(): Promise<
     Array<{
       profession: Profession;
@@ -108,9 +91,6 @@ export class ProfessionsService {
     return professionsNeedingWorkers;
   }
 
-  /**
-   * Obtiene profesiones con exceso de trabajadores (candidatos para asignación temporal)
-   */
   async getProfessionsWithExcess(): Promise<
     Array<{
       profession: Profession;

@@ -46,7 +46,6 @@ export class UserAccount {
   @Column({ type: 'text', nullable: true })
   avatar_public_id: string;
 
-  // Relations
   @ManyToOne(() => Camp, (c) => c.userAccounts)
   @JoinColumn({ name: 'camp_id' })
   camp: Camp;

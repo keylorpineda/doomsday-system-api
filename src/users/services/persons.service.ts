@@ -15,10 +15,6 @@ import {
   WORKING_STATUSES,
 } from '../constants/professions.constants';
 
-/**
- * Servicio especializado en la gestión de personas
- * Responsabilidad: CRUD de personas y actualización de estados
- */
 @Injectable()
 export class PersonsService {
   constructor(
@@ -28,10 +24,7 @@ export class PersonsService {
     private readonly professionRepo: Repository<Profession>,
   ) {}
 
-  // ==================== CRUD OPERATIONS ====================
-
   async create(dto: CreatePersonDto): Promise<Person> {
-    // Validar profesión si se proporciona
     if (dto.profession_id) {
       const profession = await this.professionRepo.findOne({
         where: { id: dto.profession_id },
@@ -82,7 +75,6 @@ export class PersonsService {
   async update(id: number, dto: UpdatePersonDto): Promise<Person> {
     const person = await this.findById(id);
 
-    // Validar nueva profesión si se proporciona
     if (dto.profession_id && dto.profession_id !== person.profession_id) {
       const profession = await this.professionRepo.findOne({
         where: { id: dto.profession_id },
@@ -102,7 +94,6 @@ export class PersonsService {
     const oldStatus = person.status;
     person.status = dto.status;
 
-    // Actualizar can_work basado en el nuevo status
     person.can_work = WORKING_STATUSES.includes(dto.status as PersonStatus);
 
     if (dto.notes) {
@@ -117,7 +108,6 @@ export class PersonsService {
   async delete(id: number): Promise<void> {
     const person = await this.findById(id);
 
-    // Verificar si tiene cuenta de usuario
     if (person.userAccount) {
       throw new BadRequestException(
         'Cannot delete person with an active user account. Delete the user account first.',
@@ -126,8 +116,6 @@ export class PersonsService {
 
     await this.personRepo.remove(person);
   }
-
-  // ==================== QUERIES ====================
 
   async countActiveWorkers(professionId: number, excludePersonId?: number): Promise<number> {
     return this.personRepo.count({
@@ -165,8 +153,6 @@ export class PersonsService {
 
     return query.getCount();
   }
-
-  // ==================== STATISTICS ====================
 
   async getStatsByStatus(campId?: number): Promise<
     Array<{
@@ -220,8 +206,6 @@ export class PersonsService {
 
     return query.getRawMany();
   }
-
-  // ==================== UTILITIES ====================
 
   private generateIdentificationCode(): string {
     const timestamp = Date.now().toString(36);

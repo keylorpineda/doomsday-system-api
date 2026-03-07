@@ -2,22 +2,22 @@ import { IsInt, IsString, IsOptional, IsDateString, Min, Max } from 'class-valid
 
 export class CreateTemporaryAssignmentDto {
   @IsInt()
-  person_id: number; // ID de la persona a asignar temporalmente
+  person_id: number;
 
   @IsInt()
-  profession_temporary_id: number; // ID de la profesión a la que se asigna
+  profession_temporary_id: number;
 
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(30)
-  duration_days?: number; // Duración en días (default: 7)
+  duration_days?: number;
 
   @IsOptional()
   @IsString()
-  reason?: string; // Motivo de la asignación
+  reason?: string;
 
   @IsOptional()
   @IsDateString()
-  start_date?: string; // Fecha de inicio (default: ahora)
+  start_date?: string;
 }

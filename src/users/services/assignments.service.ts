@@ -12,10 +12,6 @@ import { CreateTemporaryAssignmentDto } from '../dto/create-temporary-assignment
 import { ProfessionsService } from './professions.service';
 import { TEMPORARY_ASSIGNMENT_CONFIG } from '../constants/professions.constants';
 
-/**
- * Servicio especializado en asignaciones temporales
- * Responsabilidad: Gestionar movimientos temporales de personas entre profesiones
- */
 @Injectable()
 export class AssignmentsService {
   constructor(
@@ -25,8 +21,6 @@ export class AssignmentsService {
     private readonly personRepo: Repository<Person>,
     private readonly professionsService: ProfessionsService,
   ) {}
-
-  // ==================== CRUD OPERATIONS ====================
 
   async create(
     dto: CreateTemporaryAssignmentDto,
@@ -49,19 +43,16 @@ export class AssignmentsService {
       throw new BadRequestException(`Person cannot work (status: ${person.status})`);
     }
 
-    // Verificar que la profesión temporal existe
     await this.professionsService.findById(dto.profession_temporary_id);
 
-    // Verificar que no es la misma profesión
     if (person.profession_id === dto.profession_temporary_id) {
       throw new BadRequestException('Cannot assign person to their current profession');
     }
 
-    // Verificar que no tiene otra asignación temporal activa
     const existingAssignment = await this.tempAssignmentRepo.findOne({
       where: {
         user_account_id: person.userAccount?.id,
-        end_date: IsNull(), // Asignación activa
+        end_date: IsNull(),
       },
     });
 
@@ -69,7 +60,6 @@ export class AssignmentsService {
       throw new ConflictException('Person already has an active temporary assignment');
     }
 
-    // Calcular fecha de fin
     const durationDays = dto.duration_days || TEMPORARY_ASSIGNMENT_CONFIG.DEFAULT_DURATION_DAYS;
     const startDate = dto.start_date ? new Date(dto.start_date) : new Date();
     const endDate = new Date(startDate);
