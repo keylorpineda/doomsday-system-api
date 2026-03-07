@@ -2,6 +2,9 @@ import { IsInt, IsNumber, IsString, IsOptional, Min } from 'class-validator';
 
 export class CreateInventoryMovementDto {
   @IsInt()
+  camp_id: number;
+
+  @IsInt()
   resource_id: number;
 
   @IsNumber()

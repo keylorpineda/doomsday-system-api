@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { Resource } from './resource.entity';
 import { UserAccount } from '../../users/entities/user-account.entity';
+import { Camp } from '../../camps/entities/camp.entity';
 
 @Entity('inventory_movement')
 export class InventoryMovement {
@@ -15,6 +16,9 @@ export class InventoryMovement {
 
   @Column({ type: 'bigint' })
   resource_id: number;
+
+  @Column({ type: 'bigint' })
+  camp_id: number;
 
   @Column({ type: 'decimal', precision: 12, scale: 3 })
   quantity: number;
@@ -38,4 +42,8 @@ export class InventoryMovement {
   @ManyToOne(() => UserAccount)
   @JoinColumn({ name: 'user_id' })
   user: UserAccount;
+
+  @ManyToOne(() => Camp)
+  @JoinColumn({ name: 'camp_id' })
+  camp: Camp;
 }
