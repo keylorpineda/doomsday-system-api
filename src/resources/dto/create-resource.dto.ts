@@ -11,4 +11,8 @@ export class CreateResourceDto {
   /** e.g. 'food' | 'water' | 'hygiene' | 'defense' | 'ammo' */
   @IsString()
   category: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
