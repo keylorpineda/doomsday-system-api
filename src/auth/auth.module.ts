@@ -7,12 +7,15 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { Session } from './entities/session.entity';
 import { LoginAttempt } from './entities/login-attempt.entity';
+import { UserAccount } from '../users/entities/user-account.entity';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { SessionActivityInterceptor } from './interceptors/session-activity.interceptor';
+import { SessionInactivityGuard } from './guards/session-inactivity.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Session, LoginAttempt]),
+    TypeOrmModule.forFeature([Session, LoginAttempt, UserAccount]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -25,7 +28,17 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtModule],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    SessionActivityInterceptor,
+    SessionInactivityGuard,
+  ],
+  exports: [
+    AuthService,
+    JwtModule,
+    SessionActivityInterceptor,
+    SessionInactivityGuard,
+  ],
 })
 export class AuthModule {}
