@@ -14,46 +14,49 @@ import { ExplorationResource } from './exploration-resource.entity';
 @Entity('exploration')
 export class Exploration {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
-  id: number;
+  id!: number;
 
   @Column({ type: 'bigint' })
-  camp_id: number;
+  camp_id!: number;
 
   @Column({ type: 'text' })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
-  destination_description: string;
+  destination_description!: string;
 
   @Column({ type: 'timestamptz' })
-  departure_date: Date;
+  departure_date!: Date;
 
   @Column({ type: 'int' })
-  estimated_days: number;
+  estimated_days!: number;
 
   @Column({ type: 'int', default: 0 })
-  grace_days: number;
+  grace_days!: number;
 
   @Column({ type: 'timestamptz', nullable: true })
-  real_return_date: Date;
+  real_return_date!: Date;
 
   @Column({ type: 'text', default: 'scheduled' })
-  status: string;
+  status!: string;
+
+  @Column({ type: 'text', nullable: true })
+  notes!: string;
 
   @Column({ type: 'bigint', nullable: true })
-  user_create_id: number;
+  user_create_id!: number;
 
   @ManyToOne(() => Camp)
   @JoinColumn({ name: 'camp_id' })
-  camp: Camp;
+  camp!: Camp;
 
   @ManyToOne(() => UserAccount)
   @JoinColumn({ name: 'user_create_id' })
-  userCreate: UserAccount;
+  userCreate!: UserAccount;
 
   @OneToMany(() => ExplorationPerson, (ep) => ep.exploration)
-  explorationPersons: ExplorationPerson[];
+  explorationPersons!: ExplorationPerson[];
 
   @OneToMany(() => ExplorationResource, (er) => er.exploration)
-  explorationResources: ExplorationResource[];
+  explorationResources!: ExplorationResource[];
 }

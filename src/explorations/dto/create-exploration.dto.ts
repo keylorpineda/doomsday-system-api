@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsDateString,
   IsArray,
+  IsBoolean,
   ValidateNested,
   Min,
 } from 'class-validator';
@@ -14,6 +15,7 @@ export class ExplorationPersonDto {
   person_id: number;
 
   @IsOptional()
+  @IsBoolean()
   is_leader?: boolean;
 }
 
@@ -21,7 +23,6 @@ export class ExplorationResourceDto {
   @IsInt()
   resource_id: number;
 
-  /** 'out' = consumo al salir */
   @IsString()
   flow: string;
 
@@ -53,11 +54,10 @@ export class CreateExplorationDto {
   @Min(0)
   grace_days?: number;
 
-  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ExplorationPersonDto)
-  persons?: ExplorationPersonDto[];
+  persons: ExplorationPersonDto[];
 
   @IsOptional()
   @IsArray()
