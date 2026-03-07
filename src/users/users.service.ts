@@ -29,8 +29,6 @@ export class UsersService {
     private readonly productionService: ProductionService,
   ) {}
 
-  // ==================== USER ACCOUNT ====================
-
   async findUserById(id: number): Promise<UserAccount | null> {
     return this.userAccountRepo.findOne({
       where: { id },
@@ -44,9 +42,6 @@ export class UsersService {
       relations: ['role', 'person', 'person.profession', 'camp'],
     });
   }
-
-  // ==================== PERSON CRUD ====================
-  // Delegados a PersonsService
 
   async createPerson(dto: CreatePersonDto): Promise<Person> {
     return this.personsService.create(dto);
@@ -81,9 +76,6 @@ export class UsersService {
   ): Promise<Array<{ professionName: string; total: number; active: number; inactive: number }>> {
     return this.personsService.getStatsByProfession(campId);
   }
-
-  // ==================== PROFESSION MANAGEMENT ====================
-  // Delegados a ProfessionsService
 
   async findAllProfessions(): Promise<Profession[]> {
     return this.professionsService.findAll();
@@ -130,9 +122,6 @@ export class UsersService {
     return this.professionsService.getProfessionsWithExcess();
   }
 
-  // ==================== TEMPORARY ASSIGNMENTS ====================
-  // Delegados a AssignmentsService
-
   async createTemporaryAssignment(
     dto: CreateTemporaryAssignmentDto,
     approvedByUserId: number,
@@ -147,9 +136,6 @@ export class UsersService {
   async endTemporaryAssignment(assignmentId: number): Promise<TemporaryAssignment> {
     return this.assignmentsService.end(assignmentId);
   }
-
-  // ==================== PRODUCTION & CONSUMPTION ====================
-  // Delegados a ProductionService
 
   async calculateDailyProduction(campId: number): Promise<{
     totalFood: number;

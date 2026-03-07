@@ -27,8 +27,6 @@ import { CreateProfessionDto } from './dto/create-profession.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // ==================== PERSONS ====================
-
   @Get('persons')
   @Roles('admin', 'gestor_recursos', 'encargado_viajes')
   @ApiOperation({ summary: 'Obtener todas las personas del campamento' })
@@ -92,8 +90,6 @@ export class UsersController {
     return this.usersService.getPersonStatsByProfession(campId ? parseInt(campId) : undefined);
   }
 
-  // ==================== PROFESSIONS ====================
-
   @Get('professions')
   @ApiOperation({ summary: 'Obtener todas las profesiones' })
   async getAllProfessions() {
@@ -127,8 +123,6 @@ export class UsersController {
     return this.usersService.getProfessionsWithExcess();
   }
 
-  // ==================== TEMPORARY ASSIGNMENTS ====================
-
   @Post('temporary-assignments')
   @Roles('admin', 'gestor_recursos')
   @ApiOperation({ summary: 'Crear asignación temporal (debe ser aprobada después)' })
@@ -155,8 +149,6 @@ export class UsersController {
   async endTemporaryAssignment(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.endTemporaryAssignment(id);
   }
-
-  // ==================== PRODUCTION & CONSUMPTION ====================
 
   @Get('camp/:campId/production')
   @Roles('admin', 'gestor_recursos')

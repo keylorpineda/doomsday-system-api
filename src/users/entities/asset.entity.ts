@@ -18,10 +18,10 @@ export class Asset {
   description: string;
 
   @Column({ type: 'text' })
-  asset_type: string; // badge, achievement, medal, logo, icon, illustration, background
+  asset_type: string;
 
   @Column({ type: 'text', nullable: true })
-  category: string; // survival, exploration, leadership, combat, resource_management, etc.
+  category: string;
 
   @Column({ type: 'text' })
   url: string;
@@ -33,10 +33,10 @@ export class Asset {
   thumbnail_url: string;
 
   @Column({ type: 'int', nullable: true })
-  rarity: number; // 1=común, 2=raro, 3=épico, 4=legendario (para gamificación)
+  rarity: number;
 
   @Column({ type: 'json', nullable: true })
-  metadata: object; // Datos adicionales flexibles (criterios de desbloqueo, dimensiones, etc.)
+  metadata: object;
 
   @Column({ type: 'boolean', default: true })
   active: boolean;
