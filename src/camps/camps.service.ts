@@ -23,10 +23,6 @@ export class CampsService {
     private readonly dataSource: DataSource,
   ) {}
 
-
-   //Crea un campamento e inicializa su inventario con todos los recursos
-   //existentes en cantidad 0. Usa transacción para garantizar consistencia.
-   
   async create(dto: CreateCampDto): Promise<Camp> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -70,9 +66,6 @@ export class CampsService {
     }
   }
 
-  
-   //Lista todos los campamentos activos.
-   
   async findAll(): Promise<Camp[]> {
     return this.campRepo.find({
       where: { active: true },
@@ -80,9 +73,6 @@ export class CampsService {
     });
   }
 
-  
-   //Detalle de un campamento con métricas de su inventario.
-   
   async findOne(id: number): Promise<{
     camp: Camp;
     metrics: {
@@ -122,9 +112,6 @@ export class CampsService {
     };
   }
 
-  
-  //Actualiza los datos de un campamento.
-  
   async update(id: number, dto: UpdateCampDto): Promise<Camp> {
     const camp = await this.campRepo.findOne({ where: { id } });
     if (!camp) throw new NotFoundException(`Campamento #${id} no encontrado`);
@@ -139,9 +126,6 @@ export class CampsService {
     return this.campRepo.save(updated);
   }
 
-  
-   //Desactiva un campamento (soft delete). No elimina datos de BD.
-   
   async remove(id: number): Promise<{ message: string }> {
     const camp = await this.campRepo.findOne({ where: { id, active: true } });
     if (!camp)

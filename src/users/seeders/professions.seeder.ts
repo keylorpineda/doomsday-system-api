@@ -48,7 +48,7 @@ export class ProfessionsSeeder implements OnModuleInit {
   }
 
   async resetProfessions() {
-    this.logger.warn('⚠️  Resetting professions...');
+    this.logger.warn('Resetting professions...');
     await this.professionRepo.delete({});
     await this.seedProfessions();
   }

@@ -24,11 +24,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiBearerAuth()
 @ApiTags('Campamentos')
-@Controller({ path: 'camps', version: '1' })
+@Controller('camps')
 export class CampsController {
   constructor(private readonly campsService: CampsService) {}
 
-  // crear campamentos
   @Post()
   @Roles('admin')
   @ApiOperation({
@@ -44,7 +43,6 @@ export class CampsController {
     return this.campsService.create(dto);
   }
 
-  //ver la lista
   @Get()
   @ApiOperation({
     summary: 'Listar campamentos activos',
@@ -55,7 +53,6 @@ export class CampsController {
     return this.campsService.findAll();
   }
 
-  // ver el detalle
   @Get(':id')
   @ApiOperation({
     summary: 'Detalle de campamento',
@@ -68,7 +65,6 @@ export class CampsController {
     return this.campsService.findOne(id);
   }
 
-  // editar campamentos
   @Patch(':id')
   @Roles('admin')
   @ApiOperation({
@@ -85,7 +81,6 @@ export class CampsController {
     return this.campsService.update(id, dto);
   }
 
-  // desactivar campamentos
   @Delete(':id')
   @Roles('admin')
   @HttpCode(HttpStatus.OK)

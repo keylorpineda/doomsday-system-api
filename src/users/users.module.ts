@@ -32,6 +32,13 @@ import { ProductionService } from './services/production.service';
     ProductionService,
     ProfessionsSeeder,
   ],
-  exports: [UsersService, TypeOrmModule],
+  exports: [
+    UsersService,
+    PersonsService,
+    ProfessionsService,
+    AssignmentsService,
+    ProductionService,
+    TypeOrmModule,
+  ],
 })
 export class UsersModule {}
