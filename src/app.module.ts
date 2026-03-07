@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { AuthModule } from './auth/auth.module';
@@ -45,6 +46,8 @@ import { UploadModule } from './upload/upload.module';
       }),
       inject: [ConfigService],
     }),
+
+    ScheduleModule.forRoot(),
 
     AuthModule,
     UsersModule,
