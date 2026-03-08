@@ -39,6 +39,7 @@ import { SessionInactivityGuard } from './guards/session-inactivity.guard';
     JwtModule,
     SessionActivityInterceptor,
     SessionInactivityGuard,
+    TypeOrmModule, // ← Exportar para que Session repository esté disponible globalmente
   ],
 })
 export class AuthModule {}
