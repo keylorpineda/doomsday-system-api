@@ -7,6 +7,8 @@ import { Profession } from './entities/profession.entity';
 import { Role } from './entities/role.entity';
 import { UserAccount } from './entities/user-account.entity';
 import { TemporaryAssignment } from './entities/temporary-assignment.entity';
+import { Asset } from './entities/asset.entity';
+import { UserAsset } from './entities/user-asset.entity';
 import { ProfessionsSeeder } from './seeders/professions.seeder';
 import { PersonsService } from './services/persons.service';
 import { ProfessionsService } from './services/professions.service';
@@ -21,6 +23,8 @@ import { ProductionService } from './services/production.service';
       Role,
       UserAccount,
       TemporaryAssignment,
+      Asset,
+      UserAsset,
     ]),
   ],
   controllers: [UsersController],

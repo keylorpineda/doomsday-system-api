@@ -170,4 +170,13 @@ export class UsersController {
   async getDailyBalance(@Param('campId', ParseIntPipe) campId: number) {
     return this.usersService.calculateDailyBalance(campId);
   }
+
+  @Get('me/assigned-resources')
+  @Roles('trabajador', 'encargado_viajes')
+  @ApiOperation({ summary: 'Obtener recursos asignados al usuario autenticado' })
+  async getMyAssignedResources(@CurrentUser() user: any) {
+    const userId = user?.userId ?? user?.id;
+    return this.usersService.getAssignedResourcesByUser(userId);
+  }
+
 }

@@ -13,6 +13,7 @@ import { PersonsService } from './services/persons.service';
 import { ProfessionsService } from './services/professions.service';
 import { AssignmentsService } from './services/assignments.service';
 import { ProductionService } from './services/production.service';
+import { UserAsset } from './entities/user-asset.entity';
 
 /**
  * Servicio principal de usuarios - Actúa como orquestador
@@ -23,6 +24,8 @@ export class UsersService {
   constructor(
     @InjectRepository(UserAccount)
     private readonly userAccountRepo: Repository<UserAccount>,
+    @InjectRepository(UserAsset)
+    private readonly userAssetRepo: Repository<UserAsset>,
     private readonly personsService: PersonsService,
     private readonly professionsService: ProfessionsService,
     private readonly assignmentsService: AssignmentsService,
@@ -165,5 +168,13 @@ export class UsersService {
     persons: number;
   }> {
     return this.productionService.calculateDailyBalance(campId);
+  }
+
+  async getAssignedResourcesByUser(userId: number): Promise<UserAsset[]> {
+    return this.userAssetRepo.find({
+      where: { user_account_id: userId, relation_type: 'assigned' },
+      relations: ['asset'],
+      order: { acquired_at: 'DESC' },
+    });
   }
 }
