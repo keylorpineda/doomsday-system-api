@@ -16,7 +16,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "deploy:gcloud": "gcloud run deploy gestion-del-fin-api --source . --platform managed --region us-central1 --allow-unauthenticated",
+    "setup:keepalive": "powershell -ExecutionPolicy Bypass -File ./setup-keepalive.ps1"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

@@ -18,6 +18,7 @@ import { TransfersModule } from './transfers/transfers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AiModule } from './ai/ai.module';
 import { UploadModule } from './upload/upload.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -45,12 +46,17 @@ import { UploadModule } from './upload/upload.module';
         database: config.get('DB_NAME'),
         autoLoadEntities: true,
         synchronize: config.get('NODE_ENV') === 'development',
+        ssl: config.get('NODE_ENV') === 'production' 
+          ? { rejectUnauthorized: false } 
+          : false,
+        logging: config.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
     }),
 
     ScheduleModule.forRoot(),
 
+    HealthModule,
     AuthModule,
     UsersModule,
     CampsModule,
