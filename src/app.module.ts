@@ -46,7 +46,7 @@ import { DatabaseModule } from './database/database.module';
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: true, // TEMPORAL: Crear tablas en primera ejecución
+        synchronize: config.get('NODE_ENV') === 'development',
         ssl: config.get('NODE_ENV') === 'production' 
           ? { rejectUnauthorized: false } 
           : false,
