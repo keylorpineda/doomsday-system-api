@@ -45,7 +45,7 @@ import { HealthModule } from './health/health.module';
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: config.get('NODE_ENV') === 'development',
+        synchronize: true, // TEMPORAL: Crear tablas en primera ejecución
         ssl: config.get('NODE_ENV') === 'production' 
           ? { rejectUnauthorized: false } 
           : false,
