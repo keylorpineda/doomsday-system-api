@@ -18,5 +18,10 @@ npm-debug.log*
 .vscode/
 .idea/
 
+# Python virtual environment
+ai-microservice/venv/
+__pycache__/
+*.pyc
+
 # Coverage
 /coverage
