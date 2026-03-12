@@ -11,6 +11,7 @@ import { UsersModule } from '../users/users.module';
 import { CampAnalysisService } from './services/camp-analysis.service';
 import { AiEvaluationService } from './services/ai-evaluation.service';
 import { AdmissionReviewService } from './services/admission-review.service';
+import { PythonAiService } from './services/python-ai.service';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AdmissionReviewService } from './services/admission-review.service';
     CampAnalysisService,
     AiEvaluationService,
     AdmissionReviewService,
+    PythonAiService,
   ],
   exports: [AiService],
 })
