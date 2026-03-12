@@ -12,6 +12,8 @@ Instalar modelo spaCy (solo 1ª vez):
     python -m spacy download es_core_news_sm
 """
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,6 +21,7 @@ from config import get_settings
 from routers import admissions, resources, expeditions, events
 
 settings = get_settings()
+PORT = int(os.environ.get("PORT", 8080))
 
 app = FastAPI(
     title="IA No Generativa — Sistema de Reglas (Caja de Cristal)",
