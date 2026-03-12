@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AiAdmission } from './entities/ai-admission.entity';
@@ -10,9 +11,12 @@ import { CreateUserAccountDto } from './dto/create-user-account.dto';
 import { CampAnalysisService } from './services/camp-analysis.service';
 import { AiEvaluationService, EvaluationResult } from './services/ai-evaluation.service';
 import { AdmissionReviewService } from './services/admission-review.service';
+import { PythonAiService } from './services/python-ai.service';
 
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger(AiService.name);
+
   constructor(
     @InjectRepository(AiAdmission)
     private readonly admissionRepo: Repository<AiAdmission>,
@@ -21,6 +25,7 @@ export class AiService {
     private readonly campAnalysisService: CampAnalysisService,
     private readonly evaluationService: AiEvaluationService,
     private readonly reviewService: AdmissionReviewService,
+    private readonly pythonAiService: PythonAiService,
   ) {}
 
   async submitAdmission(dto: SubmitAdmissionDto): Promise<AiAdmission> {
@@ -50,16 +55,48 @@ export class AiService {
     const trackingCode = this.generateTrackingCode();
     const justification = this.evaluationService.generateJustification(evaluation, campContext, dto);
 
+    // ── Llamar al microservicio Python (NLP + Caja de Cristal) ─────────────
+    const pythonResult = await this.pythonAiService.analyzeAdmission(dto);
+
+    let finalScore   = evaluation.score;
+    let finalDecision: string = evaluation.decision;
+    let finalJustification  = justification;
+
+    if (pythonResult) {
+      // Combinar score: 60% NestJS estructural + 40% NLP Python
+      finalScore = Math.round(evaluation.score * 0.6 + pythonResult.nlp_percentage * 0.4);
+
+      // Override crítico: infección detectada → rechazar siempre
+      if (pythonResult.infection_detected) {
+        finalDecision = 'RECOMMEND_REJECT';
+        this.logger.warn(`Infection detected for ${dto.first_name} ${dto.last_name} — overriding to REJECT`);
+      } else if (pythonResult.nlp_decision_hint === 'RECOMMEND_ACCEPT' && finalScore >= 60) {
+        finalDecision = evaluation.decision; // mantener decisión NestJS si NLP también acepta
+      }
+
+      // Agregar reporte de transparencia al justificativo
+      finalJustification = `${justification}\n\n${'─'.repeat(64)}\nANÁLISIS IA (CAJA DE CRISTAL):\n${pythonResult.transparency_report}`;
+    } else {
+      this.logger.warn('Python AI microservice unavailable — using NestJS-only evaluation');
+    }
+
     const admission = this.admissionRepo.create({
       tracking_code: trackingCode,
       camp_id: dto.camp_id,
       candidate_data: dto,
-      score: evaluation.score,
+      score: finalScore,
       status: 'PENDING_REVIEW',
-      suggested_decision: evaluation.decision,
+      suggested_decision: finalDecision,
       suggested_profession_id: suggestedProfession?.id || null,
-      justification,
-      raw_ai_response: evaluation,
+      justification: finalJustification,
+      raw_ai_response: {
+        nestjs_evaluation: evaluation,
+        python_nlp: pythonResult ?? null,
+        combined_score: finalScore,
+        scoring_method: pythonResult
+          ? 'combined_60_40 (NestJS 60% + Python NLP 40%)'
+          : 'nestjs_only (Python microservice unavailable)',
+      },
     });
 
     return this.admissionRepo.save(admission);
