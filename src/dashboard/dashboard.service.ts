@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Camp } from '../camps/entities/camp.entity';
-import { Person } from '../users/entities/person.entity';
-import { Inventory } from '../resources/entities/inventory.entity';
-import { Exploration } from '../explorations/entities/exploration.entity';
-import { IntercampRequest } from '../transfers/entities/intercamp-request.entity';
-import { PersonStatus } from '../users/constants/professions.constants';
+import {
+  CampPopulationSummaryView,
+  InventoryStatusView,
+  InventoryAlertView,
+  TransferCampSummaryView,
+  ExplorationSummaryView,
+} from '../database/views';
 
 interface CampMetrics {
   totalPeople: number;
@@ -47,31 +48,31 @@ export interface DashboardMetricsResponse {
 @Injectable()
 export class DashboardService {
   constructor(
-    @InjectRepository(Camp)
-    private readonly campRepo: Repository<Camp>,
-    @InjectRepository(Person)
-    private readonly personRepo: Repository<Person>,
-    @InjectRepository(Inventory)
-    private readonly inventoryRepo: Repository<Inventory>,
-    @InjectRepository(Exploration)
-    private readonly explorationRepo: Repository<Exploration>,
-    @InjectRepository(IntercampRequest)
-    private readonly transferRepo: Repository<IntercampRequest>,
+    @InjectRepository(CampPopulationSummaryView)
+    private readonly campPopulationView: Repository<CampPopulationSummaryView>,
+    @InjectRepository(InventoryStatusView)
+    private readonly inventoryStatusView: Repository<InventoryStatusView>,
+    @InjectRepository(InventoryAlertView)
+    private readonly inventoryAlertView: Repository<InventoryAlertView>,
+    @InjectRepository(TransferCampSummaryView)
+    private readonly transferSummaryView: Repository<TransferCampSummaryView>,
+    @InjectRepository(ExplorationSummaryView)
+    private readonly explorationSummaryView: Repository<ExplorationSummaryView>,
   ) {}
 
   async getMetricsByCamp(
     campId: number,
     role: string,
   ): Promise<DashboardMetricsResponse> {
-    const camp = await this.campRepo.findOne({
-      where: { id: campId, active: true },
+    const campPopulation = await this.campPopulationView.findOne({
+      where: { camp_id: campId },
     });
 
-    if (!camp) {
+    if (!campPopulation) {
       throw new NotFoundException(`Camp with ID ${campId} was not found`);
     }
 
-    const campMetrics = await this.buildCampMetrics(campId, camp.max_capacity);
+    const campMetrics = await this.buildCampMetrics(campId, campPopulation);
     const warehouse = await this.buildWarehouseMetrics(campId);
     const transfers = await this.buildTransferMetrics(campId);
 
@@ -87,26 +88,10 @@ export class DashboardService {
 
   private async buildCampMetrics(
     campId: number,
-    maxCapacity: number | null,
+    campPopulation: CampPopulationSummaryView,
   ): Promise<CampMetrics> {
-    const totalPeople = await this.personRepo
-      .createQueryBuilder('person')
-      .leftJoin('person.userAccount', 'userAccount')
-      .where('userAccount.camp_id = :campId', { campId })
-      .andWhere('person.status != :deceased', {
-        deceased: PersonStatus.DECEASED,
-      })
-      .getCount();
-
-    const activeWorkers = await this.personRepo
-      .createQueryBuilder('person')
-      .leftJoin('person.userAccount', 'userAccount')
-      .where('userAccount.camp_id = :campId', { campId })
-      .andWhere('person.can_work = :canWork', { canWork: true })
-      .andWhere('person.status = :status', { status: PersonStatus.ACTIVE })
-      .getCount();
-
-    const activeExplorations = await this.explorationRepo.count({
+    // Count active explorations from the exploration summary view
+    const activeExplorations = await this.explorationSummaryView.count({
       where: {
         camp_id: campId,
         status: 'in_progress',
@@ -114,14 +99,13 @@ export class DashboardService {
     });
 
     return {
-      totalPeople,
-      activeWorkers,
-      unavailablePeople: totalPeople - activeWorkers,
-      campCapacity: maxCapacity ?? null,
-      occupancyRate:
-        maxCapacity && maxCapacity > 0
-          ? Number(((totalPeople / maxCapacity) * 100).toFixed(2))
-          : null,
+      totalPeople: Number(campPopulation.total_people),
+      activeWorkers: Number(campPopulation.active_workers),
+      unavailablePeople: Number(campPopulation.unavailable_people),
+      campCapacity: campPopulation.max_capacity,
+      occupancyRate: campPopulation.occupancy_rate
+        ? Number(campPopulation.occupancy_rate)
+        : null,
       activeExplorations,
     };
   }
@@ -129,28 +113,32 @@ export class DashboardService {
   private async buildWarehouseMetrics(
     campId: number,
   ): Promise<WarehouseMetrics> {
-    const inventory = await this.inventoryRepo.find({
+    // Get all inventory items for the camp
+    const inventoryItems = await this.inventoryStatusView.find({
       where: { camp_id: campId },
-      relations: ['resource'],
       order: { resource_id: 'ASC' },
     });
 
-    const criticalResources = inventory
-      .filter((item) => item.alert_active)
-      .map((item) => ({
-        resourceId: Number(item.resource_id),
-        resourceName: item.resource?.name ?? 'Unknown',
-        currentQuantity: Number(item.current_quantity),
-        minimumRequired: Number(item.minimum_stock_required),
-      }));
+    // Get critical resources (with alerts)
+    const criticalResourcesView = await this.inventoryAlertView.find({
+      where: { camp_id: campId },
+      order: { resource_id: 'ASC' },
+    });
 
-    const inventoryTotalQuantity = inventory.reduce(
+    const criticalResources = criticalResourcesView.map((item) => ({
+      resourceId: Number(item.resource_id),
+      resourceName: item.resource_name,
+      currentQuantity: Number(item.current_quantity),
+      minimumRequired: Number(item.minimum_stock_required),
+    }));
+
+    const inventoryTotalQuantity = inventoryItems.reduce(
       (acc, item) => acc + Number(item.current_quantity),
       0,
     );
 
     return {
-      totalResourceTypes: inventory.length,
+      totalResourceTypes: inventoryItems.length,
       resourcesWithAlerts: criticalResources.length,
       inventoryTotalQuantity,
       criticalResources,
@@ -158,38 +146,22 @@ export class DashboardService {
   }
 
   private async buildTransferMetrics(campId: number): Promise<TransfersMetrics> {
-    const [pendingTransfers, approvedTransfers, completedTransfers] =
-      await Promise.all([
-        this.transferRepo
-          .createQueryBuilder('request')
-          .where(
-            '(request.camp_origin_id = :campId OR request.camp_destination_id = :campId)',
-            { campId },
-          )
-          .andWhere('request.status = :status', { status: 'pending' })
-          .getCount(),
-        this.transferRepo
-          .createQueryBuilder('request')
-          .where(
-            '(request.camp_origin_id = :campId OR request.camp_destination_id = :campId)',
-            { campId },
-          )
-          .andWhere('request.status = :status', { status: 'approved' })
-          .getCount(),
-        this.transferRepo
-          .createQueryBuilder('request')
-          .where(
-            '(request.camp_origin_id = :campId OR request.camp_destination_id = :campId)',
-            { campId },
-          )
-          .andWhere('request.status = :status', { status: 'completed' })
-          .getCount(),
-      ]);
+    const transferSummary = await this.transferSummaryView.findOne({
+      where: { camp_id: campId },
+    });
+
+    if (!transferSummary) {
+      return {
+        pendingTransfers: 0,
+        approvedTransfers: 0,
+        completedTransfers: 0,
+      };
+    }
 
     return {
-      pendingTransfers,
-      approvedTransfers,
-      completedTransfers,
+      pendingTransfers: Number(transferSummary.pending),
+      approvedTransfers: Number(transferSummary.approved),
+      completedTransfers: Number(transferSummary.completed),
     };
   }
 }

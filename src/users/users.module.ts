@@ -10,6 +10,7 @@ import { TemporaryAssignment } from './entities/temporary-assignment.entity';
 import { Asset } from './entities/asset.entity';
 import { UserAsset } from './entities/user-asset.entity';
 import { ProfessionsSeeder } from './seeders/professions.seeder';
+import { RolesSeeder } from './seeders/roles.seeder';
 import { PersonsService } from './services/persons.service';
 import { ProfessionsService } from './services/professions.service';
 import { AssignmentsService } from './services/assignments.service';
@@ -35,6 +36,7 @@ import { ProductionService } from './services/production.service';
     AssignmentsService,
     ProductionService,
     ProfessionsSeeder,
+    RolesSeeder,
   ],
   exports: [
     UsersService,
