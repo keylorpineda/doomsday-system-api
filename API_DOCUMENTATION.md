@@ -38,31 +38,7 @@
 
 ---
 
-## 🔑 Credenciales (Development)
 
-### **Base de Datos Supabase**
-```env
-DB_HOST=db.txfmjrhmqiuuxmhptemx.supabase.co
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=***REMOVED***
-DB_NAME=postgres
-```
-
-### **Cloudinary**
-```env
-CLOUDINARY_CLOUD_NAME=***REMOVED***
-CLOUDINARY_API_KEY=635582815317377
-CLOUDINARY_API_SECRET=cggtg0pEeRRcDLQiWu_VgQ_vIts
-```
-
-### **JWT**
-```env
-JWT_SECRET=***REMOVED***
-JWT_EXPIRES_IN=20m
-```
-
----
 
 ## 📡 Endpoints del API
 
