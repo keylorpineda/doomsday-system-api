@@ -142,12 +142,21 @@ src/
 
 ## 🔐 Roles del sistema
 
+### Roles Obligatorios (Enunciado)
 | Rol | Descripción |
 |---|---|
-| `admin_sistema` | Ve todo, gestiona ingresos de personas |
-| `trabajador` | Cambios de inventario autorizados |
-| `gestion_recursos` | Traslados y envíos de recursos |
-| `encargado_viajes` | Expediciones y negociaciones intercampamento |
+| `admin` | Administrador del sistema - Ve todo, gestiona ingresos de personas |
+| `trabajador` | Trabajador - Cambios de inventario autorizados |
+| `gestor_recursos` | Gestión de recursos - Traslados y envíos de recursos |
+| `encargado_viajes` | Encargado de viajes - Expediciones y negociaciones intercampamento |
+
+### Roles Adicionales (Justificados)
+| Rol | Descripción | Justificación |
+|---|---|---|
+| `lider_campamento` | Líder de campamento - Gestiona UN campamento específico (scope local) | Sistema multi-campamento requiere gestión local sin acceso global |
+| `supervisor` | Supervisor/Auditor - Audita operaciones (solo lectura) | Requerimiento de auditoría del enunciado |
+
+📖 Ver documentación completa: [docs/ROLES_Y_PROFESIONES.md](docs/ROLES_Y_PROFESIONES.md)
 
 ---
 
