@@ -16,3 +16,4 @@ test
 *.spec.ts
 .prettierrc
 .eslintrc.js
+ai-microservice
