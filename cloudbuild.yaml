@@ -56,6 +56,15 @@ steps:
           --region=us-central1 \
           --platform=managed \
           --format='value(status.url)')
+
+        REQUIRED_VARS="_DB_HOST _DB_PORT _DB_USER _DB_PASS _DB_NAME _JWT_SECRET _ANTHROPIC_API_KEY _CORS_ORIGIN _CLOUDINARY_CLOUD_NAME _CLOUDINARY_API_KEY _CLOUDINARY_API_SECRET"
+        for VAR_NAME in $$REQUIRED_VARS; do
+          if [ -z "$${!VAR_NAME}" ]; then
+            echo "ERROR: Required Cloud Build substitution '$$VAR_NAME' is empty. Configure it in the trigger substitutions."
+            exit 1
+          fi
+        done
+
         gcloud run deploy gestion-del-fin-api \
           --image=gcr.io/$PROJECT_ID/gestion-del-fin-api:$COMMIT_SHA \
           --region=us-central1 \
