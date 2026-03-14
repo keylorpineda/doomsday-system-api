@@ -14,11 +14,11 @@
 - **Hora del Servidor:** `https://gestion-del-fin-api-614190957140.us-central1.run.app/api/health/server-time`
 
 ### **Base de Datos (Supabase)**
-- **Dashboard:** `https://supabase.com/dashboard/project/txfmjrhmqiuuxmhptemx`
-- **Table Editor:** `https://supabase.com/dashboard/project/txfmjrhmqiuuxmhptemx/editor`
-- **SQL Editor:** `https://supabase.com/dashboard/project/txfmjrhmqiuuxmhptemx/sql`
-- **Database URL:** `db.txfmjrhmqiuuxmhptemx.supabase.co:5432`
-- **Database Name:** `postgres`
+- **Dashboard:** `https://supabase.com/dashboard/project/<supabase-project-id>`
+- **Table Editor:** `https://supabase.com/dashboard/project/<supabase-project-id>/editor`
+- **SQL Editor:** `https://supabase.com/dashboard/project/<supabase-project-id>/sql`
+- **Database URL:** `<db-host>:5432`
+- **Database Name:** `<db-name>`
 
 ### **Google Cloud Console**
 - **Cloud Run Service:** `https://console.cloud.google.com/run/detail/us-central1/gestion-del-fin-api?project=gestion-fin-apocalipsis`
@@ -29,9 +29,9 @@
 - **Cloud Scheduler Jobs:** `https://console.cloud.google.com/cloudscheduler?project=gestion-fin-apocalipsis`
 
 ### **Cloudinary (Imágenes)**
-- **Dashboard:** `https://console.cloudinary.com/console/c-dq3sagbgi`
-- **Media Library:** `https://console.cloudinary.com/console/c-dq3sagbgi/media_library`
-- **Cloud Name:** `dq3sagbgi`
+- **Dashboard:** `https://console.cloudinary.com/console/c-<cloud-name>`
+- **Media Library:** `https://console.cloudinary.com/console/c-<cloud-name>/media_library`
+- **Cloud Name:** `<cloud-name>`
 
 ### **Repositorio GitHub**
 - **Backend:** `https://github.com/keylorpineda/ProjectProgrammingIV-BackEnd`
