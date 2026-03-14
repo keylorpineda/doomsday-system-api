@@ -61,7 +61,7 @@ steps:
           --region=us-central1 \
           --platform=managed \
           --allow-unauthenticated \
-          --set-env-vars=AI_SERVICE_URL=$${AI_URL}
+          --set-env-vars="AI_SERVICE_URL=$$AI_URL,DB_HOST=$_DB_HOST,DB_PORT=$_DB_PORT,DB_USER=$_DB_USER,DB_PASS=$_DB_PASS,DB_NAME=$_DB_NAME,JWT_SECRET=$_JWT_SECRET,JWT_EXPIRES_IN=20m,NODE_ENV=production,PORT=8080,ANTHROPIC_API_KEY=$_ANTHROPIC_API_KEY,CORS_ORIGIN=$_CORS_ORIGIN,CLOUDINARY_CLOUD_NAME=$_CLOUDINARY_CLOUD_NAME,CLOUDINARY_API_KEY=$_CLOUDINARY_API_KEY,CLOUDINARY_API_SECRET=$_CLOUDINARY_API_SECRET"
 
 images:
   - 'gcr.io/$PROJECT_ID/gestion-del-fin-ai:$COMMIT_SHA'
