@@ -29,9 +29,9 @@
 - **Cloud Scheduler Jobs:** `https://console.cloud.google.com/cloudscheduler?project=gestion-fin-apocalipsis`
 
 ### **Cloudinary (Imágenes)**
-- **Dashboard:** `https://console.cloudinary.com/console/c-***REMOVED***`
-- **Media Library:** `https://console.cloudinary.com/console/c-***REMOVED***/media_library`
-- **Cloud Name:** `***REMOVED***`
+- **Dashboard:** `https://console.cloudinary.com/console/c-dq3sagbgi`
+- **Media Library:** `https://console.cloudinary.com/console/c-dq3sagbgi/media_library`
+- **Cloud Name:** `dq3sagbgi`
 
 ### **Repositorio GitHub**
 - **Backend:** `https://github.com/keylorpineda/ProjectProgrammingIV-BackEnd`

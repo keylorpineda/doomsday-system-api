@@ -57,7 +57,7 @@ steps:
           --platform=managed \
           --format='value(status.url)')
         gcloud run deploy gestion-del-fin-api \
-          --image=gcr.io/$$PROJECT_ID/gestion-del-fin-api:$$COMMIT_SHA \
+          --image=gcr.io/$PROJECT_ID/gestion-del-fin-api:$COMMIT_SHA \
           --region=us-central1 \
           --platform=managed \
           --allow-unauthenticated \
