@@ -1,0 +1,42 @@
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nest-backend
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+      - NODE_ENV=development
+      - PORT=8080
+      # Variables de conexión a Supabase (ajusta según tu .env o config)
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - AI_SERVICE_URL=http://ai-microservice:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - ai-microservice
+    restart: unless-stopped
+
+  ai-microservice:
+    build:
+      context: ./ai-microservice
+      dockerfile: Dockerfile
+    container_name: ai-microservice
+    environment:
+      - PORT=8080
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+# No se incluye base de datos local, ya que usas Supabase.
+# Crea un archivo .env con las variables necesarias para la conexión.

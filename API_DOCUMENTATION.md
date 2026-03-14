@@ -7,11 +7,11 @@
 
 ## 🌐 URLs Principales
 
-### **Backend API (Producción)**
-- **URL Base:** `https://gestion-del-fin-api-614190957140.us-central1.run.app`
-- **Swagger Docs:** `https://gestion-del-fin-api-614190957140.us-central1.run.app/api/docs`
-- **Health Check:** `https://gestion-del-fin-api-614190957140.us-central1.run.app/api/health`
-- **Hora del Servidor:** `https://gestion-del-fin-api-614190957140.us-central1.run.app/api/health/server-time`
+### **Backend API (Local Docker Compose)**
+- **URL Base:** `http://localhost:8080`
+- **Swagger Docs:** `http://localhost:8080/api/docs`
+- **Health Check:** `http://localhost:8080/api/health`
+- **Hora del Servidor:** `http://localhost:8080/api/health/server-time`
 
 ### **Base de Datos (Supabase)**
 - **Dashboard:** `https://supabase.com/dashboard/project/<supabase-project-id>`
