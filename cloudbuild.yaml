@@ -59,6 +59,17 @@ steps:
     id: 'deploy-api'
     waitFor: ['deploy-ai', 'push-api']
     entrypoint: bash
+    env:
+      - '_DB_HOST=$_DB_HOST'
+      - '_DB_PORT=$_DB_PORT'
+      - '_DB_USER=$_DB_USER'
+      - '_DB_PASS=$_DB_PASS'
+      - '_DB_NAME=$_DB_NAME'
+      - '_JWT_SECRET=$_JWT_SECRET'
+      - '_CORS_ORIGIN=$_CORS_ORIGIN'
+      - '_CLOUDINARY_CLOUD_NAME=$_CLOUDINARY_CLOUD_NAME'
+      - '_CLOUDINARY_API_KEY=$_CLOUDINARY_API_KEY'
+      - '_CLOUDINARY_API_SECRET=$_CLOUDINARY_API_SECRET'
     args:
       - '-c'
       - |
