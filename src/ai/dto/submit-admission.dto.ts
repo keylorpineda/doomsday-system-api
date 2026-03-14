@@ -8,13 +8,6 @@ import {
   IsEmail,
   Min,
   Max,
-  @ApiPropertyOptional({
-    example: 'Era médico en el hospital central antes del colapso. Perdió a su familia en el primer mes.',
-    description: 'Historia personal del candidato para análisis NLP (Caja de Cristal)',
-  })
-  @IsOptional()
-  @IsString()
-  personal_history?: string;
   MinLength,
   IsEnum,
 } from 'class-validator';
@@ -111,4 +104,12 @@ export class SubmitAdmissionDto {
   @IsOptional()
   @IsEmail()
   contact_email?: string;
+
+  @ApiPropertyOptional({
+    example: 'Era médico en el hospital central antes del colapso. Perdió a su familia en el primer mes.',
+    description: 'Historia personal del candidato para análisis NLP (Caja de Cristal)',
+  })
+  @IsOptional()
+  @IsString()
+  personal_history?: string;
 }
