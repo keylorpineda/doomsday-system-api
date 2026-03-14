@@ -61,7 +61,7 @@ steps:
           --region=us-central1 \
           --platform=managed \
           --allow-unauthenticated \
-          --set-env-vars=AI_SERVICE_URL=$${AI_URL}
+          --update-env-vars=AI_SERVICE_URL=$${AI_URL}
 
 images:
   - 'gcr.io/$PROJECT_ID/gestion-del-fin-ai:$COMMIT_SHA'
