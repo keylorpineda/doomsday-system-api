@@ -1,4 +1,4 @@
-﻿import {
+import {
   IsString,
   IsInt,
   IsNumber,
@@ -9,15 +9,8 @@
   Min,
   Max,
   MinLength,
-  IsEnum,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-
-enum Gender {
-  MALE = "male",
-  FEMALE = "female",
-  OTHER = "other",
-}
 
 export class SubmitAdmissionDto {
   @ApiProperty({ example: "Sarah" })
@@ -30,15 +23,19 @@ export class SubmitAdmissionDto {
   @MinLength(2)
   last_name: string;
 
+  @ApiPropertyOptional({
+    example: "Reyes",
+    description: "Segundo apellido (opcional)",
+  })
+  @IsOptional()
+  @IsString()
+  last_name2?: string;
+
   @ApiProperty({ example: 35 })
   @IsInt()
   @Min(16)
   @Max(80)
   age: number;
-
-  @ApiProperty({ enum: Gender, example: "female" })
-  @IsEnum(Gender)
-  gender: Gender;
 
   @ApiProperty({ example: 95, description: "Health status 0-100" })
   @IsNumber()

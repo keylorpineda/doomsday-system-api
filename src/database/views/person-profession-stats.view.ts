@@ -1,4 +1,4 @@
-﻿import { ViewEntity, ViewColumn } from "typeorm";
+import { ViewEntity, ViewColumn } from "typeorm";
 
 @ViewEntity({
   name: "vw_person_profession_stats",
@@ -7,9 +7,9 @@
       ua.camp_id,
       pr.name       AS profession_name,
       COUNT(*)      AS total,
-      COUNT(CASE WHEN p.can_work = TRUE AND p.status = "active" THEN 1 END)
+      COUNT(CASE WHEN p.can_work = TRUE AND p.status = 'active' THEN 1 END)
                     AS active,
-      COUNT(CASE WHEN p.can_work = FALSE OR p.status != "active" THEN 1 END)
+      COUNT(CASE WHEN p.can_work = FALSE OR p.status != 'active' THEN 1 END)
                     AS inactive
     FROM person p
     LEFT JOIN profession pr   ON pr.id = p.profession_id

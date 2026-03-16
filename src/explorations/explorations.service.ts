@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -129,10 +129,9 @@ export class ExplorationsService {
         expPersons.push(await queryRunner.manager.save(ep));
       }
 
-      const foodResource = (await this.resourcesService.findAll()).find(
-        (r) => r.category === "food",
-      );
-      const waterResource = (await this.resourcesService.findAll()).find(
+      const allResources = await this.resourcesService.findAll(1, 1000);
+      const foodResource = allResources.data.find((r) => r.category === "food");
+      const waterResource = allResources.data.find(
         (r) => r.category === "water",
       );
 

@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -55,6 +55,7 @@ export class AdmissionReviewService {
       const person = this.personRepo.create({
         first_name: candidateData.first_name,
         last_name: candidateData.last_name,
+        last_name2: candidateData.last_name2 || null,
         birth_date: new Date(
           new Date().getFullYear() - candidateData.age,
           0,
