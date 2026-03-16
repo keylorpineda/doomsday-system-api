@@ -147,7 +147,13 @@ export class AiService {
       tracking_code: admission.tracking_code,
       status: admission.status,
       camp_name: admission.camp.name,
-      candidate_name: `${candidateData.first_name} ${candidateData.last_name}`,
+      candidate_name: [
+        candidateData.first_name,
+        candidateData.last_name,
+        candidateData.last_name2,
+      ]
+        .filter(Boolean)
+        .join(" "),
       submission_date: admission.submission_date,
       review_date: admission.review_date,
       final_decision: admission.final_human_decision,
@@ -156,17 +162,41 @@ export class AiService {
     };
   }
 
-  async getPendingAdmissions(campId?: number): Promise<AiAdmission[]> {
+  async getPendingAdmissions(
+    campId?: number,
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: AiAdmission[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const where: any = { status: "PENDING_REVIEW" };
     if (campId) {
       where.camp_id = campId;
     }
 
-    return this.admissionRepo.find({
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (safePage - 1) * safeLimit;
+
+    const [data, total] = await this.admissionRepo.findAndCount({
       where,
       relations: ["camp", "suggestedProfession"],
       order: { submission_date: "DESC" },
+      skip,
+      take: safeLimit,
     });
+
+    return {
+      data,
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
+    };
   }
 
   async getAdmissionDetail(id: number): Promise<AiAdmission> {

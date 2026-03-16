@@ -104,6 +104,8 @@ Content-Type: application/json
 | PUT | `/api/users/persons/:id` | Actualizar persona | ✅ |
 | PUT | `/api/users/persons/:id/status` | Cambiar estado (enfermo, herido) | ✅ |
 | DELETE | `/api/users/persons/:id` | Eliminar persona | ✅ |
+| GET | `/api/users/persons/stats/by-status` | **[NUEVO DOC]** Estadísticas métricas por estado | ✅ |
+| GET | `/api/users/persons/stats/by-profession`| **[NUEVO DOC]** Estadísticas métricas por profesión | ✅ |
 | GET | `/api/users/professions` | Listar profesiones | ✅ |
 | POST | `/api/users/professions` | Crear profesión | ✅ |
 | GET | `/api/users/professions/alerts/needing-workers` | Profesiones sin trabajadores | ✅ |
@@ -111,6 +113,11 @@ Content-Type: application/json
 | GET | `/api/users/temporary-assignments` | Listar asignaciones activas | ✅ |
 | PUT | `/api/users/temporary-assignments/:id/end` | Finalizar asignación | ✅ |
 | GET | `/api/users/me/assigned-resources` | Recursos asignados al usuario | ✅ |
+| GET | `/api/users/assets` | **[NUEVO]** Listar insignias/assets (Gamificación) | ✅ |
+| GET | `/api/users/me/badges` | **[NUEVO]** Insignias ganadas por el usuario | ✅ |
+| POST | `/api/users/me/badges/:id/display` | **[NUEVO]** Mostrar/ocultar insignia en perfil | ✅ |
+
+> **Nota sobre paginación:** Los endpoints de listado (`/persons`, `/resources`, `/ai/admissions/pending`) aceptan los query params `?page=1&limit=20` para manejo de grandes volúmenes de datos.
 
 ---
 
@@ -157,9 +164,26 @@ Authorization: Bearer {token}
 | GET | `/api/transfers/requests/:id` | Detalle de solicitud | ✅ |
 | GET | `/api/transfers/requests/camp/:campId` | Solicitudes del campamento | ✅ |
 | GET | `/api/transfers/requests/camp/:campId/pending` | Solicitudes pendientes | ✅ |
-| PATCH | `/api/transfers/requests/:id/approval` | Aprobar/rechazar solicitud | ✅ |
+| PATCH | `/api/transfers/requests/:id/approval` | Aprobar/rechazar solicitud ("Doble Aprobación") | ✅ |
 | PATCH | `/api/transfers/requests/:id/cancel` | Cancelar solicitud | ✅ |
 | GET | `/api/transfers/statistics/:campId` | Estadísticas de transferencias | ✅ |
+
+> **📝 Nota sobre transferencias y doble aprobación:** 
+> 1. Al enviar **personas**, incluir el array `person_details` con el rol (`is_leader`). El backend actualizará dinámicamente el `camp_id` de las personas al completar.
+> 2. Una transferencia *"prestada o enviada"* se crea en estado `pending` y no se ejecuta hasta que **ambos** campamentos llamen al endpoint `/:id/approval` (doble aprobación al origen y destino).
+
+**Ejemplo Transferencia Mixta (Recursos y Personas):**
+```bash
+POST /api/transfers/requests
+{
+  "camp_origin_id": 1,
+  "camp_destination_id": 2,
+  "type": "both",
+  "notes": "Envío 2 guardias y recursos",
+  "resource_details": [{ "resource_id": 1, "requested_quantity": 50 }],
+  "person_details": [{ "person_id": 10, "is_leader": true }, { "person_id": 11, "is_leader": false }]
+}
+```
 
 ---
 

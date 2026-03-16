@@ -50,9 +50,17 @@ export class AiController {
   @Roles("admin", "gestor_recursos")
   @ApiOperation({ summary: "Get pending admissions for review" })
   @ApiQuery({ name: "campId", required: false, description: "Filter by camp" })
-  async getPendingAdmissions(@Query("campId") campId?: string) {
+  @ApiQuery({ name: "page", required: false, description: "Page number" })
+  @ApiQuery({ name: "limit", required: false, description: "Items per page" })
+  async getPendingAdmissions(
+    @Query("campId") campId?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
     return this.aiService.getPendingAdmissions(
       campId ? parseInt(campId) : undefined,
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
     );
   }
 

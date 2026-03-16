@@ -1,4 +1,4 @@
-﻿import { ViewEntity, ViewColumn } from "typeorm";
+import { ViewEntity, ViewColumn } from "typeorm";
 
 @ViewEntity({
   name: "vw_exploration_summary",
@@ -19,17 +19,17 @@
       COUNT(DISTINCT ep.person_id)    AS total_persons,
       COUNT(DISTINCT CASE WHEN ep.is_leader = TRUE THEN ep.person_id END)
                                       AS leader_count,
-      COALESCE(SUM(er_out.quantity) FILTER (WHERE er_out.flow = "out"), 0)
+      COALESCE(SUM(er_out.quantity) FILTER (WHERE er_out.flow = 'out'), 0)
                                       AS total_resources_out,
-      COALESCE(SUM(er_in.quantity) FILTER (WHERE er_in.flow = "in"), 0)
+      COALESCE(SUM(er_in.quantity) FILTER (WHERE er_in.flow = 'in'), 0)
                                       AS total_resources_in
     FROM exploration e
     INNER JOIN camp ca ON ca.id = e.camp_id
     LEFT JOIN exploration_person ep   ON ep.exploration_id = e.id
     LEFT JOIN exploration_resource er_out
-      ON er_out.exploration_id = e.id AND er_out.flow = "out"
+      ON er_out.exploration_id = e.id AND er_out.flow = 'out'
     LEFT JOIN exploration_resource er_in
-      ON er_in.exploration_id = e.id AND er_in.flow = "in"
+      ON er_in.exploration_id = e.id AND er_in.flow = 'in'
     GROUP BY e.id, e.camp_id, ca.name, e.name, e.destination_description,
              e.departure_date, e.estimated_days, e.grace_days,
              e.real_return_date, e.status, e.notes, e.user_create_id
