@@ -1,32 +1,26 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
-import { Exploration } from './exploration.entity';
-import { Resource } from '../../resources/entities/resource.entity';
+﻿import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Exploration } from "./exploration.entity";
+import { Resource } from "../../resources/entities/resource.entity";
 
-@Entity('exploration_resource')
+@Entity("exploration_resource")
 export class ExplorationResource {
-  @PrimaryColumn({ type: 'bigint' })
+  @PrimaryColumn({ type: "bigint" })
   exploration_id!: number;
 
-  @PrimaryColumn({ type: 'text' })
+  @PrimaryColumn({ type: "text" })
   flow!: string;
 
-  @PrimaryColumn({ type: 'bigint' })
+  @PrimaryColumn({ type: "bigint" })
   resource_id!: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 3 })
+  @Column({ type: "decimal", precision: 12, scale: 3 })
   quantity!: number;
 
   @ManyToOne(() => Exploration, (e) => e.explorationResources)
-  @JoinColumn({ name: 'exploration_id' })
+  @JoinColumn({ name: "exploration_id" })
   exploration!: Exploration;
 
   @ManyToOne(() => Resource)
-  @JoinColumn({ name: 'resource_id' })
+  @JoinColumn({ name: "resource_id" })
   resource!: Resource;
 }

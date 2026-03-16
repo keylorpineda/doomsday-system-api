@@ -1,7 +1,7 @@
-import { ViewEntity, ViewColumn } from 'typeorm';
+﻿import { ViewEntity, ViewColumn } from "typeorm";
 
 @ViewEntity({
-  name: 'vw_inventory_status',
+  name: "vw_inventory_status",
   expression: `
     SELECT
       i.camp_id,

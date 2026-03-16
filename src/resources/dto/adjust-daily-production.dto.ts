@@ -1,4 +1,4 @@
-import { IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class AdjustDailyProductionDto {
   @IsOptional()

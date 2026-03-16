@@ -1,7 +1,7 @@
-import { ViewEntity, ViewColumn } from 'typeorm';
+﻿import { ViewEntity, ViewColumn } from "typeorm";
 
 @ViewEntity({
-  name: 'vw_active_temporary_assignment',
+  name: "vw_active_temporary_assignment",
   expression: `
     SELECT
       ta.id                       AS assignment_id,

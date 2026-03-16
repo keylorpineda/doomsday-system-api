@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
 import {
   CampPopulationSummaryView,
   PersonStatusStatsView,
@@ -9,7 +9,7 @@ import {
   TransferCampSummaryView,
   ExplorationSummaryView,
   ActiveTemporaryAssignmentView,
-} from './views';
+} from "./views";
 
 @Module({
   imports: [

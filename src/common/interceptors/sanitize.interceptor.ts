@@ -1,10 +1,10 @@
-import {
+﻿import {
   Injectable,
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from '@nestjs/common';
-import { filterXSS } from 'xss';
+} from "@nestjs/common";
+import { filterXSS } from "xss";
 
 @Injectable()
 export class SanitizeInterceptor implements NestInterceptor {
@@ -23,7 +23,7 @@ export class SanitizeInterceptor implements NestInterceptor {
   }
 
   private sanitize(value: unknown): unknown {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return filterXSS(value, { whiteList: {}, stripIgnoreTag: true });
     }
 
@@ -31,7 +31,7 @@ export class SanitizeInterceptor implements NestInterceptor {
       return value.map((item) => this.sanitize(item));
     }
 
-    if (value !== null && typeof value === 'object') {
+    if (value !== null && typeof value === "object") {
       const result: Record<string, unknown> = {};
       for (const key of Object.keys(value as object)) {
         result[key] = this.sanitize((value as Record<string, unknown>)[key]);

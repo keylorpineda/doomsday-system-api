@@ -1,15 +1,15 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { Camp } from './entities/camp.entity';
-import { Inventory } from '../resources/entities/inventory.entity';
-import { Resource } from '../resources/entities/resource.entity';
-import { CreateCampDto } from './dto/create-camp.dto';
-import { UpdateCampDto } from './dto/update-camp.dto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
+import { Camp } from "./entities/camp.entity";
+import { Inventory } from "../resources/entities/inventory.entity";
+import { Resource } from "../resources/entities/resource.entity";
+import { CreateCampDto } from "./dto/create-camp.dto";
+import { UpdateCampDto } from "./dto/update-camp.dto";
 
 @Injectable()
 export class CampsService {
@@ -38,7 +38,7 @@ export class CampsService {
       });
       const savedCamp = await queryRunner.manager.save(Camp, camp);
 
-      // Inicializar inventario vacío por cada recurso existente
+      // Inicializar inventario vac�o por cada recurso existente
       const resources = await queryRunner.manager.find(Resource);
       if (resources.length > 0) {
         const inventoryEntries = resources.map((resource: Resource) =>
@@ -59,7 +59,7 @@ export class CampsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw new BadRequestException(
-        'Error al crear el campamento: ' + (error as Error).message,
+        "Error al crear el campamento: " + (error as Error).message,
       );
     } finally {
       await queryRunner.release();
@@ -69,7 +69,7 @@ export class CampsService {
   async findAll(): Promise<Camp[]> {
     return this.campRepo.find({
       where: { active: true },
-      order: { id: 'ASC' },
+      order: { id: "ASC" },
     });
   }
 
@@ -91,14 +91,14 @@ export class CampsService {
 
     const inventory = await this.inventoryRepo.find({
       where: { camp_id: id },
-      relations: ['resource'],
-      order: { resource_id: 'ASC' },
+      relations: ["resource"],
+      order: { resource_id: "ASC" },
     });
 
     const inventorySummary = inventory.map((inv: Inventory) => ({
-      resource: inv.resource?.name ?? 'Desconocido',
+      resource: inv.resource?.name ?? "Desconocido",
       quantity: Number(inv.current_quantity),
-      unit: inv.resource?.unit ?? '',
+      unit: inv.resource?.unit ?? "",
       alert: inv.alert_active,
     }));
 
@@ -106,7 +106,8 @@ export class CampsService {
       camp,
       metrics: {
         totalResources: inventory.length,
-        resourcesWithAlerts: inventory.filter((i: Inventory) => i.alert_active).length,
+        resourcesWithAlerts: inventory.filter((i: Inventory) => i.alert_active)
+          .length,
         inventorySummary,
       },
     };
@@ -140,4 +141,4 @@ export class CampsService {
   }
 }
 //Falta Middleware de contexto de campamento (requiere auth funcionando)
-//Métricas de personas en findOne
+//M�tricas de personas en findOne

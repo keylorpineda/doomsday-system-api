@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import {
   CampPopulationSummaryView,
   InventoryStatusView,
   InventoryAlertView,
   TransferCampSummaryView,
   ExplorationSummaryView,
-} from '../database/views';
+} from "../database/views";
 
 interface CampMetrics {
   totalPeople: number;
@@ -94,7 +94,7 @@ export class DashboardService {
     const activeExplorations = await this.explorationSummaryView.count({
       where: {
         camp_id: campId,
-        status: 'in_progress',
+        status: "in_progress",
       },
     });
 
@@ -116,13 +116,13 @@ export class DashboardService {
     // Get all inventory items for the camp
     const inventoryItems = await this.inventoryStatusView.find({
       where: { camp_id: campId },
-      order: { resource_id: 'ASC' },
+      order: { resource_id: "ASC" },
     });
 
     // Get critical resources (with alerts)
     const criticalResourcesView = await this.inventoryAlertView.find({
       where: { camp_id: campId },
-      order: { resource_id: 'ASC' },
+      order: { resource_id: "ASC" },
     });
 
     const criticalResources = criticalResourcesView.map((item) => ({
@@ -145,7 +145,9 @@ export class DashboardService {
     };
   }
 
-  private async buildTransferMetrics(campId: number): Promise<TransfersMetrics> {
+  private async buildTransferMetrics(
+    campId: number,
+  ): Promise<TransfersMetrics> {
     const transferSummary = await this.transferSummaryView.findOne({
       where: { camp_id: campId },
     });

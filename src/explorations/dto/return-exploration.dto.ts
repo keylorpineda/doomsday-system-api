@@ -4,9 +4,9 @@ import {
   IsOptional,
   IsString,
   ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { ExplorationResourceDto } from './create-exploration.dto';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { ExplorationResourceDto } from "./create-exploration.dto";
 
 export class ReturnExplorationDto {
   @IsDateString()

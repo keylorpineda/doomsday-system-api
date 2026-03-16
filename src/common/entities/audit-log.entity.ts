@@ -1,47 +1,47 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
-import { UserAccount } from '../../users/entities/user-account.entity';
-import { Camp } from '../../camps/entities/camp.entity';
+} from "typeorm";
+import { UserAccount } from "../../users/entities/user-account.entity";
+import { Camp } from "../../camps/entities/camp.entity";
 
-@Entity('audit_log')
+@Entity("audit_log")
 export class AuditLog {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   user_id: number;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   camp_id: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   action: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   entity_type: string;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   entity_id: number;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ type: "json", nullable: true })
   old_value: object;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ type: "json", nullable: true })
   new_value: object;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: "timestamptz" })
   date: Date;
 
   @ManyToOne(() => UserAccount)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: "user_id" })
   user: UserAccount;
 
   @ManyToOne(() => Camp)
-  @JoinColumn({ name: 'camp_id' })
+  @JoinColumn({ name: "camp_id" })
   camp: Camp;
 }

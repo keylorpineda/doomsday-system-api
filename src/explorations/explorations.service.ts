@@ -1,23 +1,23 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
   ConflictException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
-import { Exploration } from './entities/exploration.entity';
-import { ExplorationPerson } from './entities/exploration-person.entity';
-import { ExplorationResource } from './entities/exploration-resource.entity';
-import { Person } from '../users/entities/person.entity';
-import { AuditLog } from '../common/entities/audit-log.entity';
-import { ResourcesService } from '../resources/resources.service';
-import { CreateExplorationDto } from './dto/create-exploration.dto';
-import { ReturnExplorationDto } from './dto/return-exploration.dto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { DataSource, In, Repository } from "typeorm";
+import { Exploration } from "./entities/exploration.entity";
+import { ExplorationPerson } from "./entities/exploration-person.entity";
+import { ExplorationResource } from "./entities/exploration-resource.entity";
+import { Person } from "../users/entities/person.entity";
+import { AuditLog } from "../common/entities/audit-log.entity";
+import { ResourcesService } from "../resources/resources.service";
+import { CreateExplorationDto } from "./dto/create-exploration.dto";
+import { ReturnExplorationDto } from "./dto/return-exploration.dto";
 import {
   DAILY_CONSUMPTION,
   PersonStatus,
-} from '../users/constants/professions.constants';
+} from "../users/constants/professions.constants";
 
 @Injectable()
 export class ExplorationsService {
@@ -42,13 +42,13 @@ export class ExplorationsService {
   ): Promise<Exploration> {
     if (!dto.persons || dto.persons.length === 0) {
       throw new BadRequestException(
-        'Debe asignar al menos una persona a la exploración',
+        "Debe asignar al menos una persona a la exploraci�n",
       );
     }
 
     const persons = await this.personRepo.find({
       where: { id: In(dto.persons.map((p) => p.person_id)) },
-      relations: ['profession', 'userAccount'],
+      relations: ["profession", "userAccount"],
     });
 
     if (persons.length !== dto.persons.length) {
@@ -57,14 +57,14 @@ export class ExplorationsService {
         .filter((p) => !foundIds.includes(p.person_id))
         .map((p) => p.person_id);
       throw new NotFoundException(
-        `Personas no encontradas: ${missing.join(', ')}`,
+        `Personas no encontradas: ${missing.join(", ")}`,
       );
     }
 
     for (const person of persons) {
       if (!person.profession || !person.profession.can_explore) {
         throw new BadRequestException(
-          `${person.first_name} ${person.last_name} (ID ${person.id}) no tiene profesión habilitada para explorar`,
+          `${person.first_name} ${person.last_name} (ID ${person.id}) no tiene profesi�n habilitada para explorar`,
         );
       }
 
@@ -76,26 +76,25 @@ export class ExplorationsService {
 
       if (person.status !== PersonStatus.ACTIVE) {
         throw new BadRequestException(
-          `${person.first_name} ${person.last_name} (ID ${person.id}) no está activo (estado: ${person.status})`,
+          `${person.first_name} ${person.last_name} (ID ${person.id}) no est� activo (estado: ${person.status})`,
         );
       }
 
       const alreadyExploring = await this.expPersonRepo
-        .createQueryBuilder('ep')
-        .innerJoin('ep.exploration', 'e')
-        .where('ep.person_id = :pid', { pid: person.id })
-        .andWhere('e.status IN (:...st)', { st: ['scheduled', 'in_progress'] })
+        .createQueryBuilder("ep")
+        .innerJoin("ep.exploration", "e")
+        .where("ep.person_id = :pid", { pid: person.id })
+        .andWhere("e.status IN (:...st)", { st: ["scheduled", "in_progress"] })
         .getCount();
 
       if (alreadyExploring > 0) {
         throw new ConflictException(
-          `${person.first_name} ${person.last_name} (ID ${person.id}) ya está asignado a otra exploración activa`,
+          `${person.first_name} ${person.last_name} (ID ${person.id}) ya est� asignado a otra exploraci�n activa`,
         );
       }
     }
 
-    const totalDays =
-      dto.estimated_days + (dto.grace_days ?? 0);
+    const totalDays = dto.estimated_days + (dto.grace_days ?? 0);
     const totalPersons = dto.persons.length;
     const foodNeeded =
       totalPersons * totalDays * DAILY_CONSUMPTION.FOOD_PER_PERSON;
@@ -114,7 +113,7 @@ export class ExplorationsService {
         departure_date: new Date(dto.departure_date),
         estimated_days: dto.estimated_days,
         grace_days: dto.grace_days ?? 0,
-        status: 'scheduled',
+        status: "scheduled",
         user_create_id: userId,
       });
       const saved = await queryRunner.manager.save(exploration);
@@ -131,15 +130,15 @@ export class ExplorationsService {
       }
 
       const foodResource = (await this.resourcesService.findAll()).find(
-        (r) => r.category === 'food',
+        (r) => r.category === "food",
       );
       const waterResource = (await this.resourcesService.findAll()).find(
-        (r) => r.category === 'water',
+        (r) => r.category === "water",
       );
 
       if (!foodResource || !waterResource) {
         throw new BadRequestException(
-          'Recursos de comida y agua no configurados en el sistema',
+          "Recursos de comida y agua no configurados en el sistema",
         );
       }
 
@@ -148,8 +147,8 @@ export class ExplorationsService {
           camp_id: dto.camp_id,
           resource_id: Number(foodResource.id),
           quantity: foodNeeded,
-          type: 'exploration_out',
-          description: `Raciones de comida para exploración "${dto.name}" (${totalPersons} personas × ${totalDays} días)`,
+          type: "exploration_out",
+          description: `Raciones de comida para exploraci�n "${dto.name}" (${totalPersons} personas � ${totalDays} d�as)`,
         },
         userId,
       );
@@ -159,8 +158,8 @@ export class ExplorationsService {
           camp_id: dto.camp_id,
           resource_id: Number(waterResource.id),
           quantity: waterNeeded,
-          type: 'exploration_out',
-          description: `Raciones de agua para exploración "${dto.name}" (${totalPersons} personas × ${totalDays} días)`,
+          type: "exploration_out",
+          description: `Raciones de agua para exploraci�n "${dto.name}" (${totalPersons} personas � ${totalDays} d�as)`,
         },
         userId,
       );
@@ -168,7 +167,7 @@ export class ExplorationsService {
       const foodExpRes = this.expResourceRepo.create({
         exploration_id: Number(saved.id),
         resource_id: Number(foodResource.id),
-        flow: 'out',
+        flow: "out",
         quantity: foodNeeded,
       });
       await queryRunner.manager.save(foodExpRes);
@@ -176,7 +175,7 @@ export class ExplorationsService {
       const waterExpRes = this.expResourceRepo.create({
         exploration_id: Number(saved.id),
         resource_id: Number(waterResource.id),
-        flow: 'out',
+        flow: "out",
         quantity: waterNeeded,
       });
       await queryRunner.manager.save(waterExpRes);
@@ -188,8 +187,8 @@ export class ExplorationsService {
               camp_id: dto.camp_id,
               resource_id: resDto.resource_id,
               quantity: resDto.quantity,
-              type: 'exploration_out',
-              description: `Recurso adicional para exploración "${dto.name}"`,
+              type: "exploration_out",
+              description: `Recurso adicional para exploraci�n "${dto.name}"`,
             },
             userId,
           );
@@ -197,7 +196,7 @@ export class ExplorationsService {
           const er = this.expResourceRepo.create({
             exploration_id: Number(saved.id),
             resource_id: resDto.resource_id,
-            flow: 'out',
+            flow: "out",
             quantity: resDto.quantity,
           });
           await queryRunner.manager.save(er);
@@ -214,8 +213,8 @@ export class ExplorationsService {
         this.auditRepo.create({
           user_id: userId,
           camp_id: dto.camp_id,
-          action: 'exploration_created',
-          entity_type: 'exploration',
+          action: "exploration_created",
+          entity_type: "exploration",
           entity_id: Number(saved.id),
           new_value: {
             name: dto.name,
@@ -247,26 +246,26 @@ export class ExplorationsService {
     const exploration = await this.explorationRepo.findOne({
       where: { id },
       relations: [
-        'explorationPersons',
-        'explorationPersons.person',
-        'explorationResources',
+        "explorationPersons",
+        "explorationPersons.person",
+        "explorationResources",
       ],
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
     }
 
-    if (exploration.status === 'completed') {
-      throw new ConflictException('Esta exploración ya fue completada');
+    if (exploration.status === "completed") {
+      throw new ConflictException("Esta exploraci�n ya fue completada");
     }
 
-    if (exploration.status === 'cancelled') {
-      throw new ConflictException('Esta exploración fue cancelada');
+    if (exploration.status === "cancelled") {
+      throw new ConflictException("Esta exploraci�n fue cancelada");
     }
 
-    if (exploration.status === 'scheduled') {
-      exploration.status = 'in_progress';
+    if (exploration.status === "scheduled") {
+      exploration.status = "in_progress";
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -275,7 +274,7 @@ export class ExplorationsService {
 
     try {
       exploration.real_return_date = new Date(dto.real_return_date);
-      exploration.status = 'completed';
+      exploration.status = "completed";
       if (dto.notes) {
         exploration.notes = dto.notes;
       }
@@ -299,8 +298,8 @@ export class ExplorationsService {
               camp_id: exploration.camp_id,
               resource_id: fr.resource_id,
               quantity: fr.quantity,
-              type: 'exploration_in',
-              description: `Recursos encontrados en exploración "${exploration.name}"`,
+              type: "exploration_in",
+              description: `Recursos encontrados en exploraci�n "${exploration.name}"`,
             },
             userId,
           );
@@ -308,7 +307,7 @@ export class ExplorationsService {
           const er = this.expResourceRepo.create({
             exploration_id: Number(exploration.id),
             resource_id: fr.resource_id,
-            flow: 'in',
+            flow: "in",
             quantity: fr.quantity,
           });
           await queryRunner.manager.save(er);
@@ -319,8 +318,8 @@ export class ExplorationsService {
         this.auditRepo.create({
           user_id: userId,
           camp_id: exploration.camp_id,
-          action: 'exploration_return',
-          entity_type: 'exploration',
+          action: "exploration_return",
+          entity_type: "exploration",
           entity_id: Number(exploration.id),
           new_value: {
             real_return_date: dto.real_return_date,
@@ -343,21 +342,21 @@ export class ExplorationsService {
 
   async findAll(campId?: number, status?: string): Promise<Exploration[]> {
     const qb = this.explorationRepo
-      .createQueryBuilder('e')
-      .leftJoinAndSelect('e.explorationPersons', 'ep')
-      .leftJoinAndSelect('ep.person', 'person')
-      .leftJoinAndSelect('person.profession', 'profession')
-      .leftJoinAndSelect('e.explorationResources', 'er')
-      .leftJoinAndSelect('er.resource', 'resource')
-      .leftJoinAndSelect('e.camp', 'camp')
-      .orderBy('e.departure_date', 'DESC');
+      .createQueryBuilder("e")
+      .leftJoinAndSelect("e.explorationPersons", "ep")
+      .leftJoinAndSelect("ep.person", "person")
+      .leftJoinAndSelect("person.profession", "profession")
+      .leftJoinAndSelect("e.explorationResources", "er")
+      .leftJoinAndSelect("er.resource", "resource")
+      .leftJoinAndSelect("e.camp", "camp")
+      .orderBy("e.departure_date", "DESC");
 
     if (campId) {
-      qb.andWhere('e.camp_id = :campId', { campId });
+      qb.andWhere("e.camp_id = :campId", { campId });
     }
 
     if (status) {
-      qb.andWhere('e.status = :status', { status });
+      qb.andWhere("e.status = :status", { status });
     }
 
     return qb.getMany();
@@ -367,18 +366,18 @@ export class ExplorationsService {
     const exploration = await this.explorationRepo.findOne({
       where: { id },
       relations: [
-        'camp',
-        'userCreate',
-        'explorationPersons',
-        'explorationPersons.person',
-        'explorationPersons.person.profession',
-        'explorationResources',
-        'explorationResources.resource',
+        "camp",
+        "userCreate",
+        "explorationPersons",
+        "explorationPersons.person",
+        "explorationPersons.person.profession",
+        "explorationResources",
+        "explorationResources.resource",
       ],
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
     }
 
     return exploration;
@@ -388,17 +387,17 @@ export class ExplorationsService {
     const exploration = await this.explorationRepo.findOne({
       where: { id },
       relations: [
-        'explorationPersons',
-        'explorationPersons.person',
-        'explorationResources',
+        "explorationPersons",
+        "explorationPersons.person",
+        "explorationResources",
       ],
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
     }
 
-    if (exploration.status !== 'scheduled') {
+    if (exploration.status !== "scheduled") {
       throw new ConflictException(
         `Solo se pueden cancelar exploraciones programadas. Estado actual: ${exploration.status}`,
       );
@@ -410,7 +409,7 @@ export class ExplorationsService {
 
     try {
       const outResources = exploration.explorationResources.filter(
-        (er) => er.flow === 'out',
+        (er) => er.flow === "out",
       );
 
       for (const er of outResources) {
@@ -419,8 +418,8 @@ export class ExplorationsService {
             camp_id: exploration.camp_id,
             resource_id: Number(er.resource_id),
             quantity: Number(er.quantity),
-            type: 'exploration_in',
-            description: `Devolución por cancelación de exploración "${exploration.name}"`,
+            type: "exploration_in",
+            description: `Devoluci�n por cancelaci�n de exploraci�n "${exploration.name}"`,
           },
           userId,
         );
@@ -434,15 +433,15 @@ export class ExplorationsService {
         }
       }
 
-      exploration.status = 'cancelled';
+      exploration.status = "cancelled";
       await queryRunner.manager.save(exploration);
 
       await queryRunner.manager.save(
         this.auditRepo.create({
           user_id: userId,
           camp_id: exploration.camp_id,
-          action: 'exploration_cancelled',
-          entity_type: 'exploration',
+          action: "exploration_cancelled",
+          entity_type: "exploration",
           entity_id: Number(exploration.id),
           new_value: { refunded_resources: outResources.length },
           date: new Date(),
@@ -466,16 +465,16 @@ export class ExplorationsService {
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
     }
 
-    if (exploration.status !== 'scheduled') {
+    if (exploration.status !== "scheduled") {
       throw new ConflictException(
         `Solo se pueden iniciar exploraciones programadas. Estado actual: ${exploration.status}`,
       );
     }
 
-    exploration.status = 'in_progress';
+    exploration.status = "in_progress";
     exploration.departure_date = new Date();
     await this.explorationRepo.save(exploration);
 
@@ -483,8 +482,8 @@ export class ExplorationsService {
       this.auditRepo.create({
         user_id: userId,
         camp_id: exploration.camp_id,
-        action: 'exploration_departed',
-        entity_type: 'exploration',
+        action: "exploration_departed",
+        entity_type: "exploration",
         entity_id: Number(exploration.id),
         new_value: { departed_at: new Date() },
         date: new Date(),

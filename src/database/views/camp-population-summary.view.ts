@@ -1,23 +1,23 @@
-import { ViewEntity, ViewColumn } from 'typeorm';
+﻿import { ViewEntity, ViewColumn } from "typeorm";
 
 @ViewEntity({
-  name: 'vw_camp_population_summary',
+  name: "vw_camp_population_summary",
   expression: `
     SELECT
       c.id                        AS camp_id,
       c.name                      AS camp_name,
       c.max_capacity,
-      COUNT(p.id) FILTER (WHERE p.status != 'deceased')
+      COUNT(p.id) FILTER (WHERE p.status != "deceased")
                                   AS total_people,
-      COUNT(p.id) FILTER (WHERE p.can_work = TRUE AND p.status = 'active')
+      COUNT(p.id) FILTER (WHERE p.can_work = TRUE AND p.status = "active")
                                   AS active_workers,
-      COUNT(p.id) FILTER (WHERE p.status != 'deceased')
-        - COUNT(p.id) FILTER (WHERE p.can_work = TRUE AND p.status = 'active')
+      COUNT(p.id) FILTER (WHERE p.status != "deceased")
+        - COUNT(p.id) FILTER (WHERE p.can_work = TRUE AND p.status = "active")
                                   AS unavailable_people,
       CASE
         WHEN c.max_capacity IS NOT NULL AND c.max_capacity > 0
         THEN ROUND(
-          (COUNT(p.id) FILTER (WHERE p.status != 'deceased')::NUMERIC
+          (COUNT(p.id) FILTER (WHERE p.status != "deceased")::NUMERIC
            / c.max_capacity) * 100, 2
         )
         ELSE NULL

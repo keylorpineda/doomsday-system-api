@@ -1,47 +1,42 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-} from 'typeorm';
-import { UserAccount } from '../../users/entities/user-account.entity';
+﻿import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { UserAccount } from "../../users/entities/user-account.entity";
 
-@Entity('camp')
+@Entity("camp")
 export class Camp {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   location_description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  @Column({ type: "decimal", precision: 10, scale: 7, nullable: true })
   latitude: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  @Column({ type: "decimal", precision: 10, scale: 7, nullable: true })
   longitude: number;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: "int", nullable: true })
   max_capacity: number;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: "boolean", default: true })
   active: boolean;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: "date", nullable: true })
   foundation_date: Date;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   logo_url: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   logo_public_id: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   map_url: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   map_public_id: string;
 
   @OneToMany(() => UserAccount, (ua) => ua.camp)
