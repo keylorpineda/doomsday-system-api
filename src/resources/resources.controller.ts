@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -131,8 +131,31 @@ export class ResourcesController {
   @Get()
   @Roles("admin", "gestor_recursos", "trabajador", "encargado_viajes")
   @ApiOperation({ summary: "Listar todos los recursos disponibles" })
-  async findAll() {
-    return this.resourcesService.findAll();
+  @ApiQuery({
+    name: "page",
+    required: false,
+    description: "Página (default 1)",
+  })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    description: "Elementos por página (default 20)",
+  })
+  @ApiQuery({
+    name: "category",
+    required: false,
+    description: "Filtrar por categoría (opcional)",
+  })
+  async findAll(
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("category") category?: string,
+  ) {
+    return this.resourcesService.findAll(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
+      category,
+    );
   }
 
   @Get(":id")

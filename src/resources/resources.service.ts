@@ -56,8 +56,40 @@ export class ResourcesService {
     private readonly personRepo: Repository<Person>,
   ) {}
 
-  async findAll(): Promise<Resource[]> {
-    return this.resourceRepo.find({ order: { name: "ASC" } });
+  async findAll(
+    page = 1,
+    limit = 20,
+    category?: string,
+  ): Promise<{
+    data: Resource[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (safePage - 1) * safeLimit;
+
+    const where: any = {};
+    if (category) {
+      where.category = category;
+    }
+
+    const [data, total] = await this.resourceRepo.findAndCount({
+      where,
+      order: { name: "ASC" },
+      skip,
+      take: safeLimit,
+    });
+
+    return {
+      data,
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
+    };
   }
 
   async findResourceById(id: number): Promise<Resource> {

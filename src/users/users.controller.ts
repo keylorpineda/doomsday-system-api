@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -40,9 +40,32 @@ export class UsersController {
     required: false,
     description: "Filtrar por campamento",
   })
-  async getAllPersons(@Query("campId") campId?: string) {
+  @ApiQuery({
+    name: "page",
+    required: false,
+    description: "Página (default 1)",
+  })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    description: "Resultados por página (default 20)",
+  })
+  @ApiQuery({
+    name: "search",
+    required: false,
+    description: "Buscar por nombre o código",
+  })
+  async getAllPersons(
+    @Query("campId") campId?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("search") search?: string,
+  ) {
     return this.usersService.findAllPersons(
       campId ? parseInt(campId) : undefined,
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
+      search,
     );
   }
 
@@ -217,5 +240,37 @@ export class UsersController {
   async getMyAssignedResources(@CurrentUser() user: any) {
     const userId = user?.userId ?? user?.id;
     return this.usersService.getAssignedResourcesByUser(userId);
+  }
+
+  @Get("assets")
+  @Roles("admin", "gestor_recursos", "trabajador", "encargado_viajes")
+  @ApiOperation({ summary: "Listar todos los assets/insignias del sistema" })
+  @ApiQuery({
+    name: "type",
+    required: false,
+    description: "Filtrar por tipo (ej. 'badge')",
+  })
+  async getAllAssets(@Query("type") type?: string) {
+    return this.usersService.getAllAssets(type);
+  }
+
+  @Get("me/badges")
+  @Roles("admin", "gestor_recursos", "trabajador", "encargado_viajes")
+  @ApiOperation({ summary: "Obtener insignias ganadas por el usuario actual" })
+  async getMyBadges(@CurrentUser() user: any) {
+    const userId = user?.userId ?? user?.id;
+    return this.usersService.getMyBadges(userId);
+  }
+
+  @Post("me/badges/:id/display")
+  @Roles("admin", "gestor_recursos", "trabajador", "encargado_viajes")
+  @ApiOperation({ summary: "Mostrar u ocultar una insignia en el perfil" })
+  async toggleBadgeDisplay(
+    @Param("id", ParseIntPipe) badgeId: number,
+    @Body("is_displayed") isDisplayed: boolean,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.userId ?? user?.id;
+    return this.usersService.toggleBadgeDisplay(userId, badgeId, isDisplayed);
   }
 }

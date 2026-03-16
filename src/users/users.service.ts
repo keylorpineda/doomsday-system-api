@@ -1,4 +1,4 @@
-﻿import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { UserAccount } from "./entities/user-account.entity";
@@ -14,6 +14,7 @@ import { ProfessionsService } from "./services/professions.service";
 import { AssignmentsService } from "./services/assignments.service";
 import { ProductionService } from "./services/production.service";
 import { UserAsset } from "./entities/user-asset.entity";
+import { Asset } from "./entities/asset.entity";
 
 /**
  * Servicio principal de usuarios - Act�a como orquestador
@@ -50,8 +51,8 @@ export class UsersService {
     return this.personsService.create(dto);
   }
 
-  async findAllPersons(campId?: number): Promise<Person[]> {
-    return this.personsService.findAll(campId);
+  async findAllPersons(campId?: number, page = 1, limit = 20, search?: string) {
+    return this.personsService.findAll(campId, page, limit, search);
   }
 
   async findPersonById(id: number): Promise<Person> {
@@ -197,5 +198,43 @@ export class UsersService {
       relations: ["asset"],
       order: { acquired_at: "DESC" },
     });
+  }
+
+  async getAllAssets(type?: string): Promise<Asset[]> {
+    const where: any = { active: true };
+    if (type) where.asset_type = type;
+
+    return this.userAssetRepo.manager.find(Asset, {
+      where,
+      order: { rarity: "ASC" },
+    });
+  }
+
+  async getMyBadges(userId: number): Promise<UserAsset[]> {
+    return this.userAssetRepo.find({
+      where: { user_account_id: userId, relation_type: "badge" },
+      relations: ["asset"],
+      order: { acquired_at: "DESC" },
+    });
+  }
+
+  async toggleBadgeDisplay(
+    userId: number,
+    badgeId: number,
+    isDisplayed: boolean,
+  ): Promise<UserAsset> {
+    const badge = await this.userAssetRepo.findOne({
+      where: { user_account_id: userId, id: badgeId, relation_type: "badge" },
+      relations: ["asset"],
+    });
+
+    if (!badge) {
+      throw new NotFoundException(
+        "Badge no encontrado o no pertenece a este usuario",
+      );
+    }
+
+    badge.is_displayed = isDisplayed;
+    return this.userAssetRepo.save(badge);
   }
 }
