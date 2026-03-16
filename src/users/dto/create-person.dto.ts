@@ -12,6 +12,10 @@ export class CreatePersonDto {
   last_name: string;
 
   @IsOptional()
+  @IsString()
+  last_name2?: string;
+
+  @IsOptional()
   @IsDateString()
   birth_date?: string;
 

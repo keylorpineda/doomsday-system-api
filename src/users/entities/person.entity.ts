@@ -1,4 +1,4 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -24,6 +24,9 @@ export class Person {
 
   @Column({ type: "text" })
   last_name: string;
+
+  @Column({ type: "text", nullable: true })
+  last_name2: string;
 
   @Column({ type: "date", nullable: true })
   birth_date: Date;

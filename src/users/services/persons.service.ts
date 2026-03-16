@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -47,7 +47,18 @@ export class PersonsService {
     return this.personRepo.save(person);
   }
 
-  async findAll(campId?: number): Promise<Person[]> {
+  async findAll(
+    campId?: number,
+    page = 1,
+    limit = 20,
+    search?: string,
+  ): Promise<{
+    data: Person[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const query = this.personRepo
       .createQueryBuilder("person")
       .leftJoinAndSelect("person.profession", "profession")
@@ -58,7 +69,30 @@ export class PersonsService {
       query.where("camp.id = :campId", { campId });
     }
 
-    return query.getMany();
+    if (search) {
+      const op = campId ? "andWhere" : "where";
+      query[op](
+        "(LOWER(person.first_name) LIKE :s OR LOWER(person.last_name) LIKE :s OR person.identification_code LIKE :s)",
+        { s: `%${search.toLowerCase()}%` },
+      );
+    }
+
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (safePage - 1) * safeLimit;
+
+    const [data, total] = await query
+      .skip(skip)
+      .take(safeLimit)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
+    };
   }
 
   async findById(id: number): Promise<Person> {
