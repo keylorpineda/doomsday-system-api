@@ -1,19 +1,19 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { IntercampRequest } from '../entities/intercamp-request.entity';
-import { RequestResourceDetail } from '../entities/request-resource-detail.entity';
-import { RequestPersonDetail } from '../entities/request-person-detail.entity';
-import { Camp } from '../../camps/entities/camp.entity';
-import { Person } from '../../users/entities/person.entity';
-import { Inventory } from '../../resources/entities/inventory.entity';
-import { Resource } from '../../resources/entities/resource.entity';
-import { AuditLog } from '../../common/entities/audit-log.entity';
-import { CreateIntercampRequestDto } from '../dto/create-intercamp-request.dto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
+import { IntercampRequest } from "../entities/intercamp-request.entity";
+import { RequestResourceDetail } from "../entities/request-resource-detail.entity";
+import { RequestPersonDetail } from "../entities/request-person-detail.entity";
+import { Camp } from "../../camps/entities/camp.entity";
+import { Person } from "../../users/entities/person.entity";
+import { Inventory } from "../../resources/entities/inventory.entity";
+import { Resource } from "../../resources/entities/resource.entity";
+import { AuditLog } from "../../common/entities/audit-log.entity";
+import { CreateIntercampRequestDto } from "../dto/create-intercamp-request.dto";
 
 @Injectable()
 export class RequestsService {
@@ -43,7 +43,7 @@ export class RequestsService {
   ): Promise<IntercampRequest> {
     if (dto.camp_origin_id === dto.camp_destination_id) {
       throw new BadRequestException(
-        'El campamento origen y destino no pueden ser el mismo',
+        "El campamento origen y destino no pueden ser el mismo",
       );
     }
 
@@ -55,7 +55,7 @@ export class RequestsService {
     });
 
     if (!originCamp || !destCamp) {
-      throw new NotFoundException('Uno o ambos campamentos no existen');
+      throw new NotFoundException("Uno o ambos campamentos no existen");
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -67,7 +67,7 @@ export class RequestsService {
         camp_origin_id: dto.camp_origin_id,
         camp_destination_id: dto.camp_destination_id,
         type: dto.type,
-        status: 'pending',
+        status: "pending",
         request_date: new Date(),
         notes: dto.notes,
       });
@@ -96,8 +96,8 @@ export class RequestsService {
       await queryRunner.manager.save(AuditLog, {
         user_id: userId,
         camp_id: dto.camp_origin_id,
-        action: 'intercamp_request_created',
-        entity_type: 'intercamp_request',
+        action: "intercamp_request_created",
+        entity_type: "intercamp_request",
         entity_id: Number(savedRequest.id),
         new_value: {
           type: dto.type,
@@ -166,7 +166,7 @@ export class RequestsService {
     for (const pd of dto.person_details!) {
       const person = await queryRunner.manager.findOne(Person, {
         where: { id: pd.person_id },
-        relations: ['userAccount'],
+        relations: ["userAccount"],
       });
 
       if (!person) {
@@ -185,7 +185,7 @@ export class RequestsService {
         request_id: Number(request.id),
         person_id: pd.person_id,
         is_leader: pd.is_leader ?? false,
-        transfer_status: 'pending',
+        transfer_status: "pending",
       });
     }
   }
@@ -194,14 +194,14 @@ export class RequestsService {
     const request = await this.requestRepo.findOne({
       where: { id },
       relations: [
-        'campOrigin',
-        'campDestination',
-        'resourceDetails',
-        'resourceDetails.resource',
-        'personDetails',
-        'personDetails.person',
-        'approvals',
-        'approvals.user',
+        "campOrigin",
+        "campDestination",
+        "resourceDetails",
+        "resourceDetails.resource",
+        "personDetails",
+        "personDetails.person",
+        "approvals",
+        "approvals.user",
       ],
     });
 
@@ -216,50 +216,50 @@ export class RequestsService {
 
   async findRequestsByCamp(
     campId: number,
-    role?: 'origin' | 'destination',
+    role?: "origin" | "destination",
   ): Promise<IntercampRequest[]> {
     const queryBuilder = this.requestRepo
-      .createQueryBuilder('req')
-      .leftJoinAndSelect('req.campOrigin', 'campOrigin')
-      .leftJoinAndSelect('req.campDestination', 'campDest')
-      .leftJoinAndSelect('req.resourceDetails', 'rd')
-      .leftJoinAndSelect('rd.resource', 'resource')
-      .leftJoinAndSelect('req.personDetails', 'pd')
-      .leftJoinAndSelect('pd.person', 'person')
-      .leftJoinAndSelect('req.approvals', 'approvals')
-      .leftJoinAndSelect('approvals.user', 'appUser');
+      .createQueryBuilder("req")
+      .leftJoinAndSelect("req.campOrigin", "campOrigin")
+      .leftJoinAndSelect("req.campDestination", "campDest")
+      .leftJoinAndSelect("req.resourceDetails", "rd")
+      .leftJoinAndSelect("rd.resource", "resource")
+      .leftJoinAndSelect("req.personDetails", "pd")
+      .leftJoinAndSelect("pd.person", "person")
+      .leftJoinAndSelect("req.approvals", "approvals")
+      .leftJoinAndSelect("approvals.user", "appUser");
 
-    if (role === 'origin') {
-      queryBuilder.where('req.camp_origin_id = :campId', { campId });
-    } else if (role === 'destination') {
-      queryBuilder.where('req.camp_destination_id = :campId', { campId });
+    if (role === "origin") {
+      queryBuilder.where("req.camp_origin_id = :campId", { campId });
+    } else if (role === "destination") {
+      queryBuilder.where("req.camp_destination_id = :campId", { campId });
     } else {
       queryBuilder.where(
-        '(req.camp_origin_id = :campId OR req.camp_destination_id = :campId)',
+        "(req.camp_origin_id = :campId OR req.camp_destination_id = :campId)",
         { campId },
       );
     }
 
-    return queryBuilder.orderBy('req.request_date', 'DESC').getMany();
+    return queryBuilder.orderBy("req.request_date", "DESC").getMany();
   }
 
   async findPendingRequestsByCamp(campId: number): Promise<IntercampRequest[]> {
     return this.requestRepo.find({
       where: [
-        { camp_origin_id: campId, status: 'pending' },
-        { camp_destination_id: campId, status: 'pending' },
+        { camp_origin_id: campId, status: "pending" },
+        { camp_destination_id: campId, status: "pending" },
       ],
       relations: [
-        'campOrigin',
-        'campDestination',
-        'resourceDetails',
-        'resourceDetails.resource',
-        'personDetails',
-        'personDetails.person',
-        'approvals',
-        'approvals.user',
+        "campOrigin",
+        "campDestination",
+        "resourceDetails",
+        "resourceDetails.resource",
+        "personDetails",
+        "personDetails.person",
+        "approvals",
+        "approvals.user",
       ],
-      order: { request_date: 'DESC' },
+      order: { request_date: "DESC" },
     });
   }
 
@@ -270,27 +270,27 @@ export class RequestsService {
   ): Promise<IntercampRequest> {
     const request = await this.findRequestById(requestId);
 
-    if (request.status !== 'pending') {
+    if (request.status !== "pending") {
       throw new BadRequestException(
-        'Solo se pueden cancelar solicitudes pendientes',
+        "Solo se pueden cancelar solicitudes pendientes",
       );
     }
 
     if (userCampId !== request.camp_origin_id) {
       throw new BadRequestException(
-        'Solo el campamento origen puede cancelar la solicitud',
+        "Solo el campamento origen puede cancelar la solicitud",
       );
     }
 
-    request.status = 'cancelled';
+    request.status = "cancelled";
     await this.requestRepo.save(request);
 
     await this.auditRepo.save(
       this.auditRepo.create({
         user_id: userId,
         camp_id: request.camp_origin_id,
-        action: 'intercamp_request_cancelled',
-        entity_type: 'intercamp_request',
+        action: "intercamp_request_cancelled",
+        entity_type: "intercamp_request",
         entity_id: requestId,
         date: new Date(),
       }),
@@ -315,15 +315,14 @@ export class RequestsService {
 
     return {
       totalRequests: allRequests.length,
-      pending: allRequests.filter((r) => r.status === 'pending').length,
-      approved: allRequests.filter((r) => r.status === 'approved').length,
-      completed: allRequests.filter((r) => r.status === 'completed').length,
-      rejected: allRequests.filter((r) => r.status === 'rejected').length,
-      cancelled: allRequests.filter((r) => r.status === 'cancelled').length,
+      pending: allRequests.filter((r) => r.status === "pending").length,
+      approved: allRequests.filter((r) => r.status === "approved").length,
+      completed: allRequests.filter((r) => r.status === "completed").length,
+      rejected: allRequests.filter((r) => r.status === "rejected").length,
+      cancelled: allRequests.filter((r) => r.status === "cancelled").length,
       asOrigin: allRequests.filter((r) => r.camp_origin_id === campId).length,
-      asDestination: allRequests.filter(
-        (r) => r.camp_destination_id === campId,
-      ).length,
+      asDestination: allRequests.filter((r) => r.camp_destination_id === campId)
+        .length,
     };
   }
 }

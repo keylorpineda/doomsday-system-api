@@ -1,24 +1,19 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-} from 'typeorm';
-import { Person } from './person.entity';
-import { TemporaryAssignment } from './temporary-assignment.entity';
+﻿import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { Person } from "./person.entity";
+import { TemporaryAssignment } from "./temporary-assignment.entity";
 
-@Entity('profession')
+@Entity("profession")
 export class Profession {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   name: string;
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: "boolean", default: false })
   can_explore: boolean;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: "int", default: 1 })
   minimum_active_required: number;
 
   @OneToMany(() => Person, (p) => p.profession)

@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { PersonsService } from './persons.service';
-import { PROFESSIONS_CONFIG, DAILY_CONSUMPTION } from '../constants/professions.constants';
+import { Injectable } from "@nestjs/common";
+import { PersonsService } from "./persons.service";
+import {
+  PROFESSIONS_CONFIG,
+  DAILY_CONSUMPTION,
+} from "../constants/professions.constants";
 
 @Injectable()
 export class ProductionService {
@@ -16,7 +19,8 @@ export class ProductionService {
       waterProduction: number;
     }>;
   }> {
-    const activeWorkers = await this.personsService.findActiveWorkersByCamp(campId);
+    const activeWorkers =
+      await this.personsService.findActiveWorkersByCamp(campId);
 
     const productionByProfession = new Map<
       number,
@@ -81,7 +85,10 @@ export class ProductionService {
     totalWater: number;
     totalPersons: number;
   }> {
-    const totalPersons = await this.personsService.countPersonsByCamp(campId, true);
+    const totalPersons = await this.personsService.countPersonsByCamp(
+      campId,
+      true,
+    );
 
     return {
       totalFood: totalPersons * DAILY_CONSUMPTION.FOOD_PER_PERSON,
@@ -91,7 +98,7 @@ export class ProductionService {
   }
 
   /**
-   * Calcula el balance neto diario (producción - consumo)
+   * Calcula el balance neto diario (producci�n - consumo)
    */
   async calculateDailyBalance(campId: number): Promise<{
     production: { food: number; water: number };

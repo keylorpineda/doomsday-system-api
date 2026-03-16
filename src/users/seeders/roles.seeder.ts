@@ -1,8 +1,8 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Role } from '../entities/role.entity';
-import { UserRole, ROLES_CONFIG } from '../constants/roles.constants';
+import { Injectable, OnModuleInit, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Role } from "../entities/role.entity";
+import { ROLES_CONFIG } from "../constants/roles.constants";
 
 @Injectable()
 export class RolesSeeder implements OnModuleInit {
@@ -17,7 +17,7 @@ export class RolesSeeder implements OnModuleInit {
     try {
       await this.seedRoles();
     } catch (error) {
-      this.logger.error('Error seeding roles', error);
+      this.logger.error("Error seeding roles", error);
     }
   }
 
@@ -29,7 +29,7 @@ export class RolesSeeder implements OnModuleInit {
       return;
     }
 
-    this.logger.log('Seeding roles...');
+    this.logger.log("Seeding roles...");
 
     const rolesToCreate = Object.entries(ROLES_CONFIG).map(([key, config]) => ({
       name: key,
@@ -45,7 +45,7 @@ export class RolesSeeder implements OnModuleInit {
   }
 
   async resetRoles() {
-    this.logger.warn('Resetting roles...');
+    this.logger.warn("Resetting roles...");
     await this.roleRepo.delete({});
     await this.seedRoles();
   }

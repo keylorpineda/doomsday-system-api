@@ -1,4 +1,4 @@
-import { IsInt, IsNumber, IsString, IsOptional, Min } from 'class-validator';
+import { IsInt, IsNumber, IsString, IsOptional, Min } from "class-validator";
 
 export class CreateInventoryMovementDto {
   @IsInt()

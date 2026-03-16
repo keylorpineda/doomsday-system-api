@@ -1,4 +1,11 @@
-import { IsInt, IsString, IsOptional, IsDateString, Min, Max } from 'class-validator';
+import {
+  IsInt,
+  IsString,
+  IsOptional,
+  IsDateString,
+  Min,
+  Max,
+} from "class-validator";
 
 export class CreateTemporaryAssignmentDto {
   @IsInt()

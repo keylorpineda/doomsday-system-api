@@ -1,19 +1,19 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In } from 'typeorm';
-import { Person } from '../entities/person.entity';
-import { Profession } from '../entities/profession.entity';
-import { CreatePersonDto } from '../dto/create-person.dto';
-import { UpdatePersonDto } from '../dto/update-person.dto';
-import { UpdatePersonStatusDto } from '../dto/update-person-status.dto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Not, In } from "typeorm";
+import { Person } from "../entities/person.entity";
+import { Profession } from "../entities/profession.entity";
+import { CreatePersonDto } from "../dto/create-person.dto";
+import { UpdatePersonDto } from "../dto/update-person.dto";
+import { UpdatePersonStatusDto } from "../dto/update-person-status.dto";
 import {
   PersonStatus,
   WORKING_STATUSES,
-} from '../constants/professions.constants';
+} from "../constants/professions.constants";
 
 @Injectable()
 export class PersonsService {
@@ -30,7 +30,9 @@ export class PersonsService {
         where: { id: dto.profession_id },
       });
       if (!profession) {
-        throw new NotFoundException(`Profession with ID ${dto.profession_id} not found`);
+        throw new NotFoundException(
+          `Profession with ID ${dto.profession_id} not found`,
+        );
       }
     }
 
@@ -47,13 +49,13 @@ export class PersonsService {
 
   async findAll(campId?: number): Promise<Person[]> {
     const query = this.personRepo
-      .createQueryBuilder('person')
-      .leftJoinAndSelect('person.profession', 'profession')
-      .leftJoinAndSelect('person.userAccount', 'userAccount')
-      .leftJoinAndSelect('userAccount.camp', 'camp');
+      .createQueryBuilder("person")
+      .leftJoinAndSelect("person.profession", "profession")
+      .leftJoinAndSelect("person.userAccount", "userAccount")
+      .leftJoinAndSelect("userAccount.camp", "camp");
 
     if (campId) {
-      query.where('camp.id = :campId', { campId });
+      query.where("camp.id = :campId", { campId });
     }
 
     return query.getMany();
@@ -62,7 +64,7 @@ export class PersonsService {
   async findById(id: number): Promise<Person> {
     const person = await this.personRepo.findOne({
       where: { id },
-      relations: ['profession', 'userAccount', 'userAccount.camp'],
+      relations: ["profession", "userAccount", "userAccount.camp"],
     });
 
     if (!person) {
@@ -80,7 +82,9 @@ export class PersonsService {
         where: { id: dto.profession_id },
       });
       if (!profession) {
-        throw new NotFoundException(`Profession with ID ${dto.profession_id} not found`);
+        throw new NotFoundException(
+          `Profession with ID ${dto.profession_id} not found`,
+        );
       }
     }
 
@@ -110,14 +114,17 @@ export class PersonsService {
 
     if (person.userAccount) {
       throw new BadRequestException(
-        'Cannot delete person with an active user account. Delete the user account first.',
+        "Cannot delete person with an active user account. Delete the user account first.",
       );
     }
 
     await this.personRepo.remove(person);
   }
 
-  async countActiveWorkers(professionId: number, excludePersonId?: number): Promise<number> {
+  async countActiveWorkers(
+    professionId: number,
+    excludePersonId?: number,
+  ): Promise<number> {
     return this.personRepo.count({
       where: {
         profession_id: professionId,
@@ -130,23 +137,28 @@ export class PersonsService {
 
   async findActiveWorkersByCamp(campId: number): Promise<Person[]> {
     return this.personRepo
-      .createQueryBuilder('person')
-      .leftJoinAndSelect('person.profession', 'profession')
-      .leftJoinAndSelect('person.userAccount', 'userAccount')
-      .where('userAccount.camp_id = :campId', { campId })
-      .andWhere('person.can_work = :canWork', { canWork: true })
-      .andWhere('person.status IN (:...statuses)', { statuses: WORKING_STATUSES })
+      .createQueryBuilder("person")
+      .leftJoinAndSelect("person.profession", "profession")
+      .leftJoinAndSelect("person.userAccount", "userAccount")
+      .where("userAccount.camp_id = :campId", { campId })
+      .andWhere("person.can_work = :canWork", { canWork: true })
+      .andWhere("person.status IN (:...statuses)", {
+        statuses: WORKING_STATUSES,
+      })
       .getMany();
   }
 
-  async countPersonsByCamp(campId: number, excludeDeceased: boolean = true): Promise<number> {
+  async countPersonsByCamp(
+    campId: number,
+    excludeDeceased: boolean = true,
+  ): Promise<number> {
     const query = this.personRepo
-      .createQueryBuilder('person')
-      .leftJoin('person.userAccount', 'userAccount')
-      .where('userAccount.camp_id = :campId', { campId });
+      .createQueryBuilder("person")
+      .leftJoin("person.userAccount", "userAccount")
+      .where("userAccount.camp_id = :campId", { campId });
 
     if (excludeDeceased) {
-      query.andWhere('person.status != :deceasedStatus', {
+      query.andWhere("person.status != :deceasedStatus", {
         deceasedStatus: PersonStatus.DECEASED,
       });
     }
@@ -161,15 +173,15 @@ export class PersonsService {
     }>
   > {
     const query = this.personRepo
-      .createQueryBuilder('person')
-      .select('person.status', 'status')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('person.status');
+      .createQueryBuilder("person")
+      .select("person.status", "status")
+      .addSelect("COUNT(*)", "count")
+      .groupBy("person.status");
 
     if (campId) {
       query
-        .leftJoin('person.userAccount', 'userAccount')
-        .where('userAccount.camp_id = :campId', { campId });
+        .leftJoin("person.userAccount", "userAccount")
+        .where("userAccount.camp_id = :campId", { campId });
     }
 
     return query.getRawMany();
@@ -184,24 +196,24 @@ export class PersonsService {
     }>
   > {
     const query = this.personRepo
-      .createQueryBuilder('person')
-      .leftJoin('person.profession', 'profession')
-      .select('profession.name', 'professionName')
-      .addSelect('COUNT(*)', 'total')
+      .createQueryBuilder("person")
+      .leftJoin("person.profession", "profession")
+      .select("profession.name", "professionName")
+      .addSelect("COUNT(*)", "total")
       .addSelect(
-        `COUNT(CASE WHEN person.can_work = true AND person.status = '${PersonStatus.ACTIVE}' THEN 1 END)`,
-        'active',
+        `COUNT(CASE WHEN person.can_work = true AND person.status = "${PersonStatus.ACTIVE}" THEN 1 END)`,
+        "active",
       )
       .addSelect(
-        `COUNT(CASE WHEN person.can_work = false OR person.status != '${PersonStatus.ACTIVE}' THEN 1 END)`,
-        'inactive',
+        `COUNT(CASE WHEN person.can_work = false OR person.status != "${PersonStatus.ACTIVE}" THEN 1 END)`,
+        "inactive",
       )
-      .groupBy('profession.name');
+      .groupBy("profession.name");
 
     if (campId) {
       query
-        .leftJoin('person.userAccount', 'userAccount')
-        .where('userAccount.camp_id = :campId', { campId });
+        .leftJoin("person.userAccount", "userAccount")
+        .where("userAccount.camp_id = :campId", { campId });
     }
 
     return query.getRawMany();

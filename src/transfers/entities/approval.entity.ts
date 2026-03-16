@@ -1,38 +1,38 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
-import { UserAccount } from '../../users/entities/user-account.entity';
-import { IntercampRequest } from './intercamp-request.entity';
+} from "typeorm";
+import { UserAccount } from "../../users/entities/user-account.entity";
+import { IntercampRequest } from "./intercamp-request.entity";
 
-@Entity('approval')
+@Entity("approval")
 export class Approval {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   user_id: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   entity_type: string;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   entity_id: number;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: "timestamptz" })
   approval_date: Date;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   status: string;
 
   @ManyToOne(() => UserAccount)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: "user_id" })
   user: UserAccount;
 
   @ManyToOne(() => IntercampRequest, (r) => r.approvals, { nullable: true })
-  @JoinColumn({ name: 'entity_id' })
+  @JoinColumn({ name: "entity_id" })
   intercampRequest: IntercampRequest;
 }

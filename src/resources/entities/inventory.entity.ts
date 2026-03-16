@@ -1,39 +1,32 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
-import { Camp } from '../../camps/entities/camp.entity';
-import { Resource } from './resource.entity';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Camp } from "../../camps/entities/camp.entity";
+import { Resource } from "./resource.entity";
 
-@Entity('inventory')
+@Entity("inventory")
 export class Inventory {
-  @PrimaryColumn({ type: 'bigint' })
+  @PrimaryColumn({ type: "bigint" })
   camp_id: number;
 
-  @PrimaryColumn({ type: 'bigint' })
+  @PrimaryColumn({ type: "bigint" })
   resource_id: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 3, default: 0 })
+  @Column({ type: "decimal", precision: 12, scale: 3, default: 0 })
   current_quantity: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 3, default: 0 })
+  @Column({ type: "decimal", precision: 12, scale: 3, default: 0 })
   minimum_stock_required: number;
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: "boolean", default: false })
   alert_active: boolean;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: "timestamptz", nullable: true })
   last_update: Date;
 
   @ManyToOne(() => Camp)
-  @JoinColumn({ name: 'camp_id' })
+  @JoinColumn({ name: "camp_id" })
   camp: Camp;
 
   @ManyToOne(() => Resource, (r) => r.inventories)
-  @JoinColumn({ name: 'resource_id' })
+  @JoinColumn({ name: "resource_id" })
   resource: Resource;
 }

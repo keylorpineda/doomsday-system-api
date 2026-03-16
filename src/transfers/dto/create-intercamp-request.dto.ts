@@ -1,12 +1,12 @@
-import {
+﻿import {
   IsString,
   IsInt,
   IsOptional,
   IsArray,
   ValidateNested,
   Min,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class RequestResourceDetailDto {
   @IsInt()
@@ -31,7 +31,7 @@ export class CreateIntercampRequestDto {
   @IsInt()
   camp_destination_id: number;
 
-  /** 'resources' | 'people' | 'both' */
+  /** "resources" | "people" | "both" */
   @IsString()
   type: string;
 

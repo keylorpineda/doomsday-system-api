@@ -1,52 +1,52 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
-import { UserAccount } from './user-account.entity';
-import { Profession } from './profession.entity';
+} from "typeorm";
+import { UserAccount } from "./user-account.entity";
+import { Profession } from "./profession.entity";
 
-@Entity('temporary_assignment')
+@Entity("temporary_assignment")
 export class TemporaryAssignment {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   user_account_id: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   profession_origin_id: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   profession_temporary_id: number;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: "timestamptz" })
   start_date: Date;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: "timestamptz", nullable: true })
   end_date: Date;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   reason: string;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   user_approve_id: number;
 
   @ManyToOne(() => UserAccount, (ua) => ua.approvedAssignments)
-  @JoinColumn({ name: 'user_account_id' })
+  @JoinColumn({ name: "user_account_id" })
   userAccount: UserAccount;
 
   @ManyToOne(() => Profession, (p) => p.originAssignments)
-  @JoinColumn({ name: 'profession_origin_id' })
+  @JoinColumn({ name: "profession_origin_id" })
   professionOrigin: Profession;
 
   @ManyToOne(() => Profession, (p) => p.temporaryAssignments)
-  @JoinColumn({ name: 'profession_temporary_id' })
+  @JoinColumn({ name: "profession_temporary_id" })
   professionTemporary: Profession;
 
   @ManyToOne(() => UserAccount)
-  @JoinColumn({ name: 'user_approve_id' })
+  @JoinColumn({ name: "user_approve_id" })
   userApprove: UserAccount;
 }

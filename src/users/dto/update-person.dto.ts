@@ -4,7 +4,7 @@ import {
   IsDateString,
   IsInt,
   IsBoolean,
-} from 'class-validator';
+} from "class-validator";
 
 export class UpdatePersonDto {
   @IsOptional()

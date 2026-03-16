@@ -1,21 +1,16 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity('role')
+@Entity("role")
 export class Role {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
   /**
-   * Values: 'admin' | 'worker' | 'resource_manager' | 'travel_comms'
+   * Values: "admin" | "worker" | "resource_manager" | "travel_comms"
    */
-  @Column({ type: 'text', unique: true })
+  @Column({ type: "text", unique: true })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   description: string;
 }

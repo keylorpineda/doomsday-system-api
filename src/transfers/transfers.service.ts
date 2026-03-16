@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { IntercampRequest } from './entities/intercamp-request.entity';
-import { UserAccount } from '../users/entities/user-account.entity';
-import { RequestsService } from './services/requests.service';
-import { ApprovalsService } from './services/approvals.service';
-import { TransferExecutionService } from './services/transfer-execution.service';
-import { CreateIntercampRequestDto } from './dto/create-intercamp-request.dto';
-import { ApprovalDto } from './dto/approval.dto';
+﻿import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { IntercampRequest } from "./entities/intercamp-request.entity";
+import { UserAccount } from "../users/entities/user-account.entity";
+import { RequestsService } from "./services/requests.service";
+import { ApprovalsService } from "./services/approvals.service";
+import { TransferExecutionService } from "./services/transfer-execution.service";
+import { CreateIntercampRequestDto } from "./dto/create-intercamp-request.dto";
+import { ApprovalDto } from "./dto/approval.dto";
 
 @Injectable()
 export class TransfersService {
@@ -32,7 +32,7 @@ export class TransfersService {
 
   async findRequestsByCamp(
     campId: number,
-    role?: 'origin' | 'destination',
+    role?: "origin" | "destination",
   ): Promise<IntercampRequest[]> {
     return this.requestsService.findRequestsByCamp(campId, role);
   }
@@ -47,7 +47,7 @@ export class TransfersService {
     dto: ApprovalDto,
   ): Promise<IntercampRequest> {
     const request = await this.requestsService.findRequestById(requestId);
-    
+
     const { bothApproved } = await this.approvalsService.approveOrReject(
       request,
       userId,

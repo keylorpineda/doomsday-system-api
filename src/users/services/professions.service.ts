@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Profession } from '../entities/profession.entity';
-import { CreateProfessionDto } from '../dto/create-profession.dto';
-import { PersonsService } from './persons.service';
+﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Profession } from "../entities/profession.entity";
+import { CreateProfessionDto } from "../dto/create-profession.dto";
+import { PersonsService } from "./persons.service";
 
 @Injectable()
 export class ProfessionsService {
@@ -15,14 +15,14 @@ export class ProfessionsService {
 
   async findAll(): Promise<Profession[]> {
     return this.professionRepo.find({
-      relations: ['persons'],
+      relations: ["persons"],
     });
   }
 
   async findById(id: number): Promise<Profession> {
     const profession = await this.professionRepo.findOne({
       where: { id },
-      relations: ['persons'],
+      relations: ["persons"],
     });
 
     if (!profession) {
@@ -40,7 +40,11 @@ export class ProfessionsService {
   async checkMinimumWorkers(
     professionId: number,
     excludePersonId?: number,
-  ): Promise<{ needsWorkers: boolean; currentWorkers: number; minimumRequired: number }> {
+  ): Promise<{
+    needsWorkers: boolean;
+    currentWorkers: number;
+    minimumRequired: number;
+  }> {
     const profession = await this.findById(professionId);
 
     const activeWorkers = await this.personsService.countActiveWorkers(
@@ -52,8 +56,8 @@ export class ProfessionsService {
 
     if (needsWorkers) {
       console.warn(
-        `⚠️ ALERTA: Profesión "${profession.name}" necesita trabajadores. ` +
-          `Actual: ${activeWorkers}, Mínimo: ${profession.minimum_active_required}`,
+        `?? ALERTA: Profesi�n "${profession.name}" necesita trabajadores. ` +
+          `Actual: ${activeWorkers}, M�nimo: ${profession.minimum_active_required}`,
       );
     }
 
@@ -76,7 +80,9 @@ export class ProfessionsService {
     const professionsNeedingWorkers = [];
 
     for (const profession of allProfessions) {
-      const activeWorkers = await this.personsService.countActiveWorkers(profession.id);
+      const activeWorkers = await this.personsService.countActiveWorkers(
+        profession.id,
+      );
 
       if (activeWorkers < profession.minimum_active_required) {
         professionsNeedingWorkers.push({
@@ -103,7 +109,9 @@ export class ProfessionsService {
     const professionsWithExcess = [];
 
     for (const profession of allProfessions) {
-      const activeWorkers = await this.personsService.countActiveWorkers(profession.id);
+      const activeWorkers = await this.personsService.countActiveWorkers(
+        profession.id,
+      );
 
       if (activeWorkers > profession.minimum_active_required) {
         professionsWithExcess.push({

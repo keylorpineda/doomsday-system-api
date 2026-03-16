@@ -1,18 +1,18 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { IntercampRequest } from '../entities/intercamp-request.entity';
-import { RequestResourceDetail } from '../entities/request-resource-detail.entity';
-import { RequestPersonDetail } from '../entities/request-person-detail.entity';
-import { Person } from '../../users/entities/person.entity';
-import { UserAccount } from '../../users/entities/user-account.entity';
-import { Inventory } from '../../resources/entities/inventory.entity';
-import { InventoryMovement } from '../../resources/entities/inventory-movement.entity';
-import { AuditLog } from '../../common/entities/audit-log.entity';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
+import { IntercampRequest } from "../entities/intercamp-request.entity";
+import { RequestResourceDetail } from "../entities/request-resource-detail.entity";
+import { RequestPersonDetail } from "../entities/request-person-detail.entity";
+import { Person } from "../../users/entities/person.entity";
+import { UserAccount } from "../../users/entities/user-account.entity";
+import { Inventory } from "../../resources/entities/inventory.entity";
+import { InventoryMovement } from "../../resources/entities/inventory-movement.entity";
+import { AuditLog } from "../../common/entities/audit-log.entity";
 
 @Injectable()
 export class TransferExecutionService {
@@ -40,9 +40,9 @@ export class TransferExecutionService {
     request: IntercampRequest,
     userId: number,
   ): Promise<void> {
-    if (request.status !== 'approved') {
+    if (request.status !== "approved") {
       throw new BadRequestException(
-        'La solicitud debe estar aprobada por ambos campamentos',
+        "La solicitud debe estar aprobada por ambos campamentos",
       );
     }
 
@@ -59,14 +59,14 @@ export class TransferExecutionService {
         await this.transferPersons(queryRunner, request);
       }
 
-      request.status = 'completed';
+      request.status = "completed";
       await queryRunner.manager.save(IntercampRequest, request);
 
       await queryRunner.manager.save(AuditLog, {
         user_id: userId,
         camp_id: request.camp_origin_id,
-        action: 'intercamp_transfer_executed',
-        entity_type: 'intercamp_request',
+        action: "intercamp_transfer_executed",
+        entity_type: "intercamp_request",
         entity_id: Number(request.id),
         new_value: {
           resources_transferred: request.resourceDetails?.length ?? 0,
@@ -123,7 +123,7 @@ export class TransferExecutionService {
         camp_id: request.camp_origin_id,
         resource_id: Number(rd.resource_id),
         quantity: transferQty,
-        type: 'transfer_out',
+        type: "transfer_out",
         description: `Transferencia a ${request.campDestination.name} (Solicitud #${request.id})`,
         date: new Date(),
         user_id: userId,
@@ -158,7 +158,7 @@ export class TransferExecutionService {
         camp_id: request.camp_destination_id,
         resource_id: Number(rd.resource_id),
         quantity: transferQty,
-        type: 'transfer_in',
+        type: "transfer_in",
         description: `Transferencia desde ${request.campOrigin.name} (Solicitud #${request.id})`,
         date: new Date(),
         user_id: userId,
@@ -177,7 +177,7 @@ export class TransferExecutionService {
     for (const pd of request.personDetails!) {
       const person = await queryRunner.manager.findOne(Person, {
         where: { id: pd.person_id },
-        relations: ['userAccount'],
+        relations: ["userAccount"],
       });
 
       if (!person) {
@@ -191,7 +191,7 @@ export class TransferExecutionService {
         await queryRunner.manager.save(UserAccount, person.userAccount);
       }
 
-      pd.transfer_status = 'completed';
+      pd.transfer_status = "completed";
       await queryRunner.manager.save(RequestPersonDetail, pd);
     }
   }

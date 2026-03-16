@@ -1,12 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsDateString,
-  IsInt,
-  IsNumber,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsInt } from "class-validator";
 
 export class CreatePersonDto {
   @IsOptional()

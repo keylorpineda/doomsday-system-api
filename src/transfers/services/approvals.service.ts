@@ -1,16 +1,16 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Approval } from '../entities/approval.entity';
-import { IntercampRequest } from '../entities/intercamp-request.entity';
-import { UserAccount } from '../../users/entities/user-account.entity';
-import { AuditLog } from '../../common/entities/audit-log.entity';
-import { ApprovalDto } from '../dto/approval.dto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Approval } from "../entities/approval.entity";
+import { IntercampRequest } from "../entities/intercamp-request.entity";
+import { UserAccount } from "../../users/entities/user-account.entity";
+import { AuditLog } from "../../common/entities/audit-log.entity";
+import { ApprovalDto } from "../dto/approval.dto";
 
 @Injectable()
 export class ApprovalsService {
@@ -32,7 +32,7 @@ export class ApprovalsService {
   ): Promise<{ approved: Approval; bothApproved: boolean }> {
     const user = await this.userRepo.findOne({
       where: { id: userId },
-      relations: ['camp', 'role'],
+      relations: ["camp", "role"],
     });
 
     if (!user) {
@@ -46,7 +46,7 @@ export class ApprovalsService {
       userCampId !== request.camp_destination_id
     ) {
       throw new ForbiddenException(
-        'Solo usuarios de los campamentos implicados pueden aprobar/rechazar',
+        "Solo usuarios de los campamentos implicados pueden aprobar/rechazar",
       );
     }
 
@@ -55,24 +55,24 @@ export class ApprovalsService {
     );
 
     if (existingApproval) {
-      throw new BadRequestException('Ya has registrado tu decisión');
+      throw new BadRequestException("Ya has registrado tu decisi�n");
     }
 
     const campRole =
-      userCampId === request.camp_origin_id ? 'origin' : 'destination';
+      userCampId === request.camp_origin_id ? "origin" : "destination";
 
     const otherCampApprovalExists = request.approvals?.some(
       (a) =>
-        a.status === 'approved' &&
-        ((campRole === 'origin' &&
+        a.status === "approved" &&
+        ((campRole === "origin" &&
           a.user.camp_id === request.camp_destination_id) ||
-          (campRole === 'destination' &&
+          (campRole === "destination" &&
             a.user.camp_id === request.camp_origin_id)),
     );
 
     const approval = this.approvalRepo.create({
       user_id: userId,
-      entity_type: 'intercamp_request',
+      entity_type: "intercamp_request",
       entity_id: Number(request.id),
       approval_date: new Date(),
       status: dto.status,
@@ -80,16 +80,16 @@ export class ApprovalsService {
 
     await this.approvalRepo.save(approval);
 
-    if (dto.status === 'rejected') {
-      request.status = 'rejected';
+    if (dto.status === "rejected") {
+      request.status = "rejected";
       await this.requestRepo.save(request);
 
       await this.auditRepo.save(
         this.auditRepo.create({
           user_id: userId,
           camp_id: userCampId,
-          action: 'intercamp_request_rejected',
-          entity_type: 'intercamp_request',
+          action: "intercamp_request_rejected",
+          entity_type: "intercamp_request",
           entity_id: Number(request.id),
           new_value: { notes: dto.notes },
           date: new Date(),
@@ -99,16 +99,16 @@ export class ApprovalsService {
       return { approved: approval, bothApproved: false };
     }
 
-    if (dto.status === 'approved' && otherCampApprovalExists) {
-      request.status = 'approved';
+    if (dto.status === "approved" && otherCampApprovalExists) {
+      request.status = "approved";
       await this.requestRepo.save(request);
 
       await this.auditRepo.save(
         this.auditRepo.create({
           user_id: userId,
           camp_id: userCampId,
-          action: 'intercamp_request_approved_dual',
-          entity_type: 'intercamp_request',
+          action: "intercamp_request_approved_dual",
+          entity_type: "intercamp_request",
           entity_id: Number(request.id),
           new_value: { both_camps_approved: true },
           date: new Date(),
@@ -121,8 +121,8 @@ export class ApprovalsService {
         this.auditRepo.create({
           user_id: userId,
           camp_id: userCampId,
-          action: 'intercamp_request_approved_partial',
-          entity_type: 'intercamp_request',
+          action: "intercamp_request_approved_partial",
+          entity_type: "intercamp_request",
           entity_id: Number(request.id),
           new_value: { waiting_other_camp: true },
           date: new Date(),

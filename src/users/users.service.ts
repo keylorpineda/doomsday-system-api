@@ -1,23 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserAccount } from './entities/user-account.entity';
-import { Person } from './entities/person.entity';
-import { Profession } from './entities/profession.entity';
-import { TemporaryAssignment } from './entities/temporary-assignment.entity';
-import { CreatePersonDto } from './dto/create-person.dto';
-import { UpdatePersonDto } from './dto/update-person.dto';
-import { UpdatePersonStatusDto } from './dto/update-person-status.dto';
-import { CreateTemporaryAssignmentDto } from './dto/create-temporary-assignment.dto';
-import { PersonsService } from './services/persons.service';
-import { ProfessionsService } from './services/professions.service';
-import { AssignmentsService } from './services/assignments.service';
-import { ProductionService } from './services/production.service';
-import { UserAsset } from './entities/user-asset.entity';
+﻿import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { UserAccount } from "./entities/user-account.entity";
+import { Person } from "./entities/person.entity";
+import { Profession } from "./entities/profession.entity";
+import { TemporaryAssignment } from "./entities/temporary-assignment.entity";
+import { CreatePersonDto } from "./dto/create-person.dto";
+import { UpdatePersonDto } from "./dto/update-person.dto";
+import { UpdatePersonStatusDto } from "./dto/update-person-status.dto";
+import { CreateTemporaryAssignmentDto } from "./dto/create-temporary-assignment.dto";
+import { PersonsService } from "./services/persons.service";
+import { ProfessionsService } from "./services/professions.service";
+import { AssignmentsService } from "./services/assignments.service";
+import { ProductionService } from "./services/production.service";
+import { UserAsset } from "./entities/user-asset.entity";
 
 /**
- * Servicio principal de usuarios - Actúa como orquestador
- * Delega responsabilidades específicas a servicios especializados
+ * Servicio principal de usuarios - Act�a como orquestador
+ * Delega responsabilidades espec�ficas a servicios especializados
  */
 @Injectable()
 export class UsersService {
@@ -35,14 +35,14 @@ export class UsersService {
   async findUserById(id: number): Promise<UserAccount | null> {
     return this.userAccountRepo.findOne({
       where: { id },
-      relations: ['role', 'person', 'person.profession', 'camp'],
+      relations: ["role", "person", "person.profession", "camp"],
     });
   }
 
   async findUserByUsername(username: string): Promise<UserAccount | null> {
     return this.userAccountRepo.findOne({
       where: { username },
-      relations: ['role', 'person', 'person.profession', 'camp'],
+      relations: ["role", "person", "person.profession", "camp"],
     });
   }
 
@@ -62,7 +62,10 @@ export class UsersService {
     return this.personsService.update(id, dto);
   }
 
-  async updatePersonStatus(id: number, dto: UpdatePersonStatusDto): Promise<Person> {
+  async updatePersonStatus(
+    id: number,
+    dto: UpdatePersonStatusDto,
+  ): Promise<Person> {
     return this.personsService.updateStatus(id, dto);
   }
 
@@ -70,13 +73,20 @@ export class UsersService {
     return this.personsService.delete(id);
   }
 
-  async getPersonStatsByStatus(campId?: number): Promise<Array<{ status: string; count: number }>> {
+  async getPersonStatsByStatus(
+    campId?: number,
+  ): Promise<Array<{ status: string; count: number }>> {
     return this.personsService.getStatsByStatus(campId);
   }
 
-  async getPersonStatsByProfession(
-    campId?: number,
-  ): Promise<Array<{ professionName: string; total: number; active: number; inactive: number }>> {
+  async getPersonStatsByProfession(campId?: number): Promise<
+    Array<{
+      professionName: string;
+      total: number;
+      active: number;
+      inactive: number;
+    }>
+  > {
     return this.personsService.getStatsByProfession(campId);
   }
 
@@ -99,8 +109,15 @@ export class UsersService {
   async checkProfessionMinimumWorkers(
     professionId: number,
     excludePersonId?: number,
-  ): Promise<{ needsWorkers: boolean; currentWorkers: number; minimumRequired: number }> {
-    return this.professionsService.checkMinimumWorkers(professionId, excludePersonId);
+  ): Promise<{
+    needsWorkers: boolean;
+    currentWorkers: number;
+    minimumRequired: number;
+  }> {
+    return this.professionsService.checkMinimumWorkers(
+      professionId,
+      excludePersonId,
+    );
   }
 
   async getProfessionsNeedingWorkers(): Promise<
@@ -132,11 +149,15 @@ export class UsersService {
     return this.assignmentsService.create(dto, approvedByUserId);
   }
 
-  async getActiveTemporaryAssignments(campId?: number): Promise<TemporaryAssignment[]> {
+  async getActiveTemporaryAssignments(
+    campId?: number,
+  ): Promise<TemporaryAssignment[]> {
     return this.assignmentsService.findActive(campId);
   }
 
-  async endTemporaryAssignment(assignmentId: number): Promise<TemporaryAssignment> {
+  async endTemporaryAssignment(
+    assignmentId: number,
+  ): Promise<TemporaryAssignment> {
     return this.assignmentsService.end(assignmentId);
   }
 
@@ -172,9 +193,9 @@ export class UsersService {
 
   async getAssignedResourcesByUser(userId: number): Promise<UserAsset[]> {
     return this.userAssetRepo.find({
-      where: { user_account_id: userId, relation_type: 'assigned' },
-      relations: ['asset'],
-      order: { acquired_at: 'DESC' },
+      where: { user_account_id: userId, relation_type: "assigned" },
+      relations: ["asset"],
+      order: { acquired_at: "DESC" },
     });
   }
 }

@@ -1,7 +1,7 @@
-import { IsString, IsOptional } from 'class-validator';
+﻿import { IsString, IsOptional } from "class-validator";
 
 export class ApprovalDto {
-  /** 'approved' | 'rejected' */
+  /** "approved" | "rejected" */
   @IsString()
   status: string;
 
