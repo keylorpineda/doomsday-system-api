@@ -7,36 +7,35 @@ import {
   HttpStatus,
   Ip,
   Headers,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RefreshDto } from './dto/refresh.dto';
-import { Public } from './decorators/public.decorator';
-import { CurrentUser } from './decorators/current-user.decorator';
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { AuthService } from "./auth.service";
+import { LoginDto } from "./dto/login.dto";
+import { RefreshDto } from "./dto/refresh.dto";
+import { Public } from "./decorators/public.decorator";
+import { CurrentUser } from "./decorators/current-user.decorator";
 
-@ApiTags('Auth')
-@Controller('auth')
+@ApiTags("Auth")
+@Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Post('login')
+  @Post("login")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Iniciar sesión con credenciales' })
+  @ApiOperation({ summary: "Iniciar sesi�n con credenciales" })
   async login(
     @Body() dto: LoginDto,
     @Ip() ipAddress: string,
-    @Headers('user-agent') userAgent?: string,
+    @Headers("user-agent") userAgent?: string,
   ) {
     return this.authService.login(dto, ipAddress, userAgent);
   }
 
-  @Post('logout')
+  @Post("logout")
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Cerrar sesión del usuario actual' })
+  @ApiOperation({ summary: "Cerrar sesi�n del usuario actual" })
   async logout(
     @CurrentUser() user: any,
     @Body() body?: { refresh_token?: string },
@@ -45,17 +44,18 @@ export class AuthController {
   }
 
   @Public()
-  @Post('refresh')
+  @Post("refresh")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Renovar access token usando refresh token' })
+  @ApiOperation({ summary: "Renovar access token usando refresh token" })
   async refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refresh_token);
   }
 
-  @Get('session-status')
+  @Get("session-status")
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Verificar estado de la sesión y tiempo restante antes del auto-logout',
+    summary:
+      "Verificar estado de la sesi�n y tiempo restante antes del auto-logout",
   })
   async checkSessionStatus(@CurrentUser() user: any) {
     return this.authService.checkSessionStatus(user.userId);

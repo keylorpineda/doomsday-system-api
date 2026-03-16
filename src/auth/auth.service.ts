@@ -1,17 +1,13 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  BadRequestException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
-import { LoginAttempt } from './entities/login-attempt.entity';
-import { Session } from './entities/session.entity';
-import { UserAccount } from '../users/entities/user-account.entity';
-import { LoginDto } from './dto/login.dto';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
+import { InjectRepository } from "@nestjs/typeorm";
+import { MoreThan, Repository } from "typeorm";
+import * as bcrypt from "bcrypt";
+import { LoginAttempt } from "./entities/login-attempt.entity";
+import { Session } from "./entities/session.entity";
+import { UserAccount } from "../users/entities/user-account.entity";
+import { LoginDto } from "./dto/login.dto";
 
 const SALT_ROUNDS = 12;
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -52,7 +48,7 @@ export class AuthService {
         ip_address: ipAddress,
         user_agent: userAgent,
         success: false,
-        failure_reason: 'Too many login attempts',
+        failure_reason: "Too many login attempts",
       });
       throw new UnauthorizedException(
         `Demasiados intentos fallidos. Intente de nuevo en ${LOGIN_ATTEMPT_WINDOW_MS / 60000} minutos`,
@@ -61,7 +57,7 @@ export class AuthService {
 
     const user = await this.userRepo.findOne({
       where: { username: dto.username },
-      relations: ['role', 'camp', 'person'],
+      relations: ["role", "camp", "person"],
     });
 
     if (!user) {
@@ -70,9 +66,9 @@ export class AuthService {
         ip_address: ipAddress,
         user_agent: userAgent,
         success: false,
-        failure_reason: 'User not found',
+        failure_reason: "User not found",
       });
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException("Credenciales inv�lidas");
     }
 
     const isPasswordValid = await this.verifyPassword(
@@ -86,10 +82,10 @@ export class AuthService {
         ip_address: ipAddress,
         user_agent: userAgent,
         success: false,
-        failure_reason: 'Invalid password',
+        failure_reason: "Invalid password",
         user_id: Number(user.id),
       });
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException("Credenciales inv�lidas");
     }
 
     const payload = {
@@ -102,7 +98,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+      expiresIn: this.configService.get<string>("JWT_REFRESH_EXPIRES_IN", "7d"),
     });
 
     const tokenHash = await this.hashPassword(refreshToken);
@@ -136,7 +132,7 @@ export class AuthService {
         id: Number(user.id),
         username: user.username,
         email: user.email,
-        role: user.role?.name ?? 'unknown',
+        role: user.role?.name ?? "unknown",
         camp_id: Number(user.camp_id),
       },
     };
@@ -149,7 +145,10 @@ export class AuthService {
       });
 
       for (const session of sessions) {
-        const isMatch = await this.verifyPassword(refreshToken, session.token_hash);
+        const isMatch = await this.verifyPassword(
+          refreshToken,
+          session.token_hash,
+        );
         if (isMatch) {
           session.is_active = false;
           session.auto_logout = false;
@@ -174,7 +173,7 @@ export class AuthService {
     try {
       payload = this.jwtService.verify(refreshToken);
     } catch (error) {
-      throw new UnauthorizedException('Refresh token inválido o expirado');
+      throw new UnauthorizedException("Refresh token inv�lido o expirado");
     }
 
     const sessions = await this.sessionRepo.find({
@@ -184,7 +183,10 @@ export class AuthService {
     let validSession: Session | null = null;
 
     for (const session of sessions) {
-      const isMatch = await this.verifyPassword(refreshToken, session.token_hash);
+      const isMatch = await this.verifyPassword(
+        refreshToken,
+        session.token_hash,
+      );
       if (isMatch) {
         validSession = session;
         break;
@@ -192,22 +194,22 @@ export class AuthService {
     }
 
     if (!validSession) {
-      throw new UnauthorizedException('Sesión inválida o expirada');
+      throw new UnauthorizedException("Sesi�n inv�lida o expirada");
     }
 
     if (new Date() > validSession.expires_at) {
       validSession.is_active = false;
       await this.sessionRepo.save(validSession);
-      throw new UnauthorizedException('Sesión expirada');
+      throw new UnauthorizedException("Sesi�n expirada");
     }
 
     const user = await this.userRepo.findOne({
       where: { id: payload.sub },
-      relations: ['role'],
+      relations: ["role"],
     });
 
     if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
+      throw new UnauthorizedException("Usuario no encontrado");
     }
 
     const newPayload = {
@@ -220,7 +222,7 @@ export class AuthService {
 
     const newAccessToken = this.jwtService.sign(newPayload);
     const newRefreshToken = this.jwtService.sign(newPayload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+      expiresIn: this.configService.get<string>("JWT_REFRESH_EXPIRES_IN", "7d"),
     });
 
     const newTokenHash = await this.hashPassword(newRefreshToken);
@@ -239,7 +241,7 @@ export class AuthService {
   async validateUser(userId: number): Promise<UserAccount | null> {
     return this.userRepo.findOne({
       where: { id: userId },
-      relations: ['role', 'camp', 'person'],
+      relations: ["role", "camp", "person"],
     });
   }
 
@@ -277,8 +279,8 @@ export class AuthService {
   }
 
   /**
-   * Verifica el estado de la sesión del usuario
-   * Retorna información sobre actividad y tiempo restante antes del auto-logout
+   * Verifica el estado de la sesi�n del usuario
+   * Retorna informaci�n sobre actividad y tiempo restante antes del auto-logout
    */
   async checkSessionStatus(userId: number): Promise<{
     isActive: boolean;
@@ -288,7 +290,7 @@ export class AuthService {
   }> {
     const session = await this.sessionRepo.findOne({
       where: { user_id: userId, is_active: true },
-      order: { last_activity: 'DESC' },
+      order: { last_activity: "DESC" },
     });
 
     if (!session) {
@@ -301,7 +303,8 @@ export class AuthService {
     }
 
     const now = new Date();
-    const timeSinceLastActivity = now.getTime() - session.last_activity.getTime();
+    const timeSinceLastActivity =
+      now.getTime() - session.last_activity.getTime();
     const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutos
     const timeRemaining = INACTIVITY_TIMEOUT_MS - timeSinceLastActivity;
     const minutesRemaining = Math.max(0, Math.floor(timeRemaining / 60000));

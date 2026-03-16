@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Camp } from '../../camps/entities/camp.entity';
-import { ProductionService } from '../../users/services/production.service';
-import { ProfessionsService } from '../../users/services/professions.service';
-import { PersonsService } from '../../users/services/persons.service';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Camp } from "../../camps/entities/camp.entity";
+import { ProductionService } from "../../users/services/production.service";
+import { ProfessionsService } from "../../users/services/professions.service";
+import { PersonsService } from "../../users/services/persons.service";
 
 export interface CampContext {
   population: number;
@@ -32,11 +32,17 @@ export class CampAnalysisService {
       throw new Error(`Camp ${campId} not found`);
     }
 
-    const population = await this.personsService.countPersonsByCamp(campId, true);
+    const population = await this.personsService.countPersonsByCamp(
+      campId,
+      true,
+    );
     const balance = await this.productionService.calculateDailyBalance(campId);
-    const professionsNeeded = await this.professionsService.getProfessionsNeedingWorkers();
+    const professionsNeeded =
+      await this.professionsService.getProfessionsNeedingWorkers();
 
-    const occupancyRate = camp.max_capacity ? (population / camp.max_capacity) * 100 : 0;
+    const occupancyRate = camp.max_capacity
+      ? (population / camp.max_capacity) * 100
+      : 0;
 
     let criticalProfession: string | undefined;
     let criticalDeficit = 0;

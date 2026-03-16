@@ -1,20 +1,20 @@
-import {
+﻿import {
   Injectable,
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { JwtService } from "@nestjs/jwt";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Session } from "../entities/session.entity";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 
 const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutos
 
 /**
- * Guard que valida si la sesión ha estado inactiva por más de 20 minutos
+ * Guard que valida si la sesi�n ha estado inactiva por m�s de 20 minutos
  * Si detecta inactividad, marca auto_logout y rechaza el request
  */
 @Injectable()
@@ -27,7 +27,7 @@ export class SessionInactivityGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Verificar si la ruta es pública
+    // Verificar si la ruta es p�blica
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -40,7 +40,7 @@ export class SessionInactivityGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       // Sin token - dejamos que JwtAuthGuard maneje esto
       return true;
     }
@@ -54,16 +54,16 @@ export class SessionInactivityGuard implements CanActivate {
       // Buscar sesiones activas del usuario
       const sessions = await this.sessionRepo.find({
         where: { user_id: userId, is_active: true },
-        order: { last_activity: 'DESC' },
+        order: { last_activity: "DESC" },
       });
 
       if (sessions.length === 0) {
         throw new UnauthorizedException(
-          'No hay sesión activa. Por favor, inicie sesión nuevamente',
+          "No hay sesi�n activa. Por favor, inicie sesi�n nuevamente",
         );
       }
 
-      // Verificar la sesión más reciente
+      // Verificar la sesi�n m�s reciente
       const mostRecentSession = sessions[0];
       const now = new Date();
       const timeSinceLastActivity =
@@ -77,7 +77,7 @@ export class SessionInactivityGuard implements CanActivate {
         );
 
         throw new UnauthorizedException(
-          'Su sesión ha expirado por inactividad. Por favor, inicie sesión nuevamente',
+          "Su sesi�n ha expirado por inactividad. Por favor, inicie sesi�n nuevamente",
         );
       }
 
@@ -86,7 +86,7 @@ export class SessionInactivityGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      // Token inválido - dejamos que JwtAuthGuard maneje esto
+      // Token inv�lido - dejamos que JwtAuthGuard maneje esto
       return true;
     }
   }

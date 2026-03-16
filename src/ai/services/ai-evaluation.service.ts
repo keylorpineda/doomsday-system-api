@@ -1,16 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Profession } from '../../users/entities/profession.entity';
-import { SubmitAdmissionDto } from '../dto/submit-admission.dto';
-import { CampContext } from './camp-analysis.service';
-import { PROFESSIONS_CONFIG } from '../../users/constants/professions.constants';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Profession } from "../../users/entities/profession.entity";
+import { SubmitAdmissionDto } from "../dto/submit-admission.dto";
+import { CampContext } from "./camp-analysis.service";
+import { PROFESSIONS_CONFIG } from "../../users/constants/professions.constants";
 
 export interface EvaluationResult {
   score: number;
   decision: string;
   confidence: string;
-  factors: Array<{ category: string; score: number; maxScore: number; detail: string }>;
+  factors: Array<{
+    category: string;
+    score: number;
+    maxScore: number;
+    detail: string;
+  }>;
 }
 
 @Injectable()
@@ -26,14 +31,17 @@ export class AiEvaluationService {
   ): { applies: boolean; decision?: string; reason?: string } {
     if (context.balance.food < -10) {
       const canProduceFood = candidate.skills.some((s) =>
-        ['agriculture', 'farming', 'hunting', 'fishing'].includes(s.toLowerCase()),
+        ["agriculture", "farming", "hunting", "fishing"].includes(
+          s.toLowerCase(),
+        ),
       );
 
       if (!canProduceFood) {
         return {
           applies: true,
-          decision: 'REJECT',
-          reason: 'CRITICAL: Camp has severe food deficit. Only accepting food producers.',
+          decision: "REJECT",
+          reason:
+            "CRITICAL: Camp has severe food deficit. Only accepting food producers.",
         };
       }
     }
@@ -47,7 +55,7 @@ export class AiEvaluationService {
       if (hasSkillForCritical) {
         return {
           applies: true,
-          decision: 'ACCEPT',
+          decision: "ACCEPT",
           reason: `URGENT: Camp critically needs ${context.criticalProfession}. Immediate acceptance.`,
         };
       }
@@ -58,17 +66,18 @@ export class AiEvaluationService {
       if (estimatedScore < 80) {
         return {
           applies: true,
-          decision: 'REJECT',
-          reason: 'Camp at 95% capacity. Only exceptional candidates accepted.',
+          decision: "REJECT",
+          reason: "Camp at 95% capacity. Only exceptional candidates accepted.",
         };
       }
     }
 
-    if (candidate.medical_conditions?.includes('contagious')) {
+    if (candidate.medical_conditions?.includes("contagious")) {
       return {
         applies: true,
-        decision: 'REJECT',
-        reason: 'Health risk: Contagious condition poses danger to camp population.',
+        decision: "REJECT",
+        reason:
+          "Health risk: Contagious condition poses danger to camp population.",
       };
     }
 
@@ -79,22 +88,28 @@ export class AiEvaluationService {
     candidate: SubmitAdmissionDto,
     context: CampContext,
   ): Promise<EvaluationResult> {
-    const factors: Array<{ category: string; score: number; maxScore: number; detail: string }> = [];
+    const factors: Array<{
+      category: string;
+      score: number;
+      maxScore: number;
+      detail: string;
+    }> = [];
 
     const professionNeedScore = this.scoreProfessionNeed(candidate, context);
     factors.push(professionNeedScore);
 
     const skillsScore = this.scoreSkills(candidate);
     factors.push({
-      category: 'Skills',
+      category: "Skills",
       score: Math.round(skillsScore * 0.25),
       maxScore: 25,
       detail: `${candidate.skills.length} valuable skills identified`,
     });
 
-    const healthScore = (candidate.health_status + candidate.physical_condition) / 2;
+    const healthScore =
+      (candidate.health_status + candidate.physical_condition) / 2;
     factors.push({
-      category: 'Health',
+      category: "Health",
       score: Math.round(healthScore * 0.15),
       maxScore: 15,
       detail: `Health: ${candidate.health_status}/100, Physical: ${candidate.physical_condition}/100`,
@@ -108,15 +123,15 @@ export class AiEvaluationService {
 
     const totalScore = factors.reduce((sum, f) => sum + f.score, 0);
 
-    let decision = 'REQUIRES_REVIEW';
-    let confidence = 'MEDIUM';
+    let decision = "REQUIRES_REVIEW";
+    let confidence = "MEDIUM";
 
     if (totalScore > 75) {
-      decision = 'RECOMMEND_ACCEPT';
-      confidence = 'HIGH';
+      decision = "RECOMMEND_ACCEPT";
+      confidence = "HIGH";
     } else if (totalScore < 50) {
-      decision = 'RECOMMEND_REJECT';
-      confidence = 'HIGH';
+      decision = "RECOMMEND_REJECT";
+      confidence = "HIGH";
     }
 
     return {
@@ -131,7 +146,9 @@ export class AiEvaluationService {
     skills: string[],
     context: CampContext,
   ): Promise<Profession | null> {
-    const professionNames = Object.values(PROFESSIONS_CONFIG).map((p) => p.name);
+    const professionNames = Object.values(PROFESSIONS_CONFIG).map(
+      (p) => p.name,
+    );
 
     for (const need of context.professionsNeeded) {
       if (this.hasSkillsForProfession(skills, need.profession)) {
@@ -157,11 +174,10 @@ export class AiEvaluationService {
   generateJustification(
     evaluation: EvaluationResult,
     context: CampContext,
-    candidate: SubmitAdmissionDto,
   ): string {
     let text = `Score: ${evaluation.score}/100 (${evaluation.confidence} confidence)\n`;
     text += `Decision: ${evaluation.decision}\n\n`;
-    text += 'Evaluation Breakdown:\n';
+    text += "Evaluation Breakdown:\n";
 
     for (const factor of evaluation.factors) {
       text += `- [${factor.score}/${factor.maxScore}] ${factor.category}: ${factor.detail}\n`;
@@ -169,11 +185,11 @@ export class AiEvaluationService {
 
     text += `\nCamp Context:\n`;
     text += `- Population: ${context.population}/${context.capacity} (${Math.round(context.occupancyRate)}%)\n`;
-    text += `- Food balance: ${context.balance.food > 0 ? '+' : ''}${context.balance.food}\n`;
-    text += `- Water balance: ${context.balance.water > 0 ? '+' : ''}${context.balance.water}\n`;
+    text += `- Food balance: ${context.balance.food > 0 ? "+" : ""}${context.balance.food}\n`;
+    text += `- Water balance: ${context.balance.water > 0 ? "+" : ""}${context.balance.water}\n`;
 
     if (context.professionsNeeded.length > 0) {
-      text += `- Professions needed: ${context.professionsNeeded.map((p) => `${p.profession} (-${p.deficit})`).join(', ')}\n`;
+      text += `- Professions needed: ${context.professionsNeeded.map((p) => `${p.profession} (-${p.deficit})`).join(", ")}\n`;
     }
 
     return text;
@@ -184,7 +200,7 @@ export class AiEvaluationService {
     context: CampContext,
   ): { category: string; score: number; maxScore: number; detail: string } {
     let score = 0;
-    let detail = 'No critical profession match';
+    let detail = "No critical profession match";
 
     for (const need of context.professionsNeeded) {
       if (this.hasSkillsForProfession(candidate.skills, need.profession)) {
@@ -202,13 +218,17 @@ export class AiEvaluationService {
 
     if (score === 0) {
       const hasUsefulSkills = candidate.skills.some((s) =>
-        ['medicine', 'agriculture', 'security', 'engineering'].includes(s.toLowerCase()),
+        ["medicine", "agriculture", "security", "engineering"].includes(
+          s.toLowerCase(),
+        ),
       );
       score = hasUsefulSkills ? 15 : 5;
-      detail = hasUsefulSkills ? 'Has generally useful skills' : 'Limited camp utility';
+      detail = hasUsefulSkills
+        ? "Has generally useful skills"
+        : "Limited camp utility";
     }
 
-    return { category: 'Profession Need', score, maxScore: 40, detail };
+    return { category: "Profession Need", score, maxScore: 40, detail };
   }
 
   private scoreSkills(candidate: SubmitAdmissionDto): number {
@@ -226,37 +246,44 @@ export class AiEvaluationService {
     context: CampContext,
   ): { category: string; score: number; maxScore: number; detail: string } {
     const canProduce = candidate.skills.some((s) =>
-      ['agriculture', 'farming', 'hunting', 'water collection', 'engineering'].includes(
-        s.toLowerCase(),
-      ),
+      [
+        "agriculture",
+        "farming",
+        "hunting",
+        "water collection",
+        "engineering",
+      ].includes(s.toLowerCase()),
     );
 
     let score = 5;
-    let detail = 'Neutral impact on resources';
+    let detail = "Neutral impact on resources";
 
     if (canProduce && context.balance.food < 10) {
       score = 10;
-      detail = 'Will contribute to critical resource production';
+      detail = "Will contribute to critical resource production";
     } else if (canProduce) {
       score = 8;
-      detail = 'Will contribute to resource production';
+      detail = "Will contribute to resource production";
     } else if (context.balance.food < 0) {
       score = 0;
-      detail = 'Camp in deficit, non-producer';
+      detail = "Camp in deficit, non-producer";
     }
 
-    return { category: 'Resource Impact', score, maxScore: 10, detail };
+    return { category: "Resource Impact", score, maxScore: 10, detail };
   }
 
-  private scoreRisk(
-    candidate: SubmitAdmissionDto,
-  ): { category: string; score: number; maxScore: number; detail: string } {
+  private scoreRisk(candidate: SubmitAdmissionDto): {
+    category: string;
+    score: number;
+    maxScore: number;
+    detail: string;
+  } {
     if (candidate.criminal_record) {
       return {
-        category: 'Risk Assessment',
+        category: "Risk Assessment",
         score: 0,
         maxScore: 10,
-        detail: 'Criminal record present',
+        detail: "Criminal record present",
       };
     }
 
@@ -264,33 +291,39 @@ export class AiEvaluationService {
     const score = Math.round(psych * 0.1);
 
     return {
-      category: 'Risk Assessment',
+      category: "Risk Assessment",
       score,
       maxScore: 10,
       detail: `Psychological eval: ${psych}/100`,
     };
   }
 
-  private hasSkillsForProfession(skills: string[], professionName: string): boolean {
+  private hasSkillsForProfession(
+    skills: string[],
+    professionName: string,
+  ): boolean {
     const skillMap: Record<string, string[]> = {
-      'Explorador': ['exploration', 'scouting', 'navigation', 'survival'],
-      'Guardia': ['security', 'combat', 'defense', 'weapons'],
-      'Médico': ['medicine', 'medical', 'first aid', 'healthcare', 'nursing'],
-      'Granjero': ['agriculture', 'farming', 'cultivation', 'gardening'],
-      'Cazador': ['hunting', 'tracking', 'weapons', 'marksmanship'],
-      'Recolector de Agua': ['water collection', 'engineering', 'plumbing'],
-      'Ingeniero': ['engineering', 'mechanics', 'repair', 'construction'],
-      'Cocinero': ['cooking', 'culinary', 'food preparation'],
-      'Constructor': ['construction', 'carpentry', 'building', 'masonry'],
-      'Investigador': ['research', 'science', 'analysis', 'laboratory'],
+      Explorador: ["exploration", "scouting", "navigation", "survival"],
+      Guardia: ["security", "combat", "defense", "weapons"],
+      Médico: ["medicine", "medical", "first aid", "healthcare", "nursing"],
+      Granjero: ["agriculture", "farming", "cultivation", "gardening"],
+      Cazador: ["hunting", "tracking", "weapons", "marksmanship"],
+      "Recolector de Agua": ["water collection", "engineering", "plumbing"],
+      Ingeniero: ["engineering", "mechanics", "repair", "construction"],
+      Cocinero: ["cooking", "culinary", "food preparation"],
+      Constructor: ["construction", "carpentry", "building", "masonry"],
+      Investigador: ["research", "science", "analysis", "laboratory"],
     };
 
     const requiredSkills = skillMap[professionName] || [];
-    return skills.some((s) => requiredSkills.some((req) => s.toLowerCase().includes(req)));
+    return skills.some((s) =>
+      requiredSkills.some((req) => s.toLowerCase().includes(req)),
+    );
   }
 
   private quickScoreEstimate(candidate: SubmitAdmissionDto): number {
-    const healthAvg = (candidate.health_status + candidate.physical_condition) / 2;
+    const healthAvg =
+      (candidate.health_status + candidate.physical_condition) / 2;
     const skillScore = Math.min(candidate.skills.length * 10, 40);
     const riskPenalty = candidate.criminal_record ? 20 : 0;
 

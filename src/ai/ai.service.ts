@@ -1,16 +1,19 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AiAdmission } from './entities/ai-admission.entity';
-import { Camp } from '../camps/entities/camp.entity';
-import { Profession } from '../users/entities/profession.entity';
-import { SubmitAdmissionDto } from './dto/submit-admission.dto';
-import { ReviewAdmissionDto } from './dto/review-admission.dto';
-import { CreateUserAccountDto } from './dto/create-user-account.dto';
-import { CampAnalysisService } from './services/camp-analysis.service';
-import { AiEvaluationService, EvaluationResult } from './services/ai-evaluation.service';
-import { AdmissionReviewService } from './services/admission-review.service';
-import { PythonAiService } from './services/python-ai.service';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { AiAdmission } from "./entities/ai-admission.entity";
+import { Camp } from "../camps/entities/camp.entity";
+import { Profession } from "../users/entities/profession.entity";
+import { SubmitAdmissionDto } from "./dto/submit-admission.dto";
+import { ReviewAdmissionDto } from "./dto/review-admission.dto";
+import { CreateUserAccountDto } from "./dto/create-user-account.dto";
+import { CampAnalysisService } from "./services/camp-analysis.service";
+import {
+  AiEvaluationService,
+  EvaluationResult,
+} from "./services/ai-evaluation.service";
+import { AdmissionReviewService } from "./services/admission-review.service";
+import { PythonAiService } from "./services/python-ai.service";
 
 @Injectable()
 export class AiService {
@@ -33,50 +36,77 @@ export class AiService {
       throw new NotFoundException(`Camp ${dto.camp_id} not found`);
     }
 
-    const campContext = await this.campAnalysisService.analyzeCampContext(dto.camp_id);
-    const criticalRule = this.evaluationService.checkCriticalRules(dto, campContext);
+    const campContext = await this.campAnalysisService.analyzeCampContext(
+      dto.camp_id,
+    );
+    const criticalRule = this.evaluationService.checkCriticalRules(
+      dto,
+      campContext,
+    );
 
     let evaluation: EvaluationResult;
     let suggestedProfession: Profession | null = null;
 
     if (criticalRule.applies) {
       evaluation = {
-        score: criticalRule.decision === 'ACCEPT' ? 100 : 0,
-        decision: criticalRule.decision || 'REJECT',
-        confidence: 'CRITICAL',
-        factors: [{ category: 'Critical Rule', score: 100, maxScore: 100, detail: criticalRule.reason || '' }],
+        score: criticalRule.decision === "ACCEPT" ? 100 : 0,
+        decision: criticalRule.decision || "REJECT",
+        confidence: "CRITICAL",
+        factors: [
+          {
+            category: "Critical Rule",
+            score: 100,
+            maxScore: 100,
+            detail: criticalRule.reason || "",
+          },
+        ],
       };
     } else {
-      evaluation = await this.evaluationService.calculateAdmissionScore(dto, campContext);
-      suggestedProfession = await this.evaluationService.matchProfession(dto.skills, campContext);
+      evaluation = await this.evaluationService.calculateAdmissionScore(
+        dto,
+        campContext,
+      );
+      suggestedProfession = await this.evaluationService.matchProfession(
+        dto.skills,
+        campContext,
+      );
     }
 
     const trackingCode = this.generateTrackingCode();
-    const justification = this.evaluationService.generateJustification(evaluation, campContext, dto);
+    const justification = this.evaluationService.generateJustification(
+      evaluation,
+      campContext,
+    );
 
-    // ── Llamar al microservicio Python (NLP + Caja de Cristal) ─────────────
+    // -- Llamar al microservicio Python (NLP + Caja de Cristal) -------------
     const pythonResult = await this.pythonAiService.analyzeAdmission(dto);
 
-    let finalScore   = evaluation.score;
+    let finalScore = evaluation.score;
     let finalDecision: string = evaluation.decision;
-    let finalJustification  = justification;
+    let finalJustification = justification;
 
     if (pythonResult) {
-      // Combinar score: 60% NestJS estructural + 40% NLP Python
-      finalScore = Math.round(evaluation.score * 0.6 + pythonResult.nlp_percentage * 0.4);
+      finalScore = Math.round(
+        evaluation.score * 0.6 + pythonResult.nlp_percentage * 0.4,
+      );
 
-      // Override crítico: infección detectada → rechazar siempre
       if (pythonResult.infection_detected) {
-        finalDecision = 'RECOMMEND_REJECT';
-        this.logger.warn(`Infection detected for ${dto.first_name} ${dto.last_name} — overriding to REJECT`);
-      } else if (pythonResult.nlp_decision_hint === 'RECOMMEND_ACCEPT' && finalScore >= 60) {
-        finalDecision = evaluation.decision; // mantener decisión NestJS si NLP también acepta
+        finalDecision = "RECOMMEND_REJECT";
+        this.logger.warn(
+          `Infection detected for ${dto.first_name} ${dto.last_name} – overriding to REJECT`,
+        );
+      } else if (
+        pythonResult.nlp_decision_hint === "RECOMMEND_ACCEPT" &&
+        finalScore >= 60
+      ) {
+        finalDecision = evaluation.decision;
       }
 
-      // Agregar reporte de transparencia al justificativo
-      finalJustification = `${justification}\n\n${'─'.repeat(64)}\nANÁLISIS IA (CAJA DE CRISTAL):\n${pythonResult.transparency_report}`;
+      finalJustification = `${justification}\n\n${"-".repeat(64)}\nANÁLISIS IA (CAJA DE CRISTAL):\n${pythonResult.transparency_report}`;
     } else {
-      this.logger.warn('Python AI microservice unavailable — using NestJS-only evaluation');
+      this.logger.warn(
+        "Python AI microservice unavailable – using NestJS-only evaluation",
+      );
     }
 
     const admission = this.admissionRepo.create({
@@ -84,7 +114,7 @@ export class AiService {
       camp_id: dto.camp_id,
       candidate_data: dto,
       score: finalScore,
-      status: 'PENDING_REVIEW',
+      status: "PENDING_REVIEW",
       suggested_decision: finalDecision,
       suggested_profession_id: suggestedProfession?.id || null,
       justification: finalJustification,
@@ -93,8 +123,8 @@ export class AiService {
         python_nlp: pythonResult ?? null,
         combined_score: finalScore,
         scoring_method: pythonResult
-          ? 'combined_60_40 (NestJS 60% + Python NLP 40%)'
-          : 'nestjs_only (Python microservice unavailable)',
+          ? "combined_60_40 (NestJS 60% + Python NLP 40%)"
+          : "nestjs_only (Python microservice unavailable)",
       },
     });
 
@@ -104,11 +134,11 @@ export class AiService {
   async trackAdmission(trackingCode: string): Promise<any> {
     const admission = await this.admissionRepo.findOne({
       where: { tracking_code: trackingCode },
-      relations: ['camp', 'suggestedProfession', 'person'],
+      relations: ["camp", "suggestedProfession", "person"],
     });
 
     if (!admission) {
-      throw new NotFoundException('Admission not found');
+      throw new NotFoundException("Admission not found");
     }
 
     const candidateData: any = admission.candidate_data;
@@ -127,22 +157,22 @@ export class AiService {
   }
 
   async getPendingAdmissions(campId?: number): Promise<AiAdmission[]> {
-    const where: any = { status: 'PENDING_REVIEW' };
+    const where: any = { status: "PENDING_REVIEW" };
     if (campId) {
       where.camp_id = campId;
     }
 
     return this.admissionRepo.find({
       where,
-      relations: ['camp', 'suggestedProfession'],
-      order: { submission_date: 'DESC' },
+      relations: ["camp", "suggestedProfession"],
+      order: { submission_date: "DESC" },
     });
   }
 
   async getAdmissionDetail(id: number): Promise<AiAdmission> {
     const admission = await this.admissionRepo.findOne({
       where: { id },
-      relations: ['camp', 'suggestedProfession', 'reviewedBy', 'person'],
+      relations: ["camp", "suggestedProfession", "reviewedBy", "person"],
     });
 
     if (!admission) {
@@ -160,7 +190,10 @@ export class AiService {
     return this.reviewService.reviewAdmission(id, dto, adminUserId);
   }
 
-  async createUserAccountForPerson(admissionId: number, dto: CreateUserAccountDto) {
+  async createUserAccountForPerson(
+    admissionId: number,
+    dto: CreateUserAccountDto,
+  ) {
     return this.reviewService.createUserAccountForPerson(admissionId, dto);
   }
 

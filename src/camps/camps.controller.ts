@@ -9,89 +9,86 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
-} from '@nestjs/swagger';
-import { CampsService } from './camps.service';
-import { CreateCampDto } from './dto/create-camp.dto';
-import { UpdateCampDto } from './dto/update-camp.dto';
-import { Roles } from '../auth/decorators/roles.decorator';
+} from "@nestjs/swagger";
+import { CampsService } from "./camps.service";
+import { CreateCampDto } from "./dto/create-camp.dto";
+import { UpdateCampDto } from "./dto/update-camp.dto";
+import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiBearerAuth()
-@ApiTags('Campamentos')
-@Controller('camps')
+@ApiTags("Campamentos")
+@Controller("camps")
 export class CampsController {
   constructor(private readonly campsService: CampsService) {}
 
   @Post()
-  @Roles('admin')
+  @Roles("admin")
   @ApiOperation({
-    summary: 'Crear campamento',
+    summary: "Crear campamento",
     description:
-      'Crea un nuevo campamento e inicializa su inventario vacío con todos los recursos existentes.',
+      "Crea un nuevo campamento e inicializa su inventario vac�o con todos los recursos existentes.",
   })
-  @ApiResponse({ status: 201, description: 'Campamento creado exitosamente.' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos.' })
-  @ApiResponse({ status: 401, description: 'No autenticado.' })
-  @ApiResponse({ status: 403, description: 'Sin permiso.' })
+  @ApiResponse({ status: 201, description: "Campamento creado exitosamente." })
+  @ApiResponse({ status: 400, description: "Datos inv�lidos." })
+  @ApiResponse({ status: 401, description: "No autenticado." })
+  @ApiResponse({ status: 403, description: "Sin permiso." })
   create(@Body() dto: CreateCampDto) {
     return this.campsService.create(dto);
   }
 
   @Get()
   @ApiOperation({
-    summary: 'Listar campamentos activos',
-    description: 'Retorna todos los campamentos con estado activo.',
+    summary: "Listar campamentos activos",
+    description: "Retorna todos los campamentos con estado activo.",
   })
-  @ApiResponse({ status: 200, description: 'Lista de campamentos.' })
+  @ApiResponse({ status: 200, description: "Lista de campamentos." })
   findAll() {
     return this.campsService.findAll();
   }
 
-  @Get(':id')
+  @Get(":id")
   @ApiOperation({
-    summary: 'Detalle de campamento',
-    description: 'Retorna el campamento con sus métricas de inventario.',
+    summary: "Detalle de campamento",
+    description: "Retorna el campamento con sus m�tricas de inventario.",
   })
-  @ApiParam({ name: 'id', description: 'ID del campamento', type: Number })
-  @ApiResponse({ status: 200, description: 'Detalle del campamento.' })
-  @ApiResponse({ status: 404, description: 'Campamento no encontrado.' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @ApiParam({ name: "id", description: "ID del campamento", type: Number })
+  @ApiResponse({ status: 200, description: "Detalle del campamento." })
+  @ApiResponse({ status: 404, description: "Campamento no encontrado." })
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.campsService.findOne(id);
   }
 
-  @Patch(':id')
-  @Roles('admin')
+  @Patch(":id")
+  @Roles("admin")
   @ApiOperation({
-    summary: 'Actualizar campamento',
-    description: 'Actualiza los datos de un campamento existente.',
+    summary: "Actualizar campamento",
+    description: "Actualiza los datos de un campamento existente.",
   })
-  @ApiParam({ name: 'id', description: 'ID del campamento', type: Number })
-  @ApiResponse({ status: 200, description: 'Campamento actualizado.' })
-  @ApiResponse({ status: 404, description: 'Campamento no encontrado.' })
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateCampDto,
-  ) {
+  @ApiParam({ name: "id", description: "ID del campamento", type: Number })
+  @ApiResponse({ status: 200, description: "Campamento actualizado." })
+  @ApiResponse({ status: 404, description: "Campamento no encontrado." })
+  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateCampDto) {
     return this.campsService.update(id, dto);
   }
 
-  @Delete(':id')
-  @Roles('admin')
+  @Delete(":id")
+  @Roles("admin")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Desactivar campamento',
-    description: 'Desactiva el campamento (soft delete). No elimina los datos.',
+    summary: "Desactivar campamento",
+    description: "Desactiva el campamento (soft delete). No elimina los datos.",
   })
-  @ApiParam({ name: 'id', description: 'ID del campamento', type: Number })
-  @ApiResponse({ status: 200, description: 'Campamento desactivado.' })
-  @ApiResponse({ status: 404, description: 'Campamento no encontrado.' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  @ApiParam({ name: "id", description: "ID del campamento", type: Number })
+  @ApiResponse({ status: 200, description: "Campamento desactivado." })
+  @ApiResponse({ status: 404, description: "Campamento no encontrado." })
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.campsService.remove(id);
   }
 }

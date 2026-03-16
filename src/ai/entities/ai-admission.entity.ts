@@ -1,75 +1,78 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column,
-  ManyToOne, JoinColumn,
-} from 'typeorm';
-import { Person } from '../../users/entities/person.entity';
-import { Profession } from '../../users/entities/profession.entity';
-import { UserAccount } from '../../users/entities/user-account.entity';
-import { Camp } from '../../camps/entities/camp.entity';
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from "typeorm";
+import { Person } from "../../users/entities/person.entity";
+import { Profession } from "../../users/entities/profession.entity";
+import { UserAccount } from "../../users/entities/user-account.entity";
+import { Camp } from "../../camps/entities/camp.entity";
 
-@Entity('ai_admission')
+@Entity("ai_admission")
 export class AiAdmission {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
-  @Column({ type: 'text', unique: true })
+  @Column({ type: "text", unique: true })
   tracking_code: string;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   camp_id: number;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   person_id: number | null;
 
-  @Column({ type: 'json' })
+  @Column({ type: "json" })
   candidate_data: object;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: "int", nullable: true })
   score: number;
 
-  @Column({ type: 'text', default: 'PENDING_REVIEW' })
+  @Column({ type: "text", default: "PENDING_REVIEW" })
   status: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   suggested_decision: string;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   suggested_profession_id: number | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   justification: string;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ type: "json", nullable: true })
   raw_ai_response: object;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   reviewed_by_user_id: number | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   final_human_decision: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   admin_notes: string;
 
-  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP" })
   submission_date: Date;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: "timestamptz", nullable: true })
   review_date: Date;
 
   @ManyToOne(() => Camp)
-  @JoinColumn({ name: 'camp_id' })
+  @JoinColumn({ name: "camp_id" })
   camp: Camp;
 
   @ManyToOne(() => Person, (p) => p.aiAdmissions, { nullable: true })
-  @JoinColumn({ name: 'person_id' })
+  @JoinColumn({ name: "person_id" })
   person: Person;
 
   @ManyToOne(() => Profession, { nullable: true })
-  @JoinColumn({ name: 'suggested_profession_id' })
+  @JoinColumn({ name: "suggested_profession_id" })
   suggestedProfession: Profession;
 
   @ManyToOne(() => UserAccount, { nullable: true })
-  @JoinColumn({ name: 'reviewed_by_user_id' })
+  @JoinColumn({ name: "reviewed_by_user_id" })
   reviewedBy: UserAccount;
 }

@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AiAdmission } from '../entities/ai-admission.entity';
-import { Person } from '../../users/entities/person.entity';
-import { UserAccount } from '../../users/entities/user-account.entity';
-import { ReviewAdmissionDto } from '../dto/review-admission.dto';
-import { CreateUserAccountDto } from '../dto/create-user-account.dto';
-import { PersonStatus } from '../../users/constants/professions.constants';
-import * as bcrypt from 'bcrypt';
+﻿import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { AiAdmission } from "../entities/ai-admission.entity";
+import { Person } from "../../users/entities/person.entity";
+import { UserAccount } from "../../users/entities/user-account.entity";
+import { ReviewAdmissionDto } from "../dto/review-admission.dto";
+import { CreateUserAccountDto } from "../dto/create-user-account.dto";
+import { PersonStatus } from "../../users/constants/professions.constants";
+import * as bcrypt from "bcrypt";
 
 @Injectable()
 export class AdmissionReviewService {
@@ -27,30 +31,35 @@ export class AdmissionReviewService {
   ): Promise<{ admission: AiAdmission; person?: Person }> {
     const admission = await this.admissionRepo.findOne({
       where: { id },
-      relations: ['camp', 'suggestedProfession'],
+      relations: ["camp", "suggestedProfession"],
     });
 
     if (!admission) {
       throw new NotFoundException(`Admission ${id} not found`);
     }
 
-    if (admission.status !== 'PENDING_REVIEW') {
-      throw new BadRequestException('Admission already reviewed');
+    if (admission.status !== "PENDING_REVIEW") {
+      throw new BadRequestException("Admission already reviewed");
     }
 
     const candidateData: any = admission.candidate_data;
 
-    if (dto.decision === 'ACCEPTED') {
-      const professionId = dto.override_profession_id || admission.suggested_profession_id;
+    if (dto.decision === "ACCEPTED") {
+      const professionId =
+        dto.override_profession_id || admission.suggested_profession_id;
 
       if (!professionId) {
-        throw new BadRequestException('Profession ID required');
+        throw new BadRequestException("Profession ID required");
       }
 
       const person = this.personRepo.create({
         first_name: candidateData.first_name,
         last_name: candidateData.last_name,
-        birth_date: new Date(new Date().getFullYear() - candidateData.age, 0, 1),
+        birth_date: new Date(
+          new Date().getFullYear() - candidateData.age,
+          0,
+          1,
+        ),
         profession_id: professionId,
         status: PersonStatus.ACTIVE,
         can_work: true,
@@ -64,10 +73,10 @@ export class AdmissionReviewService {
       const savedPerson = await this.personRepo.save(person);
 
       admission.person_id = savedPerson.id;
-      admission.status = 'ACCEPTED';
-      admission.final_human_decision = 'ACCEPTED';
+      admission.status = "ACCEPTED";
+      admission.final_human_decision = "ACCEPTED";
       admission.reviewed_by_user_id = adminUserId;
-      admission.admin_notes = dto.admin_notes || '';
+      admission.admin_notes = dto.admin_notes || "";
       admission.review_date = new Date();
 
       await this.admissionRepo.save(admission);
@@ -75,10 +84,10 @@ export class AdmissionReviewService {
       return { admission, person: savedPerson };
     }
 
-    admission.status = 'REJECTED';
-    admission.final_human_decision = 'REJECTED';
+    admission.status = "REJECTED";
+    admission.final_human_decision = "REJECTED";
     admission.reviewed_by_user_id = adminUserId;
-    admission.admin_notes = dto.admin_notes || '';
+    admission.admin_notes = dto.admin_notes || "";
     admission.review_date = new Date();
 
     await this.admissionRepo.save(admission);
@@ -92,11 +101,13 @@ export class AdmissionReviewService {
   ): Promise<UserAccount> {
     const admission = await this.admissionRepo.findOne({
       where: { id: admissionId },
-      relations: ['person', 'camp'],
+      relations: ["person", "camp"],
     });
 
     if (!admission || !admission.person_id) {
-      throw new BadRequestException('Admission not accepted or person not created');
+      throw new BadRequestException(
+        "Admission not accepted or person not created",
+      );
     }
 
     const existingAccount = await this.userAccountRepo.findOne({
@@ -104,7 +115,9 @@ export class AdmissionReviewService {
     });
 
     if (existingAccount) {
-      throw new BadRequestException('User account already exists for this person');
+      throw new BadRequestException(
+        "User account already exists for this person",
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);

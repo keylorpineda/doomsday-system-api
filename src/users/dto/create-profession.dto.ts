@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsBoolean,
-  IsOptional,
-  IsInt,
-  Min,
-} from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsInt, Min } from "class-validator";
 
 export class CreateProfessionDto {
   @IsString()

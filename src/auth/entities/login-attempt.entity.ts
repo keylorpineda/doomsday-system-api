@@ -1,28 +1,28 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+﻿import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity('login_attempt')
+@Entity("login_attempt")
 export class LoginAttempt {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   username: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   ip_address: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   user_agent: string;
 
-  @Column({ type: 'boolean' })
+  @Column({ type: "boolean" })
   success: boolean;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   failure_reason: string;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: "bigint", nullable: true })
   user_id: number;
 
-  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP" })
   attempted_at: Date;
 }

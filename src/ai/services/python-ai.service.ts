@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { SubmitAdmissionDto } from '../dto/submit-admission.dto';
+﻿import { Injectable, Logger } from "@nestjs/common";
+import { SubmitAdmissionDto } from "../dto/submit-admission.dto";
 
 export interface PythonNlpResult {
   nlp_score: number;
   nlp_max_score: number;
   nlp_percentage: number;
-  nlp_decision_hint: 'RECOMMEND_ACCEPT' | 'PENDING_HUMAN' | 'RECOMMEND_REJECT';
+  nlp_decision_hint: "RECOMMEND_ACCEPT" | "PENDING_HUMAN" | "RECOMMEND_REJECT";
   infection_detected: boolean;
   glass_box: {
     criteria: Array<{
@@ -40,7 +40,7 @@ export interface PythonNlpResult {
 
 /**
  * Servicio que llama al microservicio Python de IA No Generativa.
- * Si el microservicio no está disponible, retorna null (graceful fallback).
+ * Si el microservicio no est� disponible, retorna null (graceful fallback).
  */
 @Injectable()
 export class PythonAiService {
@@ -48,20 +48,25 @@ export class PythonAiService {
   private readonly aiServiceUrl: string;
 
   constructor() {
-    this.aiServiceUrl = process.env.AI_SERVICE_URL ?? 'http://localhost:8000';
+    this.aiServiceUrl = process.env.AI_SERVICE_URL ?? "http://localhost:8000";
   }
 
-  async analyzeAdmission(dto: SubmitAdmissionDto): Promise<PythonNlpResult | null> {
+  async analyzeAdmission(
+    dto: SubmitAdmissionDto,
+  ): Promise<PythonNlpResult | null> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`${this.aiServiceUrl}/api/admissions/nlp-analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dto),
-        signal: controller.signal,
-      });
+      const response = await fetch(
+        `${this.aiServiceUrl}/api/admissions/nlp-analyze`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dto),
+          signal: controller.signal,
+        },
+      );
 
       clearTimeout(timeout);
 
@@ -73,28 +78,36 @@ export class PythonAiService {
       return (await response.json()) as PythonNlpResult;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Python AI unavailable — continuing without NLP: ${message}`);
+      this.logger.warn(
+        `Python AI unavailable � continuing without NLP: ${message}`,
+      );
       return null;
     }
   }
 
-  async forecastResource(data: Record<string, unknown>): Promise<unknown | null> {
-    return this._post('/api/resources/forecast', data);
+  async forecastResource(
+    data: Record<string, unknown>,
+  ): Promise<unknown | null> {
+    return this._post("/api/resources/forecast", data);
   }
 
-  async analyzeExpedition(data: Record<string, unknown>): Promise<unknown | null> {
-    return this._post('/api/expeditions/analyze', data);
+  async analyzeExpedition(
+    data: Record<string, unknown>,
+  ): Promise<unknown | null> {
+    return this._post("/api/expeditions/analyze", data);
   }
 
   async generateEvents(data: Record<string, unknown>): Promise<unknown | null> {
-    return this._post('/api/events/generate', data);
+    return this._post("/api/events/generate", data);
   }
 
   async isAvailable(): Promise<boolean> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 2000);
-      const res = await fetch(`${this.aiServiceUrl}/health`, { signal: controller.signal });
+      const res = await fetch(`${this.aiServiceUrl}/health`, {
+        signal: controller.signal,
+      });
       clearTimeout(timeout);
       return res.ok;
     } catch {
@@ -102,13 +115,16 @@ export class PythonAiService {
     }
   }
 
-  private async _post(path: string, data: Record<string, unknown>): Promise<unknown | null> {
+  private async _post(
+    path: string,
+    data: Record<string, unknown>,
+  ): Promise<unknown | null> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(`${this.aiServiceUrl}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
         signal: controller.signal,
       });

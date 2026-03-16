@@ -1,19 +1,19 @@
-import {
+﻿import {
   Injectable,
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { JwtService } from '@nestjs/jwt';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { tap } from "rxjs/operators";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Session } from "../entities/session.entity";
+import { JwtService } from "@nestjs/jwt";
 
 /**
  * Interceptor que actualiza last_activity en cada request autenticado
- * Esto permite trackear la actividad del usuario para logout automático por inactividad
+ * Esto permite trackear la actividad del usuario para logout autom�tico por inactividad
  */
 @Injectable()
 export class SessionActivityInterceptor implements NestInterceptor {
@@ -30,8 +30,8 @@ export class SessionActivityInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
 
-    // Solo actualizar si hay token de autenticación
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Solo actualizar si hay token de autenticaci�n
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
 
       try {
@@ -44,13 +44,13 @@ export class SessionActivityInterceptor implements NestInterceptor {
           { last_activity: new Date() },
         );
       } catch (error) {
-        // Token inválido o expirado - no hacer nada, el guard JWT manejará esto
+        // Token inv�lido o expirado - no hacer nada, el guard JWT manejar� esto
       }
     }
 
     return next.handle().pipe(
       tap(() => {
-        // Aquí podríamos agregar logs si fuera necesario
+        // Aqu� podr�amos agregar logs si fuera necesario
       }),
     );
   }
