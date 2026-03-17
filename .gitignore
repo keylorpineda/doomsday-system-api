@@ -20,8 +20,20 @@ npm-debug.log*
 
 # Python virtual environment
 ai-microservice/venv/
+ai-microservice/.venv/
+ai-microservice/env/
+ai-microservice/.env
+ai-microservice/.env.*
 __pycache__/
 *.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.pyo
+*.pyd
+*.egg-info/
+pip-wheel-metadata/
 
 # Coverage
 /coverage

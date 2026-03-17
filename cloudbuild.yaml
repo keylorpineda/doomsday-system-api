@@ -31,14 +31,41 @@ steps:
       - 'us-central1'
       - '--platform'
       - 'managed'
+      - '--allow-unauthenticated'
       - '--memory'
       - '1Gi'
       - '--cpu'
       - '1'
       - '--min-instances'
-      - '0'
+      - '1'
       - '--max-instances'
       - '2'
+
+  # PASO 3.1: Verificar que IA esté activa y saludable antes de desplegar API
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'check-ai-health'
+    waitFor: ['deploy-ai']
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        AI_URL=$$(gcloud run services describe gestion-del-fin-ai \
+          --region=us-central1 \
+          --platform=managed \
+          --format='value(status.url)')
+
+        echo "Checking AI health at: $${AI_URL}/health"
+        for i in {1..30}; do
+          if curl -fsS "$${AI_URL}/health" >/dev/null; then
+            echo "AI microservice is healthy."
+            exit 0
+          fi
+          echo "Attempt $$i/30: AI not ready yet, retrying in 5s..."
+          sleep 5
+        done
+
+        echo "ERROR: AI microservice did not become healthy in time."
+        exit 1
 
   # ============================================
   # PASO 4: Build NestJS API image
@@ -57,7 +84,7 @@ steps:
   # PASO 6: Deploy NestJS API with AI_SERVICE_URL pointing to the Python service
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-api'
-    waitFor: ['deploy-ai', 'push-api']
+    waitFor: ['check-ai-health', 'push-api']
     entrypoint: bash
     env:
       - '_DB_HOST=$_DB_HOST'

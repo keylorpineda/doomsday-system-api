@@ -16,6 +16,18 @@ cp .env.example .env
 
 # 3. Iniciar en modo desarrollo
 npm run start:dev
+
+# 4. (Opcional) Levantar microservicio de IA en local (PowerShell)
+cd ai-microservice
+python -m pip install -r requirements.txt
+python -m pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_sm-3.7.0/es_core_news_sm-3.7.0-py3-none-any.whl
+python -m uvicorn main:app --host 127.0.0.1 --port 8080
+```
+
+✅ Recomendado para levantar todo junto (backend + IA):
+
+```bash
+docker compose up --build
 ```
 
 La API estará disponible en `http://localhost:3000/api`  
