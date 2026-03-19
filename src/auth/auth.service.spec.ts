@@ -291,6 +291,24 @@ describe("AuthService", () => {
         relations: ["role"],
       });
     });
+
+    it("should throw error when user not found during refresh", async () => {
+      const refreshToken = "refresh_token";
+      const payload = { sub: 1, username: "testuser" };
+
+      jwtService.verify.mockReturnValueOnce(payload);
+      sessionRepo.find.mockResolvedValueOnce([mockSession]);
+      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+      userRepo.findOne.mockResolvedValueOnce(null);
+
+      await expect(service.refresh(refreshToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(userRepo.findOne).toHaveBeenCalledWith({
+        where: { id: payload.sub },
+        relations: ["role"],
+      });
+    });
   });
 
   describe("validateUser", () => {
