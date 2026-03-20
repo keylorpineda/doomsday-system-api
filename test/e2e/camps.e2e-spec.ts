@@ -451,8 +451,7 @@ describe("Camps E2E Tests", () => {
     });
 
     it("should reject expired tokens", async () => {
-      const expiredToken =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+      const expiredToken = "invalid_expired_token_placeholder_test";
 
       await request(app.getHttpServer())
         .post("/camps")
