@@ -303,3 +303,95 @@ describe("CampAnalysisService", () => {
     }
   });
 });
+
+describe("CampAnalysisService extra coverage", () => {
+  let service: CampAnalysisService;
+  let campRepo: { findOne: jest.Mock };
+  let productionService: { calculateDailyBalance: jest.Mock };
+  let professionsService: { getProfessionsNeedingWorkers: jest.Mock };
+  let personsService: { countPersonsByCamp: jest.Mock };
+
+  beforeEach(async () => {
+    campRepo = { findOne: jest.fn() };
+    productionService = { calculateDailyBalance: jest.fn() };
+    professionsService = { getProfessionsNeedingWorkers: jest.fn() };
+    personsService = { countPersonsByCamp: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CampAnalysisService,
+        { provide: getRepositoryToken(Camp), useValue: campRepo },
+        { provide: ProductionService, useValue: productionService },
+        { provide: ProfessionsService, useValue: professionsService },
+        { provide: PersonsService, useValue: personsService },
+      ],
+    }).compile();
+
+    service = module.get(CampAnalysisService);
+  });
+
+  it("should throw when the camp does not exist", async () => {
+    campRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.analyzeCampContext(999)).rejects.toThrow(
+      "Camp 999 not found",
+    );
+  });
+
+  it("should expose the missing camp id in the thrown error message", async () => {
+    campRepo.findOne.mockResolvedValue(null);
+
+    try {
+      await service.analyzeCampContext(321);
+      fail("Expected analyzeCampContext to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe("Camp 321 not found");
+    }
+  });
+
+  it("should return zero capacity and occupancy when max_capacity is not defined", async () => {
+    campRepo.findOne.mockResolvedValue({ id: 1, max_capacity: 0 });
+    personsService.countPersonsByCamp.mockResolvedValue(12);
+    productionService.calculateDailyBalance.mockResolvedValue({
+      balance: { food: 8, water: 15 },
+    });
+    professionsService.getProfessionsNeedingWorkers.mockResolvedValue([]);
+
+    const result = await service.analyzeCampContext(1);
+
+    expect(result.capacity).toBe(0);
+    expect(result.occupancyRate).toBe(0);
+    expect(result.criticalDeficit).toBe(0);
+    expect(result.criticalProfession).toBeUndefined();
+  });
+
+  it("should select the profession with the largest deficit and map balances", async () => {
+    campRepo.findOne.mockResolvedValue({ id: 2, max_capacity: 80 });
+    personsService.countPersonsByCamp.mockResolvedValue(64);
+    productionService.calculateDailyBalance.mockResolvedValue({
+      balance: { food: -3, water: 9 },
+    });
+    professionsService.getProfessionsNeedingWorkers.mockResolvedValue([
+      { profession: { name: "Guardia" }, deficit: 1 },
+      { profession: { name: "Ingeniero" }, deficit: 4 },
+      { profession: { name: "Médico" }, deficit: 2 },
+    ]);
+
+    const result = await service.analyzeCampContext(2);
+
+    expect(result).toEqual({
+      population: 64,
+      capacity: 80,
+      occupancyRate: 80,
+      balance: { food: -3, water: 9 },
+      professionsNeeded: [
+        { profession: "Guardia", deficit: 1 },
+        { profession: "Ingeniero", deficit: 4 },
+        { profession: "Médico", deficit: 2 },
+      ],
+      criticalProfession: "Ingeniero",
+      criticalDeficit: 4,
+    });
+  });
+});

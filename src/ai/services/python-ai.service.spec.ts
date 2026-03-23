@@ -73,6 +73,23 @@ describe("PythonAiService", () => {
   });
 
   describe("analyzeAdmission", () => {
+    it("should abort analyzeAdmission when the request times out", async () => {
+      jest.useFakeTimers();
+
+      jest.spyOn(global, "fetch").mockImplementationOnce((_, init) => {
+        const signal = init?.signal as AbortSignal;
+        return new Promise((_, reject) => {
+          signal.addEventListener("abort", () => reject(new Error("aborted")));
+        });
+      });
+
+      const pending = service.analyzeAdmission(mockSubmitDto);
+      await jest.advanceTimersByTimeAsync(5000);
+
+      await expect(pending).resolves.toBeNull();
+      jest.useRealTimers();
+    });
+
     it("should return null when Python AI service is unavailable", async () => {
       jest
         .spyOn(global, "fetch")
@@ -176,6 +193,14 @@ describe("PythonAiService", () => {
 
       expect(result?.document_status.is_complete).toBe(true);
       expect(result?.document_status.photo_provided).toBe(true);
+    });
+
+    it("should stringify non-Error failures and still return null", async () => {
+      jest.spyOn(global, "fetch").mockRejectedValueOnce("timeout");
+
+      const result = await service.analyzeAdmission(mockSubmitDto);
+
+      expect(result).toBeNull();
     });
   });
 
@@ -347,5 +372,103 @@ describe("PythonAiService", () => {
 
       expect(result).toBeNull();
     });
+  });
+});
+
+describe("PythonAiService availability coverage", () => {
+  let service: PythonAiService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [PythonAiService],
+    }).compile();
+
+    service = module.get<PythonAiService>(PythonAiService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("should report availability when the health endpoint responds ok", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValueOnce({ ok: true } as Response);
+
+    await expect(service.isAvailable()).resolves.toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/health"),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("should report unavailability when the health endpoint returns a non-ok status", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false } as Response);
+
+    await expect(service.isAvailable()).resolves.toBe(false);
+  });
+
+  it("should report unavailability when the health endpoint throws", async () => {
+    jest.spyOn(global, "fetch").mockRejectedValueOnce(new Error("offline"));
+
+    await expect(service.isAvailable()).resolves.toBe(false);
+  });
+
+  it("should abort the availability check when the health request times out", async () => {
+    jest.useFakeTimers();
+
+    jest.spyOn(global, "fetch").mockImplementationOnce((_, init) => {
+      const signal = init?.signal as AbortSignal;
+      return new Promise((_, reject) => {
+        signal.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    });
+
+    const pending = service.isAvailable();
+    await jest.advanceTimersByTimeAsync(2000);
+
+    await expect(pending).resolves.toBe(false);
+    jest.useRealTimers();
+  });
+
+  it("should return null when a helper endpoint responds with non-ok status", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false } as Response);
+
+    await expect(service.forecastResource({ camp_id: 1 })).resolves.toBeNull();
+  });
+
+  it("should post helper payloads to the generate events endpoint", async () => {
+    const payload = { camp_id: 4, severity: "high" };
+    const response = { events: ["storm"] };
+    const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValueOnce(response),
+    } as any as Response);
+
+    await expect(service.generateEvents(payload)).resolves.toEqual(response);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/events/generate"),
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it("should abort helper requests when they exceed the timeout", async () => {
+    jest.useFakeTimers();
+
+    jest.spyOn(global, "fetch").mockImplementationOnce((_, init) => {
+      const signal = init?.signal as AbortSignal;
+      return new Promise((_, reject) => {
+        signal.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    });
+
+    const pending = service.forecastResource({ camp_id: 99 });
+    await jest.advanceTimersByTimeAsync(5000);
+
+    await expect(pending).resolves.toBeNull();
+    jest.useRealTimers();
   });
 });
