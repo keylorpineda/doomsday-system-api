@@ -188,6 +188,49 @@ describe("AiService", () => {
       expect(result.score).toBe(0);
     });
 
+    it("should assign a perfect score when a critical rule accepts the candidate", async () => {
+      const evaluationService = module.get(AiEvaluationService);
+
+      (evaluationService.checkCriticalRules as jest.Mock).mockReturnValue({
+        applies: true,
+        decision: "ACCEPT",
+        reason: "Critical profession needed urgently",
+      });
+
+      const result = await service.submitAdmission(mockSubmitDto as any);
+
+      expect(result.suggested_decision).toBe("ACCEPT");
+      expect(result.score).toBe(100);
+    });
+
+    it("should fall back to REJECT and empty detail when a critical rule omits decision and reason", async () => {
+      const evaluationService = module.get(AiEvaluationService);
+      const admissionRepo = module.get(getRepositoryToken(AiAdmission));
+
+      (evaluationService.checkCriticalRules as jest.Mock).mockReturnValue({
+        applies: true,
+      });
+
+      const result = await service.submitAdmission(mockSubmitDto as any);
+
+      expect(result.suggested_decision).toBe("REJECT");
+      expect(result.score).toBe(0);
+      expect(admissionRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          raw_ai_response: expect.objectContaining({
+            nestjs_evaluation: expect.objectContaining({
+              decision: "REJECT",
+              factors: [
+                expect.objectContaining({
+                  detail: "",
+                }),
+              ],
+            }),
+          }),
+        }),
+      );
+    });
+
     it("should handle Python microservice unavailability", async () => {
       const pythonService = module.get(PythonAiService);
       (pythonService.analyzeAdmission as jest.Mock).mockResolvedValue(null);

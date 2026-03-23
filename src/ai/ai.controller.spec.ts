@@ -114,6 +114,24 @@ describe("AiController", () => {
       expect(result).toEqual(mockPaginatedResult);
       expect(service.getPendingAdmissions).toHaveBeenCalled();
     });
+
+    it("should parse campId, page and limit query params before delegating", async () => {
+      const mockPaginatedResult = {
+        data: [mockAdmission],
+        total: 1,
+        page: 3,
+        limit: 15,
+        totalPages: 1,
+      };
+      jest
+        .spyOn(service, "getPendingAdmissions")
+        .mockResolvedValueOnce(mockPaginatedResult);
+
+      const result = await controller.getPendingAdmissions("7", "3", "15");
+
+      expect(result).toEqual(mockPaginatedResult);
+      expect(service.getPendingAdmissions).toHaveBeenCalledWith(7, 3, 15);
+    });
   });
 
   describe("getAdmissionDetail", () => {
