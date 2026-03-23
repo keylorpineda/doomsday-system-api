@@ -1,68 +1,54 @@
+import { ExecutionContext } from "@nestjs/common";
+import { ROUTE_ARGS_METADATA } from "@nestjs/common/constants";
 import { CurrentUser } from "./current-user.decorator";
 
-describe("CurrentUser Decorator", () => {
-  it("should be defined and callable", () => {
+describe("CurrentUser decorator", () => {
+  type ParamFactoryEntry = {
+    factory: (data: unknown, ctx: ExecutionContext) => unknown;
+  };
+
+  class TestController {
+    handler(@CurrentUser() user: unknown) {
+      return user;
+    }
+  }
+
+  const getCustomParamFactory = () => {
+    const metadata =
+      Reflect.getMetadata(ROUTE_ARGS_METADATA, TestController, "handler") ?? {};
+    const entry = Object.values(metadata).find(
+      (value): value is ParamFactoryEntry =>
+        typeof (value as { factory?: unknown }).factory === "function",
+    );
+
+    return entry?.factory;
+  };
+
+  it("should be defined", () => {
     expect(CurrentUser).toBeDefined();
-    expect(typeof CurrentUser).toBe("function");
   });
 
-  it("should be a ParamDecorator", () => {
-    const decorator = CurrentUser;
-    expect(decorator).toBeTruthy();
+  it("should extract request.user from execution context", () => {
+    const mockUser = { id: 1, username: "tester" };
+    const mockContext = {
+      switchToHttp: () => ({
+        getRequest: () => ({ user: mockUser }),
+      }),
+    } as ExecutionContext;
+
+    const factory = getCustomParamFactory();
+    expect(factory).toBeDefined();
+    expect(factory?.(undefined, mockContext)).toEqual(mockUser);
   });
 
-  it("should have correct signature for param decorator", () => {
-    const isCallable = typeof CurrentUser === "function";
-    expect(isCallable).toBe(true);
-  });
+  it("should return undefined when request has no user", () => {
+    const mockContext = {
+      switchToHttp: () => ({
+        getRequest: () => ({}),
+      }),
+    } as ExecutionContext;
 
-  it("should return a decorator function", () => {
-    const decorator = CurrentUser;
-    expect(decorator(undefined)).toBeDefined();
-    expect(typeof decorator(undefined)).toBe("function");
-  });
-
-  it("should handle data argument in factory", () => {
-    // createParamDecorator accepts optional data argument
-    const decoratorWithData = CurrentUser("someData");
-    expect(typeof decoratorWithData).toBe("function");
-
-    const decoratorWithoutData = CurrentUser(undefined);
-    expect(typeof decoratorWithoutData).toBe("function");
-  });
-
-  it("should be usable as param decorator in NestJS", () => {
-    const decorator = CurrentUser;
-    const paramFunc = decorator(undefined);
-    expect(typeof paramFunc).toBe("function");
-  });
-
-  it("should extract user from request via switchToHttp", () => {
-    const mockUser = { id: 1, username: "testuser", role: "admin" };
-    const mockRequest = { user: mockUser };
-    const mockSwitchToHttp = jest.fn().mockReturnValue({
-      getRequest: jest.fn().mockReturnValue(mockRequest),
-    });
-    const mockContext = { switchToHttp: mockSwitchToHttp };
-
-    // Verify the decorator pattern works
-    expect(mockContext.switchToHttp).toBeDefined();
-    const httpContext = mockContext.switchToHttp();
-    const request = httpContext.getRequest();
-
-    expect(request.user).toEqual(mockUser);
-  });
-
-  it("should handle missing user in context", () => {
-    const mockRequest = {};
-    const mockSwitchToHttp = jest.fn().mockReturnValue({
-      getRequest: jest.fn().mockReturnValue(mockRequest),
-    });
-    const mockContext = { switchToHttp: mockSwitchToHttp };
-
-    const httpContext = mockContext.switchToHttp();
-    const request = httpContext.getRequest();
-
-    expect(request.user).toBeUndefined();
+    const factory = getCustomParamFactory();
+    expect(factory?.(undefined, mockContext)).toBeUndefined();
   });
 });

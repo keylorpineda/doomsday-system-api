@@ -4,7 +4,7 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { JwtService } from "@nestjs/jwt";
 import { SessionActivityInterceptor } from "./session-activity.interceptor";
 import { Session } from "../entities/session.entity";
-import { of } from "rxjs";
+import { firstValueFrom, of } from "rxjs";
 
 describe("SessionActivityInterceptor", () => {
   let interceptor: SessionActivityInterceptor;
@@ -59,7 +59,8 @@ describe("SessionActivityInterceptor", () => {
     jwtService.verify.mockReturnValueOnce({ sub: 1, username: "testuser" });
     sessionRepo.update.mockResolvedValueOnce({});
 
-    await interceptor.intercept(mockContext, mockCallHandler);
+    const stream = await interceptor.intercept(mockContext, mockCallHandler);
+    await firstValueFrom(stream);
 
     expect(jwtService.verify).toHaveBeenCalledWith("valid_token");
     expect(sessionRepo.update).toHaveBeenCalledWith(
@@ -82,7 +83,8 @@ describe("SessionActivityInterceptor", () => {
       }),
     } as unknown as ExecutionContext;
 
-    await interceptor.intercept(mockContext, mockCallHandler);
+    const stream = await interceptor.intercept(mockContext, mockCallHandler);
+    await firstValueFrom(stream);
 
     expect(sessionRepo.update).not.toHaveBeenCalled();
     expect(mockCallHandler.handle).toHaveBeenCalled();
@@ -91,7 +93,7 @@ describe("SessionActivityInterceptor", () => {
   it("should not update session when authorization is not Bearer", async () => {
     const mockCallHandler = {
       handle: jest.fn().mockReturnValue(of({ data: "response" })),
-    } as unknown as ExecutionContext;
+    } as unknown as CallHandler;
 
     const mockContext = {
       switchToHttp: jest.fn().mockReturnValue({
@@ -103,7 +105,11 @@ describe("SessionActivityInterceptor", () => {
       }),
     } as unknown as ExecutionContext;
 
-    await interceptor.intercept(mockContext, mockCallHandler as any);
+    const stream = await interceptor.intercept(
+      mockContext,
+      mockCallHandler as any,
+    );
+    await firstValueFrom(stream);
 
     expect(sessionRepo.update).not.toHaveBeenCalled();
   });
@@ -127,7 +133,8 @@ describe("SessionActivityInterceptor", () => {
       throw new Error("Invalid token");
     });
 
-    await interceptor.intercept(mockContext, mockCallHandler);
+    const stream = await interceptor.intercept(mockContext, mockCallHandler);
+    await firstValueFrom(stream);
 
     // No debe throws, solo continúa
     expect(mockCallHandler.handle).toHaveBeenCalled();
@@ -153,7 +160,8 @@ describe("SessionActivityInterceptor", () => {
 
     // No debe throw, interceptor debe continuar
     try {
-      await interceptor.intercept(mockContext, mockCallHandler);
+      const stream = await interceptor.intercept(mockContext, mockCallHandler);
+      await firstValueFrom(stream);
     } catch (error) {
       // Si hay error, verifica que el handle aún fue llamado después
     }
@@ -180,7 +188,8 @@ describe("SessionActivityInterceptor", () => {
     jwtService.verify.mockReturnValueOnce({ sub: 5, username: "testuser" });
     sessionRepo.update.mockResolvedValueOnce({});
 
-    await interceptor.intercept(mockContext, mockCallHandler);
+    const stream = await interceptor.intercept(mockContext, mockCallHandler);
+    await firstValueFrom(stream);
 
     expect(jwtService.verify).toHaveBeenCalledWith(mockToken);
   });
@@ -203,7 +212,8 @@ describe("SessionActivityInterceptor", () => {
     jwtService.verify.mockReturnValueOnce({ sub: 99, username: "testuser" });
     sessionRepo.update.mockResolvedValueOnce({});
 
-    await interceptor.intercept(mockContext, mockCallHandler);
+    const stream = await interceptor.intercept(mockContext, mockCallHandler);
+    await firstValueFrom(stream);
 
     expect(sessionRepo.update).toHaveBeenCalledWith(
       { user_id: 99, is_active: true },

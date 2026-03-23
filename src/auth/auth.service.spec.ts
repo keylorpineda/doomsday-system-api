@@ -169,6 +169,25 @@ describe("AuthService", () => {
 
       expect(loginAttemptRepo.save).toHaveBeenCalled();
     });
+
+    it("should set role as unknown when user has no role", async () => {
+      const loginDto = { username: "testuser", password: "password123" };
+      const ipAddress = "192.168.1.1";
+      const userWithoutRole = {
+        ...mockUser,
+        role: null,
+      };
+
+      userRepo.findOne.mockResolvedValueOnce(userWithoutRole);
+      jwtService.sign.mockReturnValueOnce("access_token");
+      jwtService.sign.mockReturnValueOnce("refresh_token");
+      loginAttemptRepo.create.mockReturnValue({});
+      sessionRepo.create.mockReturnValue(mockSession);
+
+      const result = await service.login(loginDto, ipAddress);
+
+      expect(result.user.role).toBe("unknown");
+    });
   });
 
   describe("logout", () => {
