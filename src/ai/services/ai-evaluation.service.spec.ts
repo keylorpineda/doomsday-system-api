@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { AiEvaluationService } from "./ai-evaluation.service";
+import { AiEvaluationService, EvaluationResult } from "./ai-evaluation.service";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { Profession } from "../../users/entities/profession.entity";
 
@@ -1200,5 +1200,290 @@ describe("AiEvaluationService", () => {
     expect(result.factors.some((f) => f.category === "Risk Assessment")).toBe(
       true,
     );
+  });
+});
+
+describe("AiEvaluationService extra coverage", () => {
+  let service: AiEvaluationService;
+  let professionRepo: { findOne: jest.Mock };
+
+  const baseContext = {
+    population: 40,
+    capacity: 100,
+    occupancyRate: 40,
+    balance: { food: 20, water: 10 },
+    professionsNeeded: [] as Array<{ profession: string; deficit: number }>,
+    criticalDeficit: 0,
+    criticalProfession: undefined as string | undefined,
+  };
+
+  beforeEach(async () => {
+    professionRepo = { findOne: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AiEvaluationService,
+        { provide: getRepositoryToken(Profession), useValue: professionRepo },
+      ],
+    }).compile();
+
+    service = module.get(AiEvaluationService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("should reject a low-score candidate when camp occupancy exceeds 95%", () => {
+    const result = service.checkCriticalRules(
+      {
+        health_status: 50,
+        physical_condition: 50,
+        criminal_record: true,
+        skills: ["leadership"],
+      } as any,
+      { ...baseContext, occupancyRate: 96 },
+    );
+
+    expect(result).toEqual({
+      applies: true,
+      decision: "REJECT",
+      reason: "Camp at 95% capacity. Only exceptional candidates accepted.",
+    });
+  });
+
+  it("should accept a critically-needed candidate even when camp occupancy exceeds 95%", () => {
+    const result = service.checkCriticalRules(
+      {
+        health_status: 100,
+        physical_condition: 100,
+        criminal_record: false,
+        skills: ["medicine", "first aid", "healthcare", "nursing"],
+      } as any,
+      {
+        ...baseContext,
+        occupancyRate: 96,
+        criticalDeficit: 3,
+        criticalProfession: "Médico",
+      },
+    );
+
+    expect(result).toEqual({
+      applies: true,
+      decision: "ACCEPT",
+      reason: "URGENT: Camp critically needs Médico. Immediate acceptance.",
+    });
+  });
+
+  it("should accept a candidate with skills for a critical profession", () => {
+    const result = service.checkCriticalRules(
+      {
+        health_status: 80,
+        physical_condition: 75,
+        criminal_record: false,
+        skills: ["medical triage", "first aid"],
+      } as any,
+      {
+        ...baseContext,
+        criticalDeficit: 3,
+        criticalProfession: "Médico",
+      },
+    );
+
+    expect(result).toEqual({
+      applies: true,
+      decision: "ACCEPT",
+      reason: "URGENT: Camp critically needs Médico. Immediate acceptance.",
+    });
+  });
+
+  it("should recommend acceptance for a strong candidate", async () => {
+    const result = await service.calculateAdmissionScore(
+      {
+        health_status: 95,
+        physical_condition: 95,
+        criminal_record: false,
+        skills: ["medicine", "first aid", "healthcare", "nursing"],
+        years_experience: 10,
+        psychological_evaluation: 90,
+      } as any,
+      {
+        ...baseContext,
+        balance: { food: 5, water: 10 },
+        professionsNeeded: [{ profession: "Médico", deficit: 3 }],
+      },
+    );
+
+    expect(result.decision).toBe("RECOMMEND_ACCEPT");
+    expect(result.confidence).toBe("HIGH");
+    expect(result.score).toBeGreaterThan(75);
+  });
+
+  it("should recommend rejection for a weak candidate", async () => {
+    const result = await service.calculateAdmissionScore(
+      {
+        health_status: 20,
+        physical_condition: 20,
+        criminal_record: true,
+        skills: [],
+        years_experience: 0,
+      } as any,
+      {
+        ...baseContext,
+        balance: { food: -5, water: 10 },
+      },
+    );
+
+    expect(result.decision).toBe("RECOMMEND_REJECT");
+    expect(result.confidence).toBe("HIGH");
+    expect(result.score).toBeLessThan(50);
+  });
+
+  it("should match a profession from prioritized camp needs", async () => {
+    const profession = { id: 5, name: "Médico" } as Profession;
+    professionRepo.findOne.mockResolvedValue(profession);
+
+    const result = await service.matchProfession(
+      ["medicine", "first aid"],
+      {
+        ...baseContext,
+        professionsNeeded: [{ profession: "Médico", deficit: 2 }],
+      },
+    );
+
+    expect(professionRepo.findOne).toHaveBeenCalledWith({
+      where: { name: "Médico" },
+    });
+    expect(result).toBe(profession);
+  });
+
+  it("should fall back to configured professions when camp needs do not match", async () => {
+    professionRepo.findOne.mockImplementation(async ({ where: { name } }) =>
+      name === "Explorador" ? ({ id: 7, name } as Profession) : null,
+    );
+
+    const result = await service.matchProfession(
+      ["survival", "navigation"],
+      {
+        ...baseContext,
+        professionsNeeded: [{ profession: "Médico", deficit: 1 }],
+      },
+    );
+
+    expect(result).toEqual({ id: 7, name: "Explorador" });
+  });
+
+  it("should return null when no profession can be matched", async () => {
+    professionRepo.findOne.mockResolvedValue(null);
+
+    const result = await service.matchProfession(["poetry"], baseContext);
+
+    expect(result).toBeNull();
+  });
+
+  it("should generate a justification including profession deficits and signed balances", () => {
+    const evaluation: EvaluationResult = {
+      score: 82,
+      decision: "RECOMMEND_ACCEPT",
+      confidence: "HIGH",
+      factors: [
+        {
+          category: "Profession Need",
+          score: 40,
+          maxScore: 40,
+          detail: "CRITICAL: Camp needs 3 Médicos",
+        },
+      ],
+    };
+
+    const text = service.generateJustification(evaluation, {
+      ...baseContext,
+      population: 82,
+      capacity: 100,
+      occupancyRate: 82,
+      balance: { food: 12, water: -4 },
+      professionsNeeded: [{ profession: "Médico", deficit: 3 }],
+    });
+
+    expect(text).toContain("Score: 82/100 (HIGH confidence)");
+    expect(text).toContain("Decision: RECOMMEND_ACCEPT");
+    expect(text).toContain("- Food balance: +12");
+    expect(text).toContain("- Water balance: -4");
+    expect(text).toContain("- Professions needed: Médico (-3)");
+  });
+
+  it("should generate a justification without profession list and alternate balance signs", () => {
+    const evaluation: EvaluationResult = {
+      score: 48,
+      decision: "RECOMMEND_REJECT",
+      confidence: "HIGH",
+      factors: [
+        {
+          category: "Risk Assessment",
+          score: 0,
+          maxScore: 10,
+          detail: "Criminal record present",
+        },
+      ],
+    };
+
+    const text = service.generateJustification(evaluation, {
+      ...baseContext,
+      population: 97,
+      capacity: 100,
+      occupancyRate: 97,
+      balance: { food: -6, water: 11 },
+      professionsNeeded: [],
+    });
+
+    expect(text).toContain("- Food balance: -6");
+    expect(text).toContain("- Water balance: +11");
+    expect(text).not.toContain("- Professions needed:");
+  });
+
+  it("should reject a high-occupancy candidate when criminal risk penalty lowers the estimate", () => {
+    const result = service.checkCriticalRules(
+      {
+        health_status: 90,
+        physical_condition: 90,
+        criminal_record: true,
+        skills: ["medicine", "security", "engineering", "agriculture"],
+      } as any,
+      {
+        ...baseContext,
+        occupancyRate: 98,
+        criticalDeficit: 0,
+        criticalProfession: undefined,
+      },
+    );
+
+    expect(result).toEqual({
+      applies: true,
+      decision: "REJECT",
+      reason: "Camp at 95% capacity. Only exceptional candidates accepted.",
+    });
+  });
+
+  it("should still reject a high-occupancy candidate without criminal record because the quick estimate caps below 80", () => {
+    const result = service.checkCriticalRules(
+      {
+        health_status: 100,
+        physical_condition: 100,
+        criminal_record: false,
+        skills: ["medicine", "security", "engineering", "agriculture"],
+      } as any,
+      {
+        ...baseContext,
+        occupancyRate: 98,
+        criticalDeficit: 0,
+        criticalProfession: undefined,
+      },
+    );
+
+    expect(result).toEqual({
+      applies: true,
+      decision: "REJECT",
+      reason: "Camp at 95% capacity. Only exceptional candidates accepted.",
+    });
   });
 });
