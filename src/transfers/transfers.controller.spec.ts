@@ -45,7 +45,11 @@ describe("TransfersController", () => {
   });
 
   it("should create a transfer request using the current user", async () => {
-    const dto = { camp_origin_id: 10, camp_destination_id: 20, type: "both" } as any;
+    const dto = {
+      camp_origin_id: 10,
+      camp_destination_id: 20,
+      type: "both",
+    } as any;
     service.createRequest.mockResolvedValueOnce(mockRequest);
 
     const result = await controller.createRequest(dto, { userId: 7 });
@@ -95,7 +99,10 @@ describe("TransfersController", () => {
   });
 
   it("should cancel a request using the current user", async () => {
-    service.cancelRequest.mockResolvedValueOnce({ ...mockRequest, status: "cancelled" });
+    service.cancelRequest.mockResolvedValueOnce({
+      ...mockRequest,
+      status: "cancelled",
+    });
 
     const result = await controller.cancelRequest(1, { userId: 5 });
 

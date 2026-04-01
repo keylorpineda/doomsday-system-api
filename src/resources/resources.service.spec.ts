@@ -1,10 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
-import {
-  BadRequestException,
-  Logger,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, Logger, NotFoundException } from "@nestjs/common";
 import { ResourcesService } from "./resources.service";
 import { Resource } from "./entities/resource.entity";
 import { Inventory } from "./entities/inventory.entity";
@@ -22,11 +18,10 @@ import {
   PersonStatus,
 } from "../users/constants/professions.constants";
 
-const passThrough = <T,>(value: T): T => value;
 const cloneEntity = <T extends Record<string, any>>(value: T): T => ({
   ...value,
 });
-const asyncPassThrough = async <T,>(value: T): Promise<T> => value;
+const asyncPassThrough = async <T>(value: T): Promise<T> => value;
 
 type RepoMock = {
   findAndCount: jest.Mock;
@@ -158,7 +153,6 @@ describe("ResourcesService", () => {
       expect(result.totalPages).toBe(2);
     });
 
-
     it("should use default page and limit when parameters are omitted", async () => {
       resourceRepo.findAndCount!.mockResolvedValue([[mockResource], 1]);
 
@@ -270,7 +264,9 @@ describe("ResourcesService", () => {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([{ ...mockInventory, alert_active: true }]),
+        getMany: jest
+          .fn()
+          .mockResolvedValue([{ ...mockInventory, alert_active: true }]),
       };
       inventoryRepo.createQueryBuilder!.mockReturnValue(queryBuilder);
 
@@ -322,7 +318,9 @@ describe("ResourcesService", () => {
         minimum_stock_required: 0,
       });
 
-      const result = await service.updateInventory(5, 4, { current_quantity: 8 });
+      const result = await service.updateInventory(5, 4, {
+        current_quantity: 8,
+      });
 
       expect(inventoryRepo.create).toHaveBeenCalledWith({
         camp_id: 5,
@@ -335,9 +333,11 @@ describe("ResourcesService", () => {
       expect(result.alert_active).toBe(false);
     });
 
-
     it("should keep current quantity when dto does not provide it", async () => {
-      inventoryRepo.findOne!.mockResolvedValue({ ...mockInventory, current_quantity: 12 });
+      inventoryRepo.findOne!.mockResolvedValue({
+        ...mockInventory,
+        current_quantity: 12,
+      });
 
       const result = await service.updateInventory(1, 1, {
         minimum_stock_required: 20,
@@ -356,10 +356,14 @@ describe("ResourcesService", () => {
 
   describe("initializeInventoryForCamp", () => {
     it("should create inventory only for missing resources", async () => {
-      const secondResource = { ...mockResource, id: 2, category: "food" } as Resource;
+      const secondResource = {
+        ...mockResource,
+        id: 2,
+        category: "food",
+      } as Resource;
       resourceRepo.find!.mockResolvedValue([mockResource, secondResource]);
-      inventoryRepo.findOne!
-        .mockResolvedValueOnce({ ...mockInventory })
+      inventoryRepo
+        .findOne!.mockResolvedValueOnce({ ...mockInventory })
         .mockResolvedValueOnce(null);
       inventoryRepo.create!.mockImplementation(cloneEntity);
       inventoryRepo.save!.mockImplementation(asyncPassThrough);
@@ -418,9 +422,15 @@ describe("ResourcesService", () => {
   describe("createMovement", () => {
     it("should create an income movement and audit log", async () => {
       jest.spyOn(service, "findResourceById").mockResolvedValue(mockResource);
-      inventoryRepo.findOne!.mockResolvedValue({ ...mockInventory, current_quantity: 10 });
+      inventoryRepo.findOne!.mockResolvedValue({
+        ...mockInventory,
+        current_quantity: 10,
+      });
       movementRepo.create!.mockImplementation(cloneEntity);
-      movementRepo.save!.mockImplementation(async (value: any) => ({ id: 55, ...value }));
+      movementRepo.save!.mockImplementation(async (value: any) => ({
+        id: 55,
+        ...value,
+      }));
       auditRepo.create!.mockImplementation(cloneEntity);
 
       const result = await service.createMovement(
@@ -473,7 +483,10 @@ describe("ResourcesService", () => {
       inventoryRepo.findOne!.mockResolvedValue(null);
       inventoryRepo.create!.mockImplementation(cloneEntity);
       movementRepo.create!.mockImplementation(cloneEntity);
-      movementRepo.save!.mockImplementation(async (value: any) => ({ id: 77, ...value }));
+      movementRepo.save!.mockImplementation(async (value: any) => ({
+        id: 77,
+        ...value,
+      }));
       auditRepo.create!.mockImplementation(cloneEntity);
 
       const result = await service.createMovement({
@@ -499,8 +512,8 @@ describe("ResourcesService", () => {
 
   describe("executeDailyProcess", () => {
     it("should throw when food or water resources are missing", async () => {
-      resourceRepo.findOne!
-        .mockResolvedValueOnce(null)
+      resourceRepo
+        .findOne!.mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ ...mockResource, id: 2 });
 
       await expect(service.executeDailyProcess(1)).rejects.toThrow(
@@ -511,8 +524,16 @@ describe("ResourcesService", () => {
     });
 
     it("should process daily production and consumption using defaults and overrides", async () => {
-      const foodResource = { id: 11, category: "food", name: "Comida" } as Resource;
-      const waterResource = { id: 12, category: "water", name: "Agua" } as Resource;
+      const foodResource = {
+        id: 11,
+        category: "food",
+        name: "Comida",
+      } as Resource;
+      const waterResource = {
+        id: 12,
+        category: "water",
+        name: "Agua",
+      } as Resource;
       const workerWithConfig = {
         id: 1,
         first_name: "Ana",
@@ -534,7 +555,9 @@ describe("ResourcesService", () => {
         leftJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([workerWithConfig, workerWithoutProduction]),
+        getMany: jest
+          .fn()
+          .mockResolvedValue([workerWithConfig, workerWithoutProduction]),
       };
       const countQB = {
         leftJoin: jest.fn().mockReturnThis(),
@@ -543,19 +566,19 @@ describe("ResourcesService", () => {
         getCount: jest.fn().mockResolvedValue(4),
       };
 
-      resourceRepo.findOne!
-        .mockResolvedValueOnce(foodResource)
+      resourceRepo
+        .findOne!.mockResolvedValueOnce(foodResource)
         .mockResolvedValueOnce(waterResource);
-      personRepo.createQueryBuilder!
-        .mockReturnValueOnce(workersQB)
+      personRepo
+        .createQueryBuilder!.mockReturnValueOnce(workersQB)
         .mockReturnValueOnce(countQB);
-      dailyProdRepo.findOne!
-        .mockResolvedValueOnce({ base_production: 20 })
+      dailyProdRepo
+        .findOne!.mockResolvedValueOnce({ base_production: 20 })
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
-      dailyConsRepo.findOne!
-        .mockResolvedValueOnce({ daily_ration: 5 })
+      dailyConsRepo
+        .findOne!.mockResolvedValueOnce({ daily_ration: 5 })
         .mockResolvedValueOnce(null);
 
       const createMovementSpy = jest
@@ -611,8 +634,16 @@ describe("ResourcesService", () => {
     });
 
     it("should use profession defaults, custom water production and custom water ration", async () => {
-      const foodResource = { id: 31, category: "food", name: "Comida" } as Resource;
-      const waterResource = { id: 32, category: "water", name: "Agua" } as Resource;
+      const foodResource = {
+        id: 31,
+        category: "food",
+        name: "Comida",
+      } as Resource;
+      const waterResource = {
+        id: 32,
+        category: "water",
+        name: "Agua",
+      } as Resource;
       const workersQB = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         leftJoin: jest.fn().mockReturnThis(),
@@ -636,22 +667,25 @@ describe("ResourcesService", () => {
         getCount: jest.fn().mockResolvedValue(2),
       };
 
-      resourceRepo.findOne!
-        .mockResolvedValueOnce(foodResource)
+      resourceRepo
+        .findOne!.mockResolvedValueOnce(foodResource)
         .mockResolvedValueOnce(waterResource);
-      personRepo.createQueryBuilder!
-        .mockReturnValueOnce(workersQB)
+      personRepo
+        .createQueryBuilder!.mockReturnValueOnce(workersQB)
         .mockReturnValueOnce(countQB);
-      dailyProdRepo.findOne!
-        .mockResolvedValueOnce(null)
+      dailyProdRepo
+        .findOne!.mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ base_production: 6 });
-      dailyConsRepo.findOne!
-        .mockResolvedValueOnce(null)
+      dailyConsRepo
+        .findOne!.mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ daily_ration: 4 });
 
       const createMovementSpy = jest
         .spyOn(service, "createMovement")
-        .mockResolvedValue({ movement: { id: 1 } as any, inventory: mockInventory });
+        .mockResolvedValue({
+          movement: { id: 1 } as any,
+          inventory: mockInventory,
+        });
       const refreshSpy = jest
         .spyOn(service as any, "refreshAlertFlags")
         .mockResolvedValue(undefined);
@@ -695,8 +729,16 @@ describe("ResourcesService", () => {
     });
 
     it("should default food and water production to zero when profession config is missing", async () => {
-      const foodResource = { id: 41, category: "food", name: "Comida" } as Resource;
-      const waterResource = { id: 42, category: "water", name: "Agua" } as Resource;
+      const foodResource = {
+        id: 41,
+        category: "food",
+        name: "Comida",
+      } as Resource;
+      const waterResource = {
+        id: 42,
+        category: "water",
+        name: "Agua",
+      } as Resource;
       const workersQB = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         leftJoin: jest.fn().mockReturnThis(),
@@ -720,22 +762,25 @@ describe("ResourcesService", () => {
         getCount: jest.fn().mockResolvedValue(0),
       };
 
-      resourceRepo.findOne!
-        .mockResolvedValueOnce(foodResource)
+      resourceRepo
+        .findOne!.mockResolvedValueOnce(foodResource)
         .mockResolvedValueOnce(waterResource);
-      personRepo.createQueryBuilder!
-        .mockReturnValueOnce(workersQB)
+      personRepo
+        .createQueryBuilder!.mockReturnValueOnce(workersQB)
         .mockReturnValueOnce(countQB);
-      dailyProdRepo.findOne!
-        .mockResolvedValueOnce(null)
+      dailyProdRepo
+        .findOne!.mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
-      dailyConsRepo.findOne!
-        .mockResolvedValueOnce(null)
+      dailyConsRepo
+        .findOne!.mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
 
       const createMovementSpy = jest
         .spyOn(service, "createMovement")
-        .mockResolvedValue({ movement: { id: 1 } as any, inventory: mockInventory });
+        .mockResolvedValue({
+          movement: { id: 1 } as any,
+          inventory: mockInventory,
+        });
       const refreshSpy = jest
         .spyOn(service as any, "refreshAlertFlags")
         .mockResolvedValue(undefined);
@@ -752,8 +797,16 @@ describe("ResourcesService", () => {
     });
 
     it("should skip workers without profession and register only water production when applicable", async () => {
-      const foodResource = { id: 21, category: "food", name: "Comida" } as Resource;
-      const waterResource = { id: 22, category: "water", name: "Agua" } as Resource;
+      const foodResource = {
+        id: 21,
+        category: "food",
+        name: "Comida",
+      } as Resource;
+      const waterResource = {
+        id: 22,
+        category: "water",
+        name: "Agua",
+      } as Resource;
       const workersQB = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         leftJoin: jest.fn().mockReturnThis(),
@@ -785,22 +838,25 @@ describe("ResourcesService", () => {
         getCount: jest.fn().mockResolvedValue(0),
       };
 
-      resourceRepo.findOne!
-        .mockResolvedValueOnce(foodResource)
+      resourceRepo
+        .findOne!.mockResolvedValueOnce(foodResource)
         .mockResolvedValueOnce(waterResource);
-      personRepo.createQueryBuilder!
-        .mockReturnValueOnce(workersQB)
+      personRepo
+        .createQueryBuilder!.mockReturnValueOnce(workersQB)
         .mockReturnValueOnce(countQB);
-      dailyProdRepo.findOne!
-        .mockResolvedValueOnce(null)
+      dailyProdRepo
+        .findOne!.mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
-      dailyConsRepo.findOne!
-        .mockResolvedValueOnce(null)
+      dailyConsRepo
+        .findOne!.mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
 
       const createMovementSpy = jest
         .spyOn(service, "createMovement")
-        .mockResolvedValue({ movement: { id: 1 } as any, inventory: mockInventory });
+        .mockResolvedValue({
+          movement: { id: 1 } as any,
+          inventory: mockInventory,
+        });
       const refreshSpy = jest
         .spyOn(service as any, "refreshAlertFlags")
         .mockResolvedValue(undefined);
@@ -831,11 +887,22 @@ describe("ResourcesService", () => {
         { id: 2, name: "Camp Beta", active: true },
       ];
       campRepo.find!.mockResolvedValue(camps);
-      jest.spyOn(service, "executeDailyProcess")
-        .mockResolvedValueOnce({ production: {}, consumption: {}, movementCount: 2 })
-        .mockResolvedValueOnce({ production: {}, consumption: {}, movementCount: 1 });
+      jest
+        .spyOn(service, "executeDailyProcess")
+        .mockResolvedValueOnce({
+          production: {},
+          consumption: {},
+          movementCount: 2,
+        })
+        .mockResolvedValueOnce({
+          production: {},
+          consumption: {},
+          movementCount: 1,
+        });
       const logSpy = jest.spyOn(Logger.prototype, "log").mockImplementation();
-      const errorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation();
+      const errorSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation();
 
       await service.handleDailyCron();
 
@@ -858,11 +925,15 @@ describe("ResourcesService", () => {
     });
 
     it("should log errors and continue when a camp fails", async () => {
-      campRepo.find!.mockResolvedValue([{ id: 5, name: "Camp Gamma", active: true }]);
+      campRepo.find!.mockResolvedValue([
+        { id: 5, name: "Camp Gamma", active: true },
+      ]);
       jest
         .spyOn(service, "executeDailyProcess")
         .mockRejectedValue(new Error("boom"));
-      const errorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation();
+      const errorSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation();
       jest.spyOn(Logger.prototype, "log").mockImplementation();
 
       await service.handleDailyCron();
@@ -870,18 +941,21 @@ describe("ResourcesService", () => {
       expect(errorSpy).toHaveBeenCalledWith("Error en camp 5: boom");
     });
 
-
     it("should stringify non-Error values when logging cron failures", async () => {
-      campRepo.find!.mockResolvedValue([{ id: 6, name: "Camp Delta", active: true }]);
-      jest.spyOn(service, "executeDailyProcess").mockRejectedValue("fallo-string");
-      const errorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation();
+      campRepo.find!.mockResolvedValue([
+        { id: 6, name: "Camp Delta", active: true },
+      ]);
+      jest
+        .spyOn(service, "executeDailyProcess")
+        .mockRejectedValue("fallo-string");
+      const errorSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation();
       jest.spyOn(Logger.prototype, "log").mockImplementation();
 
       await service.handleDailyCron();
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        "Error en camp 6: fallo-string",
-      );
+      expect(errorSpy).toHaveBeenCalledWith("Error en camp 6: fallo-string");
     });
   });
 
@@ -903,7 +977,10 @@ describe("ResourcesService", () => {
       jest.spyOn(service, "findResourceById").mockResolvedValue(mockResource);
       const createMovementSpy = jest
         .spyOn(service, "createMovement")
-        .mockResolvedValue({ movement: { id: 9 } as any, inventory: mockInventory });
+        .mockResolvedValue({
+          movement: { id: 9 } as any,
+          inventory: mockInventory,
+        });
 
       const result = await service.adjustProductionForPerson(4, dto, 30);
 
@@ -936,7 +1013,10 @@ describe("ResourcesService", () => {
       jest.spyOn(service, "findResourceById").mockResolvedValue(mockResource);
       const createMovementSpy = jest
         .spyOn(service, "createMovement")
-        .mockResolvedValue({ movement: { id: 9 } as any, inventory: mockInventory });
+        .mockResolvedValue({
+          movement: { id: 9 } as any,
+          inventory: mockInventory,
+        });
 
       await service.adjustProductionForPerson(
         4,
@@ -1007,8 +1087,8 @@ describe("ResourcesService", () => {
         andWhere: jest.fn().mockReturnThis(),
         execute: executeFalse,
       };
-      inventoryRepo.createQueryBuilder!
-        .mockReturnValueOnce(firstBuilder)
+      inventoryRepo
+        .createQueryBuilder!.mockReturnValueOnce(firstBuilder)
         .mockReturnValueOnce(secondBuilder);
 
       await (service as any).refreshAlertFlags(13);

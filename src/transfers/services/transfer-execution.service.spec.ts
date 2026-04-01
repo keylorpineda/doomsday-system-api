@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
@@ -15,7 +12,11 @@ import { RequestResourceDetail } from "../entities/request-resource-detail.entit
 import { RequestPersonDetail } from "../entities/request-person-detail.entity";
 import { AuditLog } from "../../common/entities/audit-log.entity";
 
-const createRepoMock = () => ({ findOne: jest.fn(), save: jest.fn(), create: jest.fn() });
+const createRepoMock = () => ({
+  findOne: jest.fn(),
+  save: jest.fn(),
+  create: jest.fn(),
+});
 
 const createQueryRunnerMock = () => ({
   connect: jest.fn().mockResolvedValue(undefined),
@@ -47,7 +48,10 @@ describe("TransferExecutionService", () => {
           useValue: createRepoMock(),
         },
         { provide: getRepositoryToken(Person), useValue: createRepoMock() },
-        { provide: getRepositoryToken(UserAccount), useValue: createRepoMock() },
+        {
+          provide: getRepositoryToken(UserAccount),
+          useValue: createRepoMock(),
+        },
         { provide: getRepositoryToken(Inventory), useValue: createRepoMock() },
         {
           provide: getRepositoryToken(InventoryMovement),
@@ -103,7 +107,9 @@ describe("TransferExecutionService", () => {
           resource: { name: "Agua" },
         },
       ],
-      personDetails: [{ request_id: 1, person_id: 40, transfer_status: "pending" }],
+      personDetails: [
+        { request_id: 1, person_id: 40, transfer_status: "pending" },
+      ],
     } as any;
 
     const originInventory = {
@@ -181,7 +187,12 @@ describe("TransferExecutionService", () => {
       campOrigin: { name: "Camp A" },
       campDestination: { name: "Camp B" },
       resourceDetails: [
-        { request_id: 1, resource_id: 30, requested_quantity: 4, resource: { name: "Agua" } },
+        {
+          request_id: 1,
+          resource_id: 30,
+          requested_quantity: 4,
+          resource: { name: "Agua" },
+        },
       ],
       personDetails: [],
     } as any;
@@ -203,7 +214,12 @@ describe("TransferExecutionService", () => {
       campOrigin: { name: "Camp A" },
       campDestination: { name: "Camp B" },
       resourceDetails: [
-        { request_id: 1, resource_id: 30, requested_quantity: 9, resource: { name: "Agua" } },
+        {
+          request_id: 1,
+          resource_id: 30,
+          requested_quantity: 9,
+          resource: { name: "Agua" },
+        },
       ],
       personDetails: [],
     } as any;
@@ -227,7 +243,9 @@ describe("TransferExecutionService", () => {
       camp_origin_id: 10,
       camp_destination_id: 20,
       resourceDetails: [],
-      personDetails: [{ request_id: 1, person_id: 40, transfer_status: "pending" }],
+      personDetails: [
+        { request_id: 1, person_id: 40, transfer_status: "pending" },
+      ],
     } as any;
 
     queryRunner.manager.findOne.mockResolvedValueOnce(null);
@@ -244,10 +262,15 @@ describe("TransferExecutionService", () => {
       camp_origin_id: 10,
       camp_destination_id: 20,
       resourceDetails: [],
-      personDetails: [{ request_id: 1, person_id: 40, transfer_status: "pending" }],
+      personDetails: [
+        { request_id: 1, person_id: 40, transfer_status: "pending" },
+      ],
     } as any;
 
-    queryRunner.manager.findOne.mockResolvedValueOnce({ id: 40, userAccount: null });
+    queryRunner.manager.findOne.mockResolvedValueOnce({
+      id: 40,
+      userAccount: null,
+    });
 
     await service.executeTransfer(request, 7);
 
@@ -260,7 +283,6 @@ describe("TransferExecutionService", () => {
       expect.objectContaining({ transfer_status: "completed" }),
     );
   });
-
 
   it("should record zero transferred items when request details are missing", async () => {
     const request = {

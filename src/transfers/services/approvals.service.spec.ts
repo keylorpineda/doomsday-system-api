@@ -41,7 +41,10 @@ describe("ApprovalsService", () => {
           provide: getRepositoryToken(IntercampRequest),
           useValue: createRepoMock(),
         },
-        { provide: getRepositoryToken(UserAccount), useValue: createRepoMock() },
+        {
+          provide: getRepositoryToken(UserAccount),
+          useValue: createRepoMock(),
+        },
         { provide: getRepositoryToken(AuditLog), useValue: createRepoMock() },
       ],
     }).compile();
@@ -70,7 +73,12 @@ describe("ApprovalsService", () => {
   });
 
   it("should throw when the user camp is not involved in the request", async () => {
-    userRepo.findOne.mockResolvedValueOnce({ id: 2, camp_id: 99, role: {}, camp: {} });
+    userRepo.findOne.mockResolvedValueOnce({
+      id: 2,
+      camp_id: 99,
+      role: {},
+      camp: {},
+    });
 
     await expect(
       service.approveOrReject(baseRequest, 2, { status: "approved" } as any),
@@ -82,7 +90,12 @@ describe("ApprovalsService", () => {
   });
 
   it("should throw when the user already approved", async () => {
-    userRepo.findOne.mockResolvedValueOnce({ id: 2, camp_id: 10, role: {}, camp: {} });
+    userRepo.findOne.mockResolvedValueOnce({
+      id: 2,
+      camp_id: 10,
+      role: {},
+      camp: {},
+    });
     const request = {
       ...baseRequest,
       approvals: [{ user_id: 2 }],
@@ -94,7 +107,12 @@ describe("ApprovalsService", () => {
   });
 
   it("should reject a request and persist audit data", async () => {
-    userRepo.findOne.mockResolvedValueOnce({ id: 2, camp_id: 10, role: {}, camp: {} });
+    userRepo.findOne.mockResolvedValueOnce({
+      id: 2,
+      camp_id: 10,
+      role: {},
+      camp: {},
+    });
 
     const result = await service.approveOrReject(baseRequest, 2, {
       status: "rejected",
@@ -122,7 +140,12 @@ describe("ApprovalsService", () => {
   });
 
   it("should partially approve when the other camp has not approved yet", async () => {
-    userRepo.findOne.mockResolvedValueOnce({ id: 2, camp_id: 10, role: {}, camp: {} });
+    userRepo.findOne.mockResolvedValueOnce({
+      id: 2,
+      camp_id: 10,
+      role: {},
+      camp: {},
+    });
 
     const result = await service.approveOrReject(baseRequest, 2, {
       status: "approved",
@@ -139,7 +162,12 @@ describe("ApprovalsService", () => {
   });
 
   it("should mark the request as fully approved when the other camp already approved", async () => {
-    userRepo.findOne.mockResolvedValueOnce({ id: 2, camp_id: 10, role: {}, camp: {} });
+    userRepo.findOne.mockResolvedValueOnce({
+      id: 2,
+      camp_id: 10,
+      role: {},
+      camp: {},
+    });
     const request = {
       ...baseRequest,
       approvals: [
@@ -168,7 +196,12 @@ describe("ApprovalsService", () => {
   });
 
   it("should mark the request as fully approved when the destination camp approves after origin", async () => {
-    userRepo.findOne.mockResolvedValueOnce({ id: 9, camp_id: 20, role: {}, camp: {} });
+    userRepo.findOne.mockResolvedValueOnce({
+      id: 9,
+      camp_id: 20,
+      role: {},
+      camp: {},
+    });
     const request = {
       ...baseRequest,
       approvals: [

@@ -8,19 +8,29 @@ import { Person } from "../../users/entities/person.entity";
 import { UserAccount } from "../../users/entities/user-account.entity";
 import { Resource } from "../../resources/entities/resource.entity";
 
-const getRelations = (target: Function) =>
-  getMetadataArgsStorage().relations.filter((relation) => relation.target === target);
+type EntityConstructor = new (...args: unknown[]) => unknown;
 
-const getRelationTypes = (target: Function) =>
-  getRelations(target).map((relation) =>
-    typeof relation.type === "function" ? (relation.type as () => unknown)() : relation.type,
+const getRelations = (target: EntityConstructor) =>
+  getMetadataArgsStorage().relations.filter(
+    (relation) => relation.target === target,
   );
 
-const resolveInverseProperties = (target: Function, sample: Record<string, unknown>) =>
+const getRelationTypes = (target: EntityConstructor) =>
+  getRelations(target).map((relation) =>
+    typeof relation.type === "function"
+      ? (relation.type as () => unknown)()
+      : relation.type,
+  );
+
+const resolveInverseProperties = (
+  target: EntityConstructor,
+  sample: Record<string, unknown>,
+) =>
   getRelations(target)
     .map((relation) => relation.inverseSideProperty)
-    .filter((inverseSideProperty): inverseSideProperty is (object: any) => unknown =>
-      typeof inverseSideProperty === "function",
+    .filter(
+      (inverseSideProperty): inverseSideProperty is (object: any) => unknown =>
+        typeof inverseSideProperty === "function",
     )
     .map((inverseSideProperty) => inverseSideProperty(sample));
 
@@ -50,15 +60,15 @@ describe("Transfers entities", () => {
       user,
       intercampRequest,
     });
-    expect(getRelations(Approval).map((relation) => relation.propertyName)).toEqual(
-      expect.arrayContaining(["user", "intercampRequest"]),
-    );
+    expect(
+      getRelations(Approval).map((relation) => relation.propertyName),
+    ).toEqual(expect.arrayContaining(["user", "intercampRequest"]));
     expect(getRelationTypes(Approval)).toEqual(
       expect.arrayContaining([UserAccount, IntercampRequest]),
     );
-    expect(resolveInverseProperties(Approval, { approvals: "approvals" })).toEqual(
-      expect.arrayContaining(["approvals"]),
-    );
+    expect(
+      resolveInverseProperties(Approval, { approvals: "approvals" }),
+    ).toEqual(expect.arrayContaining(["approvals"]));
   });
 
   it("should define IntercampRequest properties and relations", () => {
@@ -97,7 +107,9 @@ describe("Transfers entities", () => {
       personDetails,
       approvals,
     });
-    expect(getRelations(IntercampRequest).map((relation) => relation.propertyName)).toEqual(
+    expect(
+      getRelations(IntercampRequest).map((relation) => relation.propertyName),
+    ).toEqual(
       expect.arrayContaining([
         "campOrigin",
         "campDestination",
@@ -120,7 +132,9 @@ describe("Transfers entities", () => {
         request: "request",
         intercampRequest: "intercampRequest",
       }),
-    ).toEqual(expect.arrayContaining(["request", "request", "intercampRequest"]));
+    ).toEqual(
+      expect.arrayContaining(["request", "request", "intercampRequest"]),
+    );
   });
 
   it("should define RequestPersonDetail properties and relations", () => {
@@ -143,15 +157,19 @@ describe("Transfers entities", () => {
       request,
       person,
     });
-    expect(getRelations(RequestPersonDetail).map((relation) => relation.propertyName)).toEqual(
-      expect.arrayContaining(["request", "person"]),
-    );
+    expect(
+      getRelations(RequestPersonDetail).map(
+        (relation) => relation.propertyName,
+      ),
+    ).toEqual(expect.arrayContaining(["request", "person"]));
     expect(getRelationTypes(RequestPersonDetail)).toEqual(
       expect.arrayContaining([IntercampRequest, Person]),
     );
-    expect(resolveInverseProperties(RequestPersonDetail, { personDetails: "personDetails" })).toEqual(
-      expect.arrayContaining(["personDetails"]),
-    );
+    expect(
+      resolveInverseProperties(RequestPersonDetail, {
+        personDetails: "personDetails",
+      }),
+    ).toEqual(expect.arrayContaining(["personDetails"]));
   });
 
   it("should define RequestResourceDetail properties and relations", () => {
@@ -176,14 +194,18 @@ describe("Transfers entities", () => {
       request,
       resource,
     });
-    expect(getRelations(RequestResourceDetail).map((relation) => relation.propertyName)).toEqual(
-      expect.arrayContaining(["request", "resource"]),
-    );
+    expect(
+      getRelations(RequestResourceDetail).map(
+        (relation) => relation.propertyName,
+      ),
+    ).toEqual(expect.arrayContaining(["request", "resource"]));
     expect(getRelationTypes(RequestResourceDetail)).toEqual(
       expect.arrayContaining([IntercampRequest, Resource]),
     );
-    expect(resolveInverseProperties(RequestResourceDetail, { resourceDetails: "resourceDetails" })).toEqual(
-      expect.arrayContaining(["resourceDetails"]),
-    );
+    expect(
+      resolveInverseProperties(RequestResourceDetail, {
+        resourceDetails: "resourceDetails",
+      }),
+    ).toEqual(expect.arrayContaining(["resourceDetails"]));
   });
 });

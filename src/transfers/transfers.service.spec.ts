@@ -89,13 +89,15 @@ describe("TransfersService", () => {
   it("should delegate findRequestsByCamp", async () => {
     requestsService.findRequestsByCamp.mockResolvedValueOnce([mockRequest]);
 
-    await expect(service.findRequestsByCamp(10, "destination")).resolves.toEqual([
-      mockRequest,
-    ]);
+    await expect(
+      service.findRequestsByCamp(10, "destination"),
+    ).resolves.toEqual([mockRequest]);
   });
 
   it("should delegate findPendingRequestsByCamp", async () => {
-    requestsService.findPendingRequestsByCamp.mockResolvedValueOnce([mockRequest]);
+    requestsService.findPendingRequestsByCamp.mockResolvedValueOnce([
+      mockRequest,
+    ]);
 
     await expect(service.findPendingRequestsByCamp(10)).resolves.toEqual([
       mockRequest,
@@ -115,10 +117,17 @@ describe("TransfersService", () => {
       status: "approved",
     } as any);
 
-    expect(approvalsService.approveOrReject).toHaveBeenCalledWith(mockRequest, 9, {
-      status: "approved",
-    });
-    expect(executionService.executeTransfer).toHaveBeenCalledWith(mockRequest, 9);
+    expect(approvalsService.approveOrReject).toHaveBeenCalledWith(
+      mockRequest,
+      9,
+      {
+        status: "approved",
+      },
+    );
+    expect(executionService.executeTransfer).toHaveBeenCalledWith(
+      mockRequest,
+      9,
+    );
     expect(result.status).toBe("completed");
   });
 
