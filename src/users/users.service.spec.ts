@@ -136,7 +136,12 @@ describe("UsersService", () => {
     personsService.findAll.mockResolvedValueOnce(response as any);
 
     await expect(service.findAllPersons()).resolves.toEqual(response);
-    expect(personsService.findAll).toHaveBeenCalledWith(undefined, 1, 20, undefined);
+    expect(personsService.findAll).toHaveBeenCalledWith(
+      undefined,
+      1,
+      20,
+      undefined,
+    );
   });
 
   it("should delegate person operations", async () => {
@@ -268,15 +273,17 @@ describe("UsersService", () => {
     assignmentsService.create.mockResolvedValueOnce(assignment);
     assignmentsService.findActive.mockResolvedValueOnce(activeAssignments);
     assignmentsService.end.mockResolvedValueOnce(assignment);
-    productionService.calculateDailyProduction.mockResolvedValueOnce(production);
+    productionService.calculateDailyProduction.mockResolvedValueOnce(
+      production,
+    );
     productionService.calculateDailyConsumption.mockResolvedValueOnce(
       consumption,
     );
     productionService.calculateDailyBalance.mockResolvedValueOnce(balance);
 
-    await expect(service.createTemporaryAssignment(createDto, 77)).resolves.toBe(
-      assignment,
-    );
+    await expect(
+      service.createTemporaryAssignment(createDto, 77),
+    ).resolves.toBe(assignment);
     await expect(service.getActiveTemporaryAssignments(9)).resolves.toEqual(
       activeAssignments,
     );
@@ -373,7 +380,9 @@ describe("UsersService", () => {
     userAssetRepo.findOne.mockResolvedValueOnce(null);
 
     await expect(service.toggleBadgeDisplay(10, 999, true)).rejects.toThrow(
-      new NotFoundException("Badge no encontrado o no pertenece a este usuario"),
+      new NotFoundException(
+        "Badge no encontrado o no pertenece a este usuario",
+      ),
     );
   });
 });

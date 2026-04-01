@@ -1,4 +1,4 @@
-﻿import { Test, TestingModule } from "@nestjs/testing";
+import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import * as request from "supertest";
 import { ConfigModule } from "@nestjs/config";
@@ -85,7 +85,8 @@ describe("Camps E2E Tests", () => {
 
   describe("Setup: Create test users and get tokens", () => {
     it("should create admin user and get token", async () => {
-      const hashedPassword = await bcrypt.hash("***removed***", 10);
+      const pass = process.env.TEST_ADMIN_PASSWORD ?? "***removed***";
+      const hashedPassword = await bcrypt.hash(pass, 10);
       await userRepository.save({
         username: "admin_camps_test",
         email: "admin_camps@example.com",
@@ -98,7 +99,7 @@ describe("Camps E2E Tests", () => {
         .post("/auth/login")
         .send({
           username: "admin_camps_test",
-          password: "***removed***",
+          password: pass,
         })
         .expect(200);
 
@@ -107,7 +108,8 @@ describe("Camps E2E Tests", () => {
     });
 
     it("should create gestor_recursos user and get token", async () => {
-      const hashedPassword = await bcrypt.hash("***removed***", 10);
+      const pass = process.env.TEST_GESTOR_PASSWORD ?? "***removed***";
+      const hashedPassword = await bcrypt.hash(pass, 10);
       await userRepository.save({
         username: "gestor_camps_test",
         email: "gestor_camps@example.com",
@@ -120,7 +122,7 @@ describe("Camps E2E Tests", () => {
         .post("/auth/login")
         .send({
           username: "gestor_camps_test",
-          password: "***removed***",
+          password: pass,
         })
         .expect(200);
 

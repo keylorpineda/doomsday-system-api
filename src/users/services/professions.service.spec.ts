@@ -46,7 +46,9 @@ describe("ProfessionsService", () => {
     professionRepo.find.mockResolvedValueOnce([{ id: 1 }] as any);
 
     await expect(service.findAll()).resolves.toEqual([{ id: 1 }]);
-    expect(professionRepo.find).toHaveBeenCalledWith({ relations: ["persons"] });
+    expect(professionRepo.find).toHaveBeenCalledWith({
+      relations: ["persons"],
+    });
   });
 
   it("should find a profession by id", async () => {
@@ -75,7 +77,9 @@ describe("ProfessionsService", () => {
   });
 
   it("should check minimum workers and warn when below minimum", async () => {
-    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = jest
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     jest.spyOn(service, "findById").mockResolvedValueOnce({
       id: 4,
       name: "Guardia",
@@ -95,7 +99,9 @@ describe("ProfessionsService", () => {
   });
 
   it("should check minimum workers without warning when minimum is met", async () => {
-    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = jest
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     jest.spyOn(service, "findById").mockResolvedValueOnce({
       id: 4,
       name: "Guardia",
@@ -110,10 +116,12 @@ describe("ProfessionsService", () => {
   });
 
   it("should return professions needing workers", async () => {
-    jest.spyOn(service, "findAll").mockResolvedValueOnce([
-      { id: 1, minimum_active_required: 2 } as Profession,
-      { id: 2, minimum_active_required: 1 } as Profession,
-    ]);
+    jest
+      .spyOn(service, "findAll")
+      .mockResolvedValueOnce([
+        { id: 1, minimum_active_required: 2 } as Profession,
+        { id: 2, minimum_active_required: 1 } as Profession,
+      ]);
     personsService.countActiveWorkers
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(1);
@@ -131,10 +139,12 @@ describe("ProfessionsService", () => {
   });
 
   it("should return professions with excess workers", async () => {
-    jest.spyOn(service, "findAll").mockResolvedValueOnce([
-      { id: 1, minimum_active_required: 2 } as Profession,
-      { id: 2, minimum_active_required: 3 } as Profession,
-    ]);
+    jest
+      .spyOn(service, "findAll")
+      .mockResolvedValueOnce([
+        { id: 1, minimum_active_required: 2 } as Profession,
+        { id: 2, minimum_active_required: 3 } as Profession,
+      ]);
     personsService.countActiveWorkers
       .mockResolvedValueOnce(4)
       .mockResolvedValueOnce(3);

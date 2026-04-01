@@ -84,7 +84,11 @@ describe("PersonsService", () => {
     professionRepo.findOne.mockResolvedValueOnce(null);
 
     await expect(
-      service.create({ profession_id: 55, first_name: "No", last_name: "Role" } as any),
+      service.create({
+        profession_id: 55,
+        first_name: "No",
+        last_name: "Role",
+      } as any),
     ).rejects.toThrow(new NotFoundException("Profession with ID 55 not found"));
   });
 
@@ -179,7 +183,10 @@ describe("PersonsService", () => {
     const person = { id: 1, profession_id: 1 } as Person;
     jest.spyOn(service, "findById").mockResolvedValueOnce(person);
     professionRepo.findOne.mockResolvedValueOnce({ id: 3 } as Profession);
-    personRepo.save.mockResolvedValueOnce({ ...person, profession_id: 3 } as Person);
+    personRepo.save.mockResolvedValueOnce({
+      ...person,
+      profession_id: 3,
+    } as Person);
 
     const result = await service.update(1, { profession_id: 3 } as any);
 
@@ -203,9 +210,9 @@ describe("PersonsService", () => {
       .mockResolvedValueOnce({ id: 1, profession_id: 1 } as Person);
     professionRepo.findOne.mockResolvedValueOnce(null);
 
-    await expect(service.update(1, { profession_id: 8 } as any)).rejects.toThrow(
-      new NotFoundException("Profession with ID 8 not found"),
-    );
+    await expect(
+      service.update(1, { profession_id: 8 } as any),
+    ).rejects.toThrow(new NotFoundException("Profession with ID 8 not found"));
   });
 
   it("should update a person status, can_work and append notes", async () => {
@@ -225,7 +232,9 @@ describe("PersonsService", () => {
 
     expect(result.status).toBe(PersonStatus.SICK);
     expect(result.can_work).toBe(false);
-    expect(result.notes).toContain("Status changed from active to sick: reposo");
+    expect(result.notes).toContain(
+      "Status changed from active to sick: reposo",
+    );
   });
 
   it("should initialize notes when updating status with a new note and no previous notes", async () => {
@@ -242,7 +251,9 @@ describe("PersonsService", () => {
       notes: "aislamiento",
     } as any);
 
-    expect(result.notes).toContain("Status changed from active to sick: aislamiento");
+    expect(result.notes).toContain(
+      "Status changed from active to sick: aislamiento",
+    );
     expect(result.notes?.startsWith("[")).toBe(true);
   });
 
@@ -325,7 +336,9 @@ describe("PersonsService", () => {
     };
     personRepo.createQueryBuilder.mockReturnValueOnce(qb);
 
-    await expect(service.findActiveWorkersByCamp(3)).resolves.toEqual([{ id: 1 }]);
+    await expect(service.findActiveWorkersByCamp(3)).resolves.toEqual([
+      { id: 1 },
+    ]);
     expect(qb.where).toHaveBeenCalledWith("userAccount.camp_id = :campId", {
       campId: 3,
     });
@@ -361,7 +374,9 @@ describe("PersonsService", () => {
       groupBy: jest.fn().mockReturnThis(),
       leftJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
-      getRawMany: jest.fn().mockResolvedValueOnce([{ status: "active", count: 1 }]),
+      getRawMany: jest
+        .fn()
+        .mockResolvedValueOnce([{ status: "active", count: 1 }]),
     };
     const qbWithoutCamp: any = {
       select: jest.fn().mockReturnThis(),
@@ -388,9 +403,11 @@ describe("PersonsService", () => {
       addSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
-      getRawMany: jest.fn().mockResolvedValueOnce([
-        { professionName: "Médico", total: 2, active: 1, inactive: 1 },
-      ]),
+      getRawMany: jest
+        .fn()
+        .mockResolvedValueOnce([
+          { professionName: "Médico", total: 2, active: 1, inactive: 1 },
+        ]),
     };
     personRepo.createQueryBuilder.mockReturnValueOnce(qb);
 

@@ -1,4 +1,4 @@
-﻿import { Test, TestingModule } from "@nestjs/testing";
+import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import * as request from "supertest";
 import { ConfigModule } from "@nestjs/config";
@@ -90,7 +90,8 @@ describe("AI E2E Tests", () => {
 
   describe("Setup: Create test users and get tokens", () => {
     it("should create admin user and get token", async () => {
-      const hashedPassword = await bcrypt.hash("***removed***", 10);
+      const pass = process.env.TEST_ADMIN_PASSWORD ?? "***removed***";
+      const hashedPassword = await bcrypt.hash(pass, 10);
       await userRepository.save({
         username: "admin_ai_test",
         email: "admin_ai@example.com",
@@ -103,7 +104,7 @@ describe("AI E2E Tests", () => {
         .post("/auth/login")
         .send({
           username: "admin_ai_test",
-          password: "***removed***",
+          password: pass,
         })
         .expect(200);
 
@@ -112,7 +113,8 @@ describe("AI E2E Tests", () => {
     });
 
     it("should create gestor_recursos user and get token", async () => {
-      const hashedPassword = await bcrypt.hash("***removed***", 10);
+      const pass = process.env.TEST_GESTOR_PASSWORD ?? "***removed***";
+      const hashedPassword = await bcrypt.hash(pass, 10);
       await userRepository.save({
         username: "gestor_ai_test",
         email: "gestor_ai@example.com",
@@ -125,7 +127,7 @@ describe("AI E2E Tests", () => {
         .post("/auth/login")
         .send({
           username: "gestor_ai_test",
-          password: "***removed***",
+          password: pass,
         })
         .expect(200);
 
@@ -408,7 +410,7 @@ describe("AI E2E Tests", () => {
         .set("Authorization", `Bearer ${adminToken}`)
         .send({
           username: "juan_perez_new",
-          password: "***removed***",
+          password: process.env.TEST_USER_PASSWORD ?? "***removed***",
         });
 
       expect([200, 201, 400, 409]).toContain(response.status);
@@ -420,7 +422,7 @@ describe("AI E2E Tests", () => {
         .set("Authorization", `Bearer ${gestorToken}`)
         .send({
           username: "test_user",
-          password: "***removed***",
+          password: process.env.TEST_USER_PASSWORD ?? "***removed***",
         })
         .expect(403);
     });
@@ -430,7 +432,7 @@ describe("AI E2E Tests", () => {
         .post(`/ai/admissions/${admissionId}/create-account`)
         .send({
           username: "test_user",
-          password: "***removed***",
+          password: process.env.TEST_USER_PASSWORD ?? "***removed***",
         })
         .expect(401);
     });

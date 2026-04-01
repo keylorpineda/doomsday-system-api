@@ -41,7 +41,10 @@ describe("Users support files", () => {
     it("should expose profession and assignment configuration", () => {
       expect(PersonStatus.ACTIVE).toBe("active");
       expect(PROFESSIONS_CONFIG.RECOLECTOR.daily_food_production).toBe(10);
-      expect(DAILY_CONSUMPTION).toEqual({ FOOD_PER_PERSON: 2, WATER_PER_PERSON: 3 });
+      expect(DAILY_CONSUMPTION).toEqual({
+        FOOD_PER_PERSON: 2,
+        WATER_PER_PERSON: 3,
+      });
       expect(TEMPORARY_ASSIGNMENT_CONFIG).toEqual({
         DEFAULT_DURATION_DAYS: 7,
         MAX_DURATION_DAYS: 30,
@@ -53,10 +56,16 @@ describe("Users support files", () => {
     });
 
     it("should expose role permissions helpers", () => {
-      expect(ROLES_CONFIG[UserRole.ADMIN].permissions).toContain("view_all_camps");
+      expect(ROLES_CONFIG[UserRole.ADMIN].permissions).toContain(
+        "view_all_camps",
+      );
       expect(roleHasPermission(UserRole.ADMIN, "manage_admissions")).toBe(true);
-      expect(roleHasPermission(UserRole.TRABAJADOR, "manage_admissions")).toBe(false);
-      expect(roleHasPermission("unknown" as UserRole, "manage_admissions")).toBe(false);
+      expect(roleHasPermission(UserRole.TRABAJADOR, "manage_admissions")).toBe(
+        false,
+      );
+      expect(
+        roleHasPermission("unknown" as UserRole, "manage_admissions"),
+      ).toBe(false);
       expect(getRolePermissions(UserRole.GESTOR_RECURSOS)).toContain(
         "manage_inventory",
       );
@@ -142,43 +151,54 @@ describe("Users support files", () => {
 
   describe("entities", () => {
     it("should register TypeORM relation metadata for user entities", () => {
+      type EntityConstructor = new (...args: unknown[]) => unknown;
       const relations = getMetadataArgsStorage().relations;
-      const findRelation = (target: Function, propertyName: string) =>
+      const findRelation = (target: EntityConstructor, propertyName: string) =>
         relations.find(
-          (relation) => relation.target === target && relation.propertyName === propertyName,
+          (relation) =>
+            relation.target === target &&
+            relation.propertyName === propertyName,
         );
-      const resolveRelationType = (target: Function, propertyName: string) => {
-        const relationType = findRelation(target, propertyName)
-          ?.type as (() => unknown) | undefined;
+      const resolveRelationType = (
+        target: EntityConstructor,
+        propertyName: string,
+      ) => {
+        const relationType = findRelation(target, propertyName)?.type as
+          | (() => unknown)
+          | undefined;
         return relationType?.();
       };
       const resolveInverseRelation = (
-        target: Function,
+        target: EntityConstructor,
         propertyName: string,
         mockEntity: Record<string, unknown>,
       ) => {
         const inverse = findRelation(target, propertyName)
-          ?.inverseSideProperty as ((value: Record<string, unknown>) => unknown) | undefined;
+          ?.inverseSideProperty as
+          | ((value: Record<string, unknown>) => unknown)
+          | undefined;
         return inverse?.(mockEntity);
       };
 
       expect(resolveRelationType(Person, "profession")).toBe(Profession);
-      expect(resolveInverseRelation(Person, "profession", { persons: "persons" })).toBe(
-        "persons",
-      );
+      expect(
+        resolveInverseRelation(Person, "profession", { persons: "persons" }),
+      ).toBe("persons");
       expect(resolveRelationType(Person, "userAccount")).toBe(UserAccount);
-      expect(resolveInverseRelation(Person, "userAccount", { person: "person" })).toBe(
-        "person",
-      );
+      expect(
+        resolveInverseRelation(Person, "userAccount", { person: "person" }),
+      ).toBe("person");
       expect(resolveRelationType(Person, "aiAdmissions")).toBe(AiAdmission);
-      expect(resolveInverseRelation(Person, "aiAdmissions", { person: "person" })).toBe(
-        "person",
-      );
+      expect(
+        resolveInverseRelation(Person, "aiAdmissions", { person: "person" }),
+      ).toBe("person");
 
       expect(resolveRelationType(Profession, "persons")).toBe(Person);
-      expect(resolveInverseRelation(Profession, "persons", { profession: "profession" })).toBe(
-        "profession",
-      );
+      expect(
+        resolveInverseRelation(Profession, "persons", {
+          profession: "profession",
+        }),
+      ).toBe("profession");
       expect(resolveRelationType(Profession, "originAssignments")).toBe(
         TemporaryAssignment,
       );
@@ -212,29 +232,35 @@ describe("Users support files", () => {
           originAssignments: "originAssignments",
         }),
       ).toBe("originAssignments");
-      expect(resolveRelationType(TemporaryAssignment, "professionTemporary")).toBe(
-        Profession,
-      );
+      expect(
+        resolveRelationType(TemporaryAssignment, "professionTemporary"),
+      ).toBe(Profession);
       expect(
         resolveInverseRelation(TemporaryAssignment, "professionTemporary", {
           temporaryAssignments: "temporaryAssignments",
         }),
       ).toBe("temporaryAssignments");
-      expect(resolveRelationType(TemporaryAssignment, "userApprove")).toBe(UserAccount);
+      expect(resolveRelationType(TemporaryAssignment, "userApprove")).toBe(
+        UserAccount,
+      );
 
       expect(resolveRelationType(UserAccount, "camp")).toBe(Camp);
-      expect(resolveInverseRelation(UserAccount, "camp", { userAccounts: "userAccounts" })).toBe(
-        "userAccounts",
-      );
+      expect(
+        resolveInverseRelation(UserAccount, "camp", {
+          userAccounts: "userAccounts",
+        }),
+      ).toBe("userAccounts");
       expect(resolveRelationType(UserAccount, "person")).toBe(Person);
-      expect(resolveInverseRelation(UserAccount, "person", { userAccount: "userAccount" })).toBe(
-        "userAccount",
-      );
+      expect(
+        resolveInverseRelation(UserAccount, "person", {
+          userAccount: "userAccount",
+        }),
+      ).toBe("userAccount");
       expect(resolveRelationType(UserAccount, "role")).toBe(Role);
       expect(resolveRelationType(UserAccount, "sessions")).toBe(Session);
-      expect(resolveInverseRelation(UserAccount, "sessions", { user: "user" })).toBe(
-        "user",
-      );
+      expect(
+        resolveInverseRelation(UserAccount, "sessions", { user: "user" }),
+      ).toBe("user");
       expect(resolveRelationType(UserAccount, "approvedAssignments")).toBe(
         TemporaryAssignment,
       );
@@ -244,14 +270,18 @@ describe("Users support files", () => {
         }),
       ).toBe("userApprove");
       expect(resolveRelationType(UserAccount, "userAssets")).toBe(UserAsset);
-      expect(resolveInverseRelation(UserAccount, "userAssets", { userAccount: "userAccount" })).toBe(
-        "userAccount",
-      );
+      expect(
+        resolveInverseRelation(UserAccount, "userAssets", {
+          userAccount: "userAccount",
+        }),
+      ).toBe("userAccount");
 
       expect(resolveRelationType(UserAsset, "userAccount")).toBe(UserAccount);
-      expect(resolveInverseRelation(UserAsset, "userAccount", { userAssets: "userAssets" })).toBe(
-        "userAssets",
-      );
+      expect(
+        resolveInverseRelation(UserAsset, "userAccount", {
+          userAssets: "userAssets",
+        }),
+      ).toBe("userAssets");
       expect(resolveRelationType(UserAsset, "asset")).toBe(Asset);
     });
 
@@ -347,13 +377,12 @@ describe("Users support files", () => {
         error: jest.fn(),
       };
       const professionRepo = {
-        find: jest
-          .fn()
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([]),
+        find: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]),
         save: jest
           .fn()
-          .mockResolvedValue([{ name: "Guardia", minimum_active_required: 2, can_explore: false }]),
+          .mockResolvedValue([
+            { name: "Guardia", minimum_active_required: 2, can_explore: false },
+          ]),
         delete: jest.fn().mockResolvedValueOnce(undefined),
       };
       const seeder = new ProfessionsSeeder(professionRepo as any);
@@ -373,7 +402,9 @@ describe("Users support files", () => {
       const seeder = new ProfessionsSeeder({ find: jest.fn() } as any);
       const logger = { error: jest.fn(), log: jest.fn(), warn: jest.fn() };
       Object.assign(seeder as any, { logger });
-      jest.spyOn(seeder, "seedProfessions").mockRejectedValueOnce(new Error("boom"));
+      jest
+        .spyOn(seeder, "seedProfessions")
+        .mockRejectedValueOnce(new Error("boom"));
 
       await seeder.onModuleInit();
 
@@ -400,7 +431,9 @@ describe("Users support files", () => {
       const logger = { log: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const roleRepo = {
         find: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]),
-        save: jest.fn().mockResolvedValue([{ name: "admin", description: "desc" }]),
+        save: jest
+          .fn()
+          .mockResolvedValue([{ name: "admin", description: "desc" }]),
         delete: jest.fn().mockResolvedValueOnce(undefined),
       };
       const seeder = new RolesSeeder(roleRepo as any);
@@ -452,7 +485,9 @@ describe("Users support files", () => {
     });
 
     it("should seed admin and handle init errors", async () => {
-      jest.spyOn(bcrypt, "hash").mockResolvedValueOnce("hashed-password" as never);
+      jest
+        .spyOn(bcrypt, "hash")
+        .mockResolvedValueOnce("hashed-password" as never);
 
       const logger = { log: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const userRepo = {
@@ -461,7 +496,9 @@ describe("Users support files", () => {
         save: jest.fn().mockResolvedValueOnce({ id: 1 }),
       };
       const roleRepo = {
-        findOne: jest.fn().mockResolvedValueOnce({ id: 9, name: UserRole.ADMIN }),
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce({ id: 9, name: UserRole.ADMIN }),
       };
       const seeder = new AdminSeeder(userRepo as any, roleRepo as any);
       Object.assign(seeder as any, { logger });

@@ -111,7 +111,6 @@ describe("UsersController", () => {
     expect(usersService.getPersonStatsByProfession).toHaveBeenCalledWith(11);
   });
 
-
   it("should proxy profession stats without campId", async () => {
     const byProfession = [
       { professionName: "Guardia", total: 2, active: 2, inactive: 0 },
@@ -123,7 +122,9 @@ describe("UsersController", () => {
     await expect(controller.getPersonStatsByProfession()).resolves.toEqual(
       byProfession,
     );
-    expect(usersService.getPersonStatsByProfession).toHaveBeenCalledWith(undefined);
+    expect(usersService.getPersonStatsByProfession).toHaveBeenCalledWith(
+      undefined,
+    );
   });
 
   it("should proxy profession endpoints", async () => {
@@ -138,7 +139,9 @@ describe("UsersController", () => {
     await expect(controller.getAllProfessions()).resolves.toEqual([profession]);
     await expect(controller.getProfessionById(5)).resolves.toEqual(profession);
     await expect(controller.createProfession(dto)).resolves.toEqual(profession);
-    await expect(controller.getProfessionsNeedingWorkers()).resolves.toEqual([]);
+    await expect(controller.getProfessionsNeedingWorkers()).resolves.toEqual(
+      [],
+    );
     await expect(controller.getProfessionsWithExcess()).resolves.toEqual([]);
   });
 
@@ -148,22 +151,27 @@ describe("UsersController", () => {
     usersService.createTemporaryAssignment.mockResolvedValueOnce(
       assignment as any,
     );
-    usersService.getActiveTemporaryAssignments.mockResolvedValueOnce(
-      [assignment] as any,
+    usersService.getActiveTemporaryAssignments.mockResolvedValueOnce([
+      assignment,
+    ] as any);
+    usersService.endTemporaryAssignment.mockResolvedValueOnce(
+      assignment as any,
     );
-    usersService.endTemporaryAssignment.mockResolvedValueOnce(assignment as any);
 
     await expect(
       controller.createTemporaryAssignment(dto, { id: 44 }),
     ).resolves.toEqual(assignment);
-    await expect(controller.getActiveTemporaryAssignments("8")).resolves.toEqual([
-      assignment,
-    ]);
+    await expect(
+      controller.getActiveTemporaryAssignments("8"),
+    ).resolves.toEqual([assignment]);
     await expect(controller.endTemporaryAssignment(9)).resolves.toEqual(
       assignment,
     );
 
-    expect(usersService.createTemporaryAssignment).toHaveBeenCalledWith(dto, 44);
+    expect(usersService.createTemporaryAssignment).toHaveBeenCalledWith(
+      dto,
+      44,
+    );
     expect(usersService.getActiveTemporaryAssignments).toHaveBeenCalledWith(8);
   });
 
@@ -176,7 +184,9 @@ describe("UsersController", () => {
       balance: { food: -2, water: -2 },
       persons: 5,
     };
-    usersService.calculateDailyProduction.mockResolvedValueOnce(production as any);
+    usersService.calculateDailyProduction.mockResolvedValueOnce(
+      production as any,
+    );
     usersService.calculateDailyConsumption.mockResolvedValueOnce(
       consumption as any,
     );
@@ -199,20 +209,25 @@ describe("UsersController", () => {
     await expect(
       controller.getMyAssignedResources({ userId: 12, id: 99 }),
     ).resolves.toEqual([]);
-    await expect(controller.getMyAssignedResources({ id: 22 })).resolves.toEqual([
-      { id: 2 },
-    ]);
+    await expect(
+      controller.getMyAssignedResources({ id: 22 }),
+    ).resolves.toEqual([{ id: 2 }]);
     await expect(controller.getMyBadges({ id: 13 })).resolves.toEqual([]);
     await expect(
       controller.toggleBadgeDisplay(3, true, { userId: 14 }),
     ).resolves.toEqual({ id: 1 });
 
-    expect(usersService.getAssignedResourcesByUser).toHaveBeenNthCalledWith(1, 12);
-    expect(usersService.getAssignedResourcesByUser).toHaveBeenNthCalledWith(2, 22);
+    expect(usersService.getAssignedResourcesByUser).toHaveBeenNthCalledWith(
+      1,
+      12,
+    );
+    expect(usersService.getAssignedResourcesByUser).toHaveBeenNthCalledWith(
+      2,
+      22,
+    );
     expect(usersService.getMyBadges).toHaveBeenCalledWith(13);
     expect(usersService.toggleBadgeDisplay).toHaveBeenCalledWith(14, 3, true);
   });
-
 
   it("should handle optional camp filter absence for status and assignment queries", async () => {
     usersService.getPersonStatsByStatus.mockResolvedValueOnce([] as any);
@@ -220,11 +235,17 @@ describe("UsersController", () => {
     usersService.toggleBadgeDisplay.mockResolvedValueOnce({ id: 2 } as any);
 
     await expect(controller.getPersonStatsByStatus()).resolves.toEqual([]);
-    await expect(controller.getActiveTemporaryAssignments()).resolves.toEqual([]);
-    await expect(controller.toggleBadgeDisplay(4, false, { id: 21 })).resolves.toEqual({ id: 2 });
+    await expect(controller.getActiveTemporaryAssignments()).resolves.toEqual(
+      [],
+    );
+    await expect(
+      controller.toggleBadgeDisplay(4, false, { id: 21 }),
+    ).resolves.toEqual({ id: 2 });
 
     expect(usersService.getPersonStatsByStatus).toHaveBeenCalledWith(undefined);
-    expect(usersService.getActiveTemporaryAssignments).toHaveBeenCalledWith(undefined);
+    expect(usersService.getActiveTemporaryAssignments).toHaveBeenCalledWith(
+      undefined,
+    );
     expect(usersService.toggleBadgeDisplay).toHaveBeenCalledWith(21, 4, false);
   });
 

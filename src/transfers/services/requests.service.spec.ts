@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
@@ -104,7 +101,9 @@ describe("RequestsService", () => {
   });
 
   it("should reject when one of the camps does not exist", async () => {
-    campRepo.findOne.mockResolvedValueOnce({ id: 1 }).mockResolvedValueOnce(null);
+    campRepo.findOne
+      .mockResolvedValueOnce({ id: 1 })
+      .mockResolvedValueOnce(null);
 
     await expect(
       service.createRequest(
@@ -122,8 +121,12 @@ describe("RequestsService", () => {
 
   it("should create a request without extra details", async () => {
     campRepo.findOne.mockResolvedValue({ id: 1 });
-    queryRunner.manager.save.mockResolvedValueOnce({ id: 90 }).mockResolvedValueOnce(undefined);
-    jest.spyOn(service, "findRequestById").mockResolvedValueOnce({ id: 90 } as any);
+    queryRunner.manager.save
+      .mockResolvedValueOnce({ id: 90 })
+      .mockResolvedValueOnce(undefined);
+    jest
+      .spyOn(service, "findRequestById")
+      .mockResolvedValueOnce({ id: 90 } as any);
 
     const result = await service.createRequest(
       {
@@ -155,7 +158,9 @@ describe("RequestsService", () => {
         last_name: "Lopez",
         userAccount: { camp_id: 10 },
       });
-    jest.spyOn(service, "findRequestById").mockResolvedValueOnce({ id: 100 } as any);
+    jest
+      .spyOn(service, "findRequestById")
+      .mockResolvedValueOnce({ id: 100 } as any);
 
     const result = await service.createRequest(
       {
@@ -177,13 +182,16 @@ describe("RequestsService", () => {
       request_date: expect.any(Date),
       notes: "Mover apoyo",
     });
-    expect(queryRunner.manager.save).toHaveBeenCalledWith(RequestResourceDetail, {
-      request_id: 100,
-      resource_id: 30,
-      requested_quantity: 4,
-      approved_quantity: null,
-      received_quantity: null,
-    });
+    expect(queryRunner.manager.save).toHaveBeenCalledWith(
+      RequestResourceDetail,
+      {
+        request_id: 100,
+        resource_id: 30,
+        requested_quantity: 4,
+        approved_quantity: null,
+        received_quantity: null,
+      },
+    );
     expect(queryRunner.manager.save).toHaveBeenCalledWith(RequestPersonDetail, {
       request_id: 100,
       person_id: 40,
@@ -229,9 +237,7 @@ describe("RequestsService", () => {
         } as any,
         7,
       ),
-    ).rejects.toThrow(
-      new NotFoundException("Recurso con ID 30 no encontrado"),
-    );
+    ).rejects.toThrow(new NotFoundException("Recurso con ID 30 no encontrado"));
   });
 
   it("should reject resource details when inventory is insufficient", async () => {
@@ -335,7 +341,9 @@ describe("RequestsService", () => {
       last_name: "Perez",
       userAccount: { camp_id: 10 },
     });
-    jest.spyOn(service, "findRequestById").mockResolvedValueOnce({ id: 102 } as any);
+    jest
+      .spyOn(service, "findRequestById")
+      .mockResolvedValueOnce({ id: 102 } as any);
 
     const result = await service.createRequest(
       {
@@ -379,7 +387,9 @@ describe("RequestsService", () => {
     requestRepo.findOne.mockResolvedValueOnce(null);
 
     await expect(service.findRequestById(404)).rejects.toThrow(
-      new NotFoundException("Solicitud de transferencia con ID 404 no encontrada"),
+      new NotFoundException(
+        "Solicitud de transferencia con ID 404 no encontrada",
+      ),
     );
   });
 
@@ -394,9 +404,12 @@ describe("RequestsService", () => {
 
     const result = await service.findRequestsByCamp(10, "origin");
 
-    expect(queryBuilder.where).toHaveBeenCalledWith("req.camp_origin_id = :campId", {
-      campId: 10,
-    });
+    expect(queryBuilder.where).toHaveBeenCalledWith(
+      "req.camp_origin_id = :campId",
+      {
+        campId: 10,
+      },
+    );
     expect(result).toEqual([{ id: 1 }]);
   });
 
@@ -433,14 +446,19 @@ describe("RequestsService", () => {
       "(req.camp_origin_id = :campId OR req.camp_destination_id = :campId)",
       { campId: 20 },
     );
-    expect(queryBuilder.orderBy).toHaveBeenCalledWith("req.request_date", "DESC");
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+      "req.request_date",
+      "DESC",
+    );
     expect(result).toEqual([{ id: 3 }]);
   });
 
   it("should find pending requests by camp", async () => {
     requestRepo.find.mockResolvedValueOnce([{ id: 1 }]);
 
-    await expect(service.findPendingRequestsByCamp(10)).resolves.toEqual([{ id: 1 }]);
+    await expect(service.findPendingRequestsByCamp(10)).resolves.toEqual([
+      { id: 1 },
+    ]);
     expect(requestRepo.find).toHaveBeenCalledWith({
       where: [
         { camp_origin_id: 10, status: "pending" },
@@ -461,7 +479,8 @@ describe("RequestsService", () => {
   });
 
   it("should cancel a pending request from the origin camp", async () => {
-    jest.spyOn(service, "findRequestById")
+    jest
+      .spyOn(service, "findRequestById")
       .mockResolvedValueOnce({
         id: 1,
         camp_origin_id: 10,

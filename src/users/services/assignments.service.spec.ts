@@ -150,7 +150,9 @@ describe("AssignmentsService", () => {
 
     await expect(
       service.create({ person_id: 1, profession_temporary_id: 2 } as any, 1),
-    ).rejects.toThrow(new BadRequestException("Person cannot work (status: sick)"));
+    ).rejects.toThrow(
+      new BadRequestException("Person cannot work (status: sick)"),
+    );
   });
 
   it("should reject creating assignment for current profession", async () => {
@@ -164,7 +166,9 @@ describe("AssignmentsService", () => {
     await expect(
       service.create({ person_id: 1, profession_temporary_id: 2 } as any, 1),
     ).rejects.toThrow(
-      new BadRequestException("Cannot assign person to their current profession"),
+      new BadRequestException(
+        "Cannot assign person to their current profession",
+      ),
     );
   });
 
@@ -180,7 +184,9 @@ describe("AssignmentsService", () => {
     await expect(
       service.create({ person_id: 1, profession_temporary_id: 3 } as any, 1),
     ).rejects.toThrow(
-      new ConflictException("Person already has an active temporary assignment"),
+      new ConflictException(
+        "Person already has an active temporary assignment",
+      ),
     );
   });
 
