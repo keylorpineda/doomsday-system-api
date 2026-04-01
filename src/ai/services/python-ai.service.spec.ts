@@ -401,7 +401,9 @@ describe("PythonAiService availability coverage", () => {
   });
 
   it("should report unavailability when the health endpoint returns a non-ok status", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false } as Response);
+    jest
+      .spyOn(global, "fetch")
+      .mockResolvedValueOnce({ ok: false } as Response);
 
     await expect(service.isAvailable()).resolves.toBe(false);
   });
@@ -430,7 +432,9 @@ describe("PythonAiService availability coverage", () => {
   });
 
   it("should return null when a helper endpoint responds with non-ok status", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false } as Response);
+    jest
+      .spyOn(global, "fetch")
+      .mockResolvedValueOnce({ ok: false } as Response);
 
     await expect(service.forecastResource({ camp_id: 1 })).resolves.toBeNull();
   });

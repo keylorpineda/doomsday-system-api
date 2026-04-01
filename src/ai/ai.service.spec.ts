@@ -376,7 +376,7 @@ describe("AiService", () => {
     it("should create user account", async () => {
       const accountDto = {
         username: "newuser",
-        password: "***removed***",
+        password: process.env.TEST_USER_PASSWORD ?? "***removed***",
         email: "newuser@test.com",
         role_id: 1,
       };

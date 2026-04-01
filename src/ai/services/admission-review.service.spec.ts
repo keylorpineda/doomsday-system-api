@@ -343,15 +343,12 @@ describe("AdmissionReviewService extra coverage", () => {
     admissionRepo.findOne.mockResolvedValue({ id: 33, person_id: null });
 
     await expect(
-      service.createUserAccountForPerson(
-        33,
-        {
-          username: "jane",
-          email: "jane@example.com",
-          password: "Password123!",
-          role_id: 2,
-        } as any,
-      ),
+      service.createUserAccountForPerson(33, {
+        username: "jane",
+        email: "jane@example.com",
+        password: "Password123!",
+        role_id: 2,
+      } as any),
     ).rejects.toThrow("Admission not accepted or person not created");
   });
 
@@ -364,15 +361,12 @@ describe("AdmissionReviewService extra coverage", () => {
     userAccountRepo.findOne.mockResolvedValue({ id: 200, person_id: 88 });
 
     await expect(
-      service.createUserAccountForPerson(
-        34,
-        {
-          username: "existing",
-          email: "existing@example.com",
-          password: "Password123!",
-          role_id: 3,
-        } as any,
-      ),
+      service.createUserAccountForPerson(34, {
+        username: "existing",
+        email: "existing@example.com",
+        password: "Password123!",
+        role_id: 3,
+      } as any),
     ).rejects.toThrow("User account already exists for this person");
   });
 
@@ -385,15 +379,12 @@ describe("AdmissionReviewService extra coverage", () => {
     userAccountRepo.findOne.mockResolvedValue(null);
     jest.spyOn(bcrypt, "hash").mockResolvedValue("hashed-password" as never);
 
-    const result = await service.createUserAccountForPerson(
-      35,
-      {
-        username: "newuser",
-        email: "newuser@example.com",
-        password: "Password123!",
-        role_id: 4,
-      } as any,
-    );
+    const result = await service.createUserAccountForPerson(35, {
+      username: "newuser",
+      email: "newuser@example.com",
+      password: "Password123!",
+      role_id: 4,
+    } as any);
 
     expect(bcrypt.hash).toHaveBeenCalledWith("Password123!", 10);
     expect(userAccountRepo.create).toHaveBeenCalledWith({

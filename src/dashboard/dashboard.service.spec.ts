@@ -46,11 +46,17 @@ describe("DashboardService", () => {
     }).compile();
 
     service = module.get<DashboardService>(DashboardService);
-    campPopulationView = module.get(getRepositoryToken(CampPopulationSummaryView));
+    campPopulationView = module.get(
+      getRepositoryToken(CampPopulationSummaryView),
+    );
     inventoryStatusView = module.get(getRepositoryToken(InventoryStatusView));
     inventoryAlertView = module.get(getRepositoryToken(InventoryAlertView));
-    transferSummaryView = module.get(getRepositoryToken(TransferCampSummaryView));
-    explorationSummaryView = module.get(getRepositoryToken(ExplorationSummaryView));
+    transferSummaryView = module.get(
+      getRepositoryToken(TransferCampSummaryView),
+    );
+    explorationSummaryView = module.get(
+      getRepositoryToken(ExplorationSummaryView),
+    );
   });
 
   afterEach(() => {

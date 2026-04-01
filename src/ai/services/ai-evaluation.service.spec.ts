@@ -1343,13 +1343,10 @@ describe("AiEvaluationService extra coverage", () => {
     const profession = { id: 5, name: "Médico" } as Profession;
     professionRepo.findOne.mockResolvedValue(profession);
 
-    const result = await service.matchProfession(
-      ["medicine", "first aid"],
-      {
-        ...baseContext,
-        professionsNeeded: [{ profession: "Médico", deficit: 2 }],
-      },
-    );
+    const result = await service.matchProfession(["medicine", "first aid"], {
+      ...baseContext,
+      professionsNeeded: [{ profession: "Médico", deficit: 2 }],
+    });
 
     expect(professionRepo.findOne).toHaveBeenCalledWith({
       where: { name: "Médico" },
@@ -1362,13 +1359,10 @@ describe("AiEvaluationService extra coverage", () => {
       name === "Explorador" ? ({ id: 7, name } as Profession) : null,
     );
 
-    const result = await service.matchProfession(
-      ["survival", "navigation"],
-      {
-        ...baseContext,
-        professionsNeeded: [{ profession: "Médico", deficit: 1 }],
-      },
-    );
+    const result = await service.matchProfession(["survival", "navigation"], {
+      ...baseContext,
+      professionsNeeded: [{ profession: "Médico", deficit: 1 }],
+    });
 
     expect(result).toEqual({ id: 7, name: "Explorador" });
   });

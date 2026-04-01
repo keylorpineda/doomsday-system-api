@@ -57,7 +57,9 @@ describe("Auth entities", () => {
       columns.find((column) => column.propertyName === "is_active")?.options
         .default,
     ).toBe(true);
-    expect(relations.map((relation) => relation.propertyName)).toContain("user");
+    expect(relations.map((relation) => relation.propertyName)).toContain(
+      "user",
+    );
 
     const userRelation = relations.find(
       (relation) => relation.propertyName === "user",
@@ -120,6 +122,8 @@ describe("Auth entities", () => {
       (column) => column.propertyName === "attempted_at",
     )?.options.default;
     expect(typeof attemptedAtDefault).toBe("function");
-    expect((attemptedAtDefault as () => string)()).toContain("CURRENT_TIMESTAMP");
+    expect((attemptedAtDefault as () => string)()).toContain(
+      "CURRENT_TIMESTAMP",
+    );
   });
 });

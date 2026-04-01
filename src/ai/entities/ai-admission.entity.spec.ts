@@ -5,22 +5,32 @@ import { Person } from "../../users/entities/person.entity";
 import { Profession } from "../../users/entities/profession.entity";
 import { UserAccount } from "../../users/entities/user-account.entity";
 
-const getRelations = (target: Function) =>
-  getMetadataArgsStorage().relations.filter((relation) => relation.target === target);
+type EntityConstructor = new (...args: unknown[]) => unknown;
 
-const getRelationTypes = (target: Function) =>
-  getRelations(target).map((relation) =>
-    typeof relation.type === "function" ? (relation.type as () => unknown)() : relation.type,
+const getRelations = (target: EntityConstructor) =>
+  getMetadataArgsStorage().relations.filter(
+    (relation) => relation.target === target,
   );
 
-const getColumns = (target: Function) =>
+const getRelationTypes = (target: EntityConstructor) =>
+  getRelations(target).map((relation) =>
+    typeof relation.type === "function"
+      ? (relation.type as () => unknown)()
+      : relation.type,
+  );
+
+const getColumns = (target: EntityConstructor) =>
   getMetadataArgsStorage().columns.filter((column) => column.target === target);
 
-const resolveInverseProperties = (target: Function, sample: Record<string, unknown>) =>
+const resolveInverseProperties = (
+  target: EntityConstructor,
+  sample: Record<string, unknown>,
+) =>
   getRelations(target)
     .map((relation) => relation.inverseSideProperty)
-    .filter((inverseSideProperty): inverseSideProperty is (object: any) => unknown =>
-      typeof inverseSideProperty === "function",
+    .filter(
+      (inverseSideProperty): inverseSideProperty is (object: any) => unknown =>
+        typeof inverseSideProperty === "function",
     )
     .map((inverseSideProperty) => inverseSideProperty(sample));
 
@@ -78,15 +88,22 @@ describe("AiAdmission entity", () => {
       reviewedBy,
     });
 
-    expect(getRelations(AiAdmission).map((relation) => relation.propertyName)).toEqual(
-      expect.arrayContaining(["camp", "person", "suggestedProfession", "reviewedBy"]),
+    expect(
+      getRelations(AiAdmission).map((relation) => relation.propertyName),
+    ).toEqual(
+      expect.arrayContaining([
+        "camp",
+        "person",
+        "suggestedProfession",
+        "reviewedBy",
+      ]),
     );
     expect(getRelationTypes(AiAdmission)).toEqual(
       expect.arrayContaining([Camp, Person, Profession, UserAccount]),
     );
-    expect(resolveInverseProperties(AiAdmission, { aiAdmissions: "aiAdmissions" })).toEqual(
-      expect.arrayContaining(["aiAdmissions"]),
-    );
+    expect(
+      resolveInverseProperties(AiAdmission, { aiAdmissions: "aiAdmissions" }),
+    ).toEqual(expect.arrayContaining(["aiAdmissions"]));
   });
 
   it("should register submission_date metadata with a CURRENT_TIMESTAMP default", () => {
