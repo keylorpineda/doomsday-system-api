@@ -40,7 +40,7 @@ export interface PythonNlpResult {
 
 /**
  * Servicio que llama al microservicio Python de IA No Generativa.
- * Si el microservicio no est� disponible, retorna null (graceful fallback).
+ * Si el microservicio no está disponible, retorna null (graceful fallback).
  */
 @Injectable()
 export class PythonAiService {
@@ -54,10 +54,10 @@ export class PythonAiService {
   async analyzeAdmission(
     dto: SubmitAdmissionDto,
   ): Promise<PythonNlpResult | null> {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
+    try {
       const response = await fetch(
         `${this.aiServiceUrl}/api/admissions/nlp-analyze`,
         {
@@ -68,8 +68,6 @@ export class PythonAiService {
         },
       );
 
-      clearTimeout(timeout);
-
       if (!response.ok) {
         this.logger.warn(`Python AI responded ${response.status}`);
         return null;
@@ -79,9 +77,11 @@ export class PythonAiService {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Python AI unavailable � continuing without NLP: ${message}`,
+        `Python AI unavailable – continuing without NLP: ${message}`,
       );
       return null;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -102,16 +102,18 @@ export class PythonAiService {
   }
 
   async isAvailable(): Promise<boolean> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2000);
       const res = await fetch(`${this.aiServiceUrl}/health`, {
         signal: controller.signal,
       });
-      clearTimeout(timeout);
       return res.ok;
     } catch {
       return false;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -119,19 +121,21 @@ export class PythonAiService {
     path: string,
     data: Record<string, unknown>,
   ): Promise<unknown | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(`${this.aiServiceUrl}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
         signal: controller.signal,
       });
-      clearTimeout(timeout);
       return res.ok ? await res.json() : null;
     } catch {
       return null;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 }
