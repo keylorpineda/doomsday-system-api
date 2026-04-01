@@ -201,7 +201,3 @@ POST   /api/v1/ai/evaluate-admission
 ```
 
 ---
-
-## 🛠️ Variables de entorno
-
-Ver `.env.example` para configuración completa.
