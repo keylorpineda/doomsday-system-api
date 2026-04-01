@@ -25,8 +25,10 @@ type RepoMock = {
   createQueryBuilder: jest.Mock;
 };
 
-const cloneEntity = <T extends Record<string, any>>(value: T): T => ({ ...value });
-const asyncPassThrough = async <T,>(value: T): Promise<T> => value;
+const cloneEntity = <T extends Record<string, any>>(value: T): T => ({
+  ...value,
+});
+const asyncPassThrough = async <T>(value: T): Promise<T> => value;
 
 const createRepoMock = (): RepoMock => ({
   find: jest.fn(),
@@ -96,9 +98,18 @@ describe("ExplorationsService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExplorationsService,
-        { provide: getRepositoryToken(Exploration), useValue: createRepoMock() },
-        { provide: getRepositoryToken(ExplorationPerson), useValue: createRepoMock() },
-        { provide: getRepositoryToken(ExplorationResource), useValue: createRepoMock() },
+        {
+          provide: getRepositoryToken(Exploration),
+          useValue: createRepoMock(),
+        },
+        {
+          provide: getRepositoryToken(ExplorationPerson),
+          useValue: createRepoMock(),
+        },
+        {
+          provide: getRepositoryToken(ExplorationResource),
+          useValue: createRepoMock(),
+        },
         { provide: getRepositoryToken(Person), useValue: createRepoMock() },
         { provide: getRepositoryToken(AuditLog), useValue: createRepoMock() },
         {
@@ -150,7 +161,9 @@ describe("ExplorationsService", () => {
     it("should throw when some persons are not found", async () => {
       personRepo.find.mockResolvedValue([makePerson({ id: 10 })]);
 
-      await expect(service.create(baseDto, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.create(baseDto, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should throw when a person cannot explore", async () => {
@@ -159,7 +172,9 @@ describe("ExplorationsService", () => {
         makePerson({ id: 11, first_name: "Luis" }),
       ]);
 
-      await expect(service.create(baseDto, 1)).rejects.toThrow(BadRequestException);
+      await expect(service.create(baseDto, 1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it("should throw when a person cannot work", async () => {
@@ -168,7 +183,9 @@ describe("ExplorationsService", () => {
         makePerson({ id: 11, first_name: "Luis" }),
       ]);
 
-      await expect(service.create(baseDto, 1)).rejects.toThrow(BadRequestException);
+      await expect(service.create(baseDto, 1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it("should throw when a person is not active", async () => {
@@ -177,7 +194,9 @@ describe("ExplorationsService", () => {
         makePerson({ id: 11, first_name: "Luis" }),
       ]);
 
-      await expect(service.create(baseDto, 1)).rejects.toThrow(BadRequestException);
+      await expect(service.create(baseDto, 1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it("should throw when a person is already exploring", async () => {
@@ -189,14 +208,13 @@ describe("ExplorationsService", () => {
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getCount: jest
-          .fn()
-          .mockResolvedValueOnce(1)
-          .mockResolvedValueOnce(0),
+        getCount: jest.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(0),
       };
       expPersonRepo.createQueryBuilder.mockReturnValue(queryBuilder);
 
-      await expect(service.create(baseDto, 1)).rejects.toThrow(ConflictException);
+      await expect(service.create(baseDto, 1)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it("should rollback when food or water resources are missing", async () => {
@@ -205,18 +223,27 @@ describe("ExplorationsService", () => {
         makePerson({ id: 11, first_name: "Luis" }),
       ]);
       mockNoActiveExploration();
-      explorationRepo.create.mockReturnValue({ id: 44, ...baseDto, status: "scheduled" });
+      explorationRepo.create.mockReturnValue({
+        id: 44,
+        ...baseDto,
+        status: "scheduled",
+      });
       resourcesService.findAll.mockResolvedValue({
         data: [{ id: 1, category: "food" }],
       });
 
-      await expect(service.create(baseDto, 7)).rejects.toThrow(BadRequestException);
+      await expect(service.create(baseDto, 7)).rejects.toThrow(
+        BadRequestException,
+      );
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
       expect(queryRunner.release).toHaveBeenCalled();
     });
 
     it("should create an exploration with automatic and additional resources", async () => {
-      const people = [makePerson({ id: 10 }), makePerson({ id: 11, first_name: "Luis" })];
+      const people = [
+        makePerson({ id: 10 }),
+        makePerson({ id: 11, first_name: "Luis" }),
+      ];
       const savedExploration = { id: 44 } as Exploration;
       const foundExploration = { id: 44, status: "scheduled" } as Exploration;
 
@@ -256,21 +283,37 @@ describe("ExplorationsService", () => {
       expect(resourcesService.findAll).toHaveBeenCalledWith(1, 1000);
       expect(resourcesService.createMovement).toHaveBeenNthCalledWith(
         1,
-        expect.objectContaining({ resource_id: 1, quantity: 12, type: "exploration_out" }),
+        expect.objectContaining({
+          resource_id: 1,
+          quantity: 12,
+          type: "exploration_out",
+        }),
         99,
       );
       expect(resourcesService.createMovement).toHaveBeenNthCalledWith(
         2,
-        expect.objectContaining({ resource_id: 2, quantity: 18, type: "exploration_out" }),
+        expect.objectContaining({
+          resource_id: 2,
+          quantity: 18,
+          type: "exploration_out",
+        }),
         99,
       );
       expect(resourcesService.createMovement).toHaveBeenNthCalledWith(
         3,
-        expect.objectContaining({ resource_id: 30, quantity: 5, type: "exploration_out" }),
+        expect.objectContaining({
+          resource_id: 30,
+          quantity: 5,
+          type: "exploration_out",
+        }),
         99,
       );
       expect(queryRunner.manager.save).toHaveBeenCalledWith(
-        expect.objectContaining({ person_id: 10, is_leader: true, return_confirmed: false }),
+        expect.objectContaining({
+          person_id: 10,
+          is_leader: true,
+          return_confirmed: false,
+        }),
       );
       expect(queryRunner.manager.save).toHaveBeenCalledWith(
         expect.objectContaining({ resource_id: 1, flow: "out", quantity: 12 }),
@@ -287,7 +330,10 @@ describe("ExplorationsService", () => {
         expect.objectContaining({
           action: "exploration_created",
           entity_id: 44,
-          new_value: expect.objectContaining({ food_rations: 12, water_rations: 18 }),
+          new_value: expect.objectContaining({
+            food_rations: 12,
+            water_rations: 18,
+          }),
         }),
       );
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
@@ -298,15 +344,24 @@ describe("ExplorationsService", () => {
 
     it("should create an exploration without additional resources", async () => {
       const dto = { ...baseDto, resources: undefined };
-      const people = [makePerson({ id: 10 }), makePerson({ id: 11, first_name: "Luis" })];
+      const people = [
+        makePerson({ id: 10 }),
+        makePerson({ id: 11, first_name: "Luis" }),
+      ];
 
       personRepo.find.mockResolvedValue(people);
       mockNoActiveExploration();
-      explorationRepo.create.mockReturnValue({ id: 55, ...dto, status: "scheduled" });
+      explorationRepo.create.mockReturnValue({
+        id: 55,
+        ...dto,
+        status: "scheduled",
+      });
       expPersonRepo.create.mockImplementation((value) => value);
       expResourceRepo.create.mockImplementation((value) => value);
       auditRepo.create.mockImplementation((value) => value);
-      queryRunner.manager.save.mockResolvedValueOnce({ id: 55 }).mockImplementation(asyncPassThrough);
+      queryRunner.manager.save
+        .mockResolvedValueOnce({ id: 55 })
+        .mockImplementation(asyncPassThrough);
       resourcesService.findAll.mockResolvedValue({
         data: [
           { id: 1, category: "food" },
@@ -314,7 +369,9 @@ describe("ExplorationsService", () => {
         ],
       });
       resourcesService.createMovement.mockResolvedValue({});
-      jest.spyOn(service, "findById").mockResolvedValue({ id: 55 } as Exploration);
+      jest
+        .spyOn(service, "findById")
+        .mockResolvedValue({ id: 55 } as Exploration);
 
       await service.create(dto, 99);
 
@@ -338,7 +395,9 @@ describe("ExplorationsService", () => {
       expPersonRepo.create.mockImplementation((value) => value);
       expResourceRepo.create.mockImplementation((value) => value);
       auditRepo.create.mockImplementation((value) => value);
-      queryRunner.manager.save.mockResolvedValueOnce({ id: 57 }).mockImplementation(asyncPassThrough);
+      queryRunner.manager.save
+        .mockResolvedValueOnce({ id: 57 })
+        .mockImplementation(asyncPassThrough);
       resourcesService.findAll.mockResolvedValue({
         data: [
           { id: 1, category: "food" },
@@ -346,7 +405,9 @@ describe("ExplorationsService", () => {
         ],
       });
       resourcesService.createMovement.mockResolvedValue({});
-      jest.spyOn(service, "findById").mockResolvedValue({ id: 57 } as Exploration);
+      jest
+        .spyOn(service, "findById")
+        .mockResolvedValue({ id: 57 } as Exploration);
 
       await service.create(dto, 5);
 
@@ -378,13 +439,22 @@ describe("ExplorationsService", () => {
     });
 
     it("should rollback when createMovement fails during creation", async () => {
-      const people = [makePerson({ id: 10 }), makePerson({ id: 11, first_name: "Luis" })];
+      const people = [
+        makePerson({ id: 10 }),
+        makePerson({ id: 11, first_name: "Luis" }),
+      ];
 
       personRepo.find.mockResolvedValue(people);
       mockNoActiveExploration();
-      explorationRepo.create.mockReturnValue({ id: 56, ...baseDto, status: "scheduled" });
+      explorationRepo.create.mockReturnValue({
+        id: 56,
+        ...baseDto,
+        status: "scheduled",
+      });
       expPersonRepo.create.mockImplementation((value) => value);
-      queryRunner.manager.save.mockResolvedValueOnce({ id: 56 }).mockImplementation(asyncPassThrough);
+      queryRunner.manager.save
+        .mockResolvedValueOnce({ id: 56 })
+        .mockImplementation(asyncPassThrough);
       resourcesService.findAll.mockResolvedValue({
         data: [
           { id: 1, category: "food" },
@@ -393,7 +463,9 @@ describe("ExplorationsService", () => {
       });
       resourcesService.createMovement.mockRejectedValue(new Error("boom"));
 
-      await expect(service.create({ ...baseDto, resources: undefined }, 5)).rejects.toThrow("boom");
+      await expect(
+        service.create({ ...baseDto, resources: undefined }, 5),
+      ).rejects.toThrow("boom");
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
       expect(queryRunner.release).toHaveBeenCalled();
     });
@@ -439,7 +511,11 @@ describe("ExplorationsService", () => {
         explorationPersons: [
           {
             return_confirmed: false,
-            person: makePerson({ id: 10, status: PersonStatus.EXPLORING, can_work: false }),
+            person: makePerson({
+              id: 10,
+              status: PersonStatus.EXPLORING,
+              can_work: false,
+            }),
           },
         ],
         explorationResources: [],
@@ -449,15 +525,21 @@ describe("ExplorationsService", () => {
       expResourceRepo.create.mockImplementation((value) => value);
       auditRepo.create.mockImplementation((value) => value);
       resourcesService.createMovement.mockResolvedValue({});
-      jest.spyOn(service, "findById").mockResolvedValue({ id: 70 } as Exploration);
+      jest
+        .spyOn(service, "findById")
+        .mockResolvedValue({ id: 70 } as Exploration);
 
       const result = await service.registerReturn(70, returnDto, 4);
 
       expect(exploration.status).toBe("completed");
-      expect(exploration.real_return_date).toEqual(new Date(returnDto.real_return_date));
+      expect(exploration.real_return_date).toEqual(
+        new Date(returnDto.real_return_date),
+      );
       expect(exploration.notes).toBe(returnDto.notes);
       expect(exploration.explorationPersons[0].return_confirmed).toBe(true);
-      expect(exploration.explorationPersons[0].person.status).toBe(PersonStatus.ACTIVE);
+      expect(exploration.explorationPersons[0].person.status).toBe(
+        PersonStatus.ACTIVE,
+      );
       expect(exploration.explorationPersons[0].person.can_work).toBe(true);
       expect(resourcesService.createMovement).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -469,7 +551,10 @@ describe("ExplorationsService", () => {
         4,
       );
       expect(auditRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ action: "exploration_return", entity_id: 70 }),
+        expect.objectContaining({
+          action: "exploration_return",
+          entity_id: 70,
+        }),
       );
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
       expect(queryRunner.release).toHaveBeenCalled();
@@ -488,9 +573,15 @@ describe("ExplorationsService", () => {
 
       explorationRepo.findOne.mockResolvedValue(exploration);
       auditRepo.create.mockImplementation((value) => value);
-      jest.spyOn(service, "findById").mockResolvedValue({ id: 71 } as Exploration);
+      jest
+        .spyOn(service, "findById")
+        .mockResolvedValue({ id: 71 } as Exploration);
 
-      await service.registerReturn(71, { real_return_date: returnDto.real_return_date }, 4);
+      await service.registerReturn(
+        71,
+        { real_return_date: returnDto.real_return_date },
+        4,
+      );
 
       expect(resourcesService.createMovement).not.toHaveBeenCalled();
       expect(exploration.notes).toBeUndefined();
@@ -508,7 +599,9 @@ describe("ExplorationsService", () => {
       } as any;
 
       explorationRepo.findOne.mockResolvedValue(exploration);
-      resourcesService.createMovement.mockRejectedValue(new Error("movement failed"));
+      resourcesService.createMovement.mockRejectedValue(
+        new Error("movement failed"),
+      );
 
       await expect(service.registerReturn(72, returnDto, 4)).rejects.toThrow(
         "movement failed",
@@ -546,12 +639,20 @@ describe("ExplorationsService", () => {
 
       await service.findAll(5, "scheduled");
 
-      expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(1, "e.camp_id = :campId", {
-        campId: 5,
-      });
-      expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(2, "e.status = :status", {
-        status: "scheduled",
-      });
+      expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
+        1,
+        "e.camp_id = :campId",
+        {
+          campId: 5,
+        },
+      );
+      expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
+        2,
+        "e.status = :status",
+        {
+          status: "scheduled",
+        },
+      );
     });
   });
 
@@ -605,10 +706,18 @@ describe("ExplorationsService", () => {
         status: "scheduled",
         explorationPersons: [
           {
-            person: makePerson({ id: 10, status: PersonStatus.EXPLORING, can_work: false }),
+            person: makePerson({
+              id: 10,
+              status: PersonStatus.EXPLORING,
+              can_work: false,
+            }),
           },
           {
-            person: makePerson({ id: 11, first_name: "Luis", status: PersonStatus.ACTIVE }),
+            person: makePerson({
+              id: 11,
+              first_name: "Luis",
+              status: PersonStatus.ACTIVE,
+            }),
           },
         ],
         explorationResources: [
@@ -620,20 +729,31 @@ describe("ExplorationsService", () => {
       explorationRepo.findOne.mockResolvedValue(exploration);
       auditRepo.create.mockImplementation((value) => value);
       resourcesService.createMovement.mockResolvedValue({});
-      jest.spyOn(service, "findById").mockResolvedValue({ id: 33 } as Exploration);
+      jest
+        .spyOn(service, "findById")
+        .mockResolvedValue({ id: 33 } as Exploration);
 
       const result = await service.cancel(33, 8);
 
       expect(resourcesService.createMovement).toHaveBeenCalledTimes(1);
       expect(resourcesService.createMovement).toHaveBeenCalledWith(
-        expect.objectContaining({ resource_id: 1, quantity: 12, type: "exploration_in" }),
+        expect.objectContaining({
+          resource_id: 1,
+          quantity: 12,
+          type: "exploration_in",
+        }),
         8,
       );
-      expect(exploration.explorationPersons[0].person.status).toBe(PersonStatus.ACTIVE);
+      expect(exploration.explorationPersons[0].person.status).toBe(
+        PersonStatus.ACTIVE,
+      );
       expect(exploration.explorationPersons[0].person.can_work).toBe(true);
       expect(exploration.status).toBe("cancelled");
       expect(auditRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ action: "exploration_cancelled", entity_id: 33 }),
+        expect.objectContaining({
+          action: "exploration_cancelled",
+          entity_id: 33,
+        }),
       );
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
       expect(queryRunner.release).toHaveBeenCalled();
@@ -651,7 +771,9 @@ describe("ExplorationsService", () => {
       } as any;
 
       explorationRepo.findOne.mockResolvedValue(exploration);
-      resourcesService.createMovement.mockRejectedValue(new Error("refund failed"));
+      resourcesService.createMovement.mockRejectedValue(
+        new Error("refund failed"),
+      );
 
       await expect(service.cancel(34, 8)).rejects.toThrow("refund failed");
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
@@ -684,7 +806,9 @@ describe("ExplorationsService", () => {
       explorationRepo.save.mockResolvedValue(exploration);
       auditRepo.create.mockImplementation((value) => value);
       auditRepo.save.mockResolvedValue({});
-      jest.spyOn(service, "findById").mockResolvedValue({ id: 80 } as Exploration);
+      jest
+        .spyOn(service, "findById")
+        .mockResolvedValue({ id: 80 } as Exploration);
 
       const result = await service.depart(80, 10);
 
@@ -692,7 +816,10 @@ describe("ExplorationsService", () => {
       expect(exploration.departure_date).toBeInstanceOf(Date);
       expect(explorationRepo.save).toHaveBeenCalledWith(exploration);
       expect(auditRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ action: "exploration_departed", entity_id: 80 }),
+        expect.objectContaining({
+          action: "exploration_departed",
+          entity_id: 80,
+        }),
       );
       expect(result).toEqual({ id: 80 });
     });

@@ -9,10 +9,14 @@ import { Person } from "../../users/entities/person.entity";
 import { Profession } from "../../users/entities/profession.entity";
 import { UserAccount } from "../../users/entities/user-account.entity";
 
-const getEntityRelations = (target: Function) =>
-  getMetadataArgsStorage().relations.filter((relation) => relation.target === target);
+type EntityConstructor = new (...args: unknown[]) => unknown;
 
-const resolveRelationTypes = (target: Function) =>
+const getEntityRelations = (target: EntityConstructor) =>
+  getMetadataArgsStorage().relations.filter(
+    (relation) => relation.target === target,
+  );
+
+const resolveRelationTypes = (target: EntityConstructor) =>
   getEntityRelations(target).map((relation) => {
     const relationType = relation.type;
 
@@ -21,11 +25,15 @@ const resolveRelationTypes = (target: Function) =>
       : relationType;
   });
 
-const resolveInverseProperties = (target: Function, sample: Record<string, unknown>) =>
+const resolveInverseProperties = (
+  target: EntityConstructor,
+  sample: Record<string, unknown>,
+) =>
   getEntityRelations(target)
     .map((relation) => relation.inverseSideProperty)
-    .filter((inverseSideProperty): inverseSideProperty is (object: any) => unknown =>
-      typeof inverseSideProperty === "function",
+    .filter(
+      (inverseSideProperty): inverseSideProperty is (object: any) => unknown =>
+        typeof inverseSideProperty === "function",
     )
     .map((inverseSideProperty) => inverseSideProperty(sample));
 

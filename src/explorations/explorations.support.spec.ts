@@ -15,20 +15,30 @@ import { Exploration } from "./entities/exploration.entity";
 import { ExplorationPerson } from "./entities/exploration-person.entity";
 import { ExplorationResource } from "./entities/exploration-resource.entity";
 
-const getRelations = (target: Function) =>
-  getMetadataArgsStorage().relations.filter((relation) => relation.target === target);
+type EntityConstructor = new (...args: unknown[]) => unknown;
 
-const getRelationTypes = (target: Function) =>
+const getRelations = (target: EntityConstructor) =>
+  getMetadataArgsStorage().relations.filter(
+    (relation) => relation.target === target,
+  );
+
+const getRelationTypes = (target: EntityConstructor) =>
   getRelations(target).map((relation) => {
     const relationType = relation.type;
-    return typeof relationType === "function" ? (relationType as () => unknown)() : relationType;
+    return typeof relationType === "function"
+      ? (relationType as () => unknown)()
+      : relationType;
   });
 
-const getInverseProperties = (target: Function, sample: Record<string, unknown>) =>
+const getInverseProperties = (
+  target: EntityConstructor,
+  sample: Record<string, unknown>,
+) =>
   getRelations(target)
     .map((relation) => relation.inverseSideProperty)
-    .filter((inverse): inverse is (value: Record<string, unknown>) => unknown =>
-      typeof inverse === "function",
+    .filter(
+      (inverse): inverse is (value: Record<string, unknown>) => unknown =>
+        typeof inverse === "function",
     )
     .map((inverse) => inverse(sample));
 
@@ -133,7 +143,9 @@ describe("Explorations support files", () => {
         explorationResources,
       });
 
-      const relations = getRelations(Exploration).map((relation) => relation.propertyName);
+      const relations = getRelations(Exploration).map(
+        (relation) => relation.propertyName,
+      );
       expect(relations).toEqual(
         expect.arrayContaining([
           "camp",
@@ -143,7 +155,12 @@ describe("Explorations support files", () => {
         ]),
       );
       expect(getRelationTypes(Exploration)).toEqual(
-        expect.arrayContaining([Camp, UserAccount, ExplorationPerson, ExplorationResource]),
+        expect.arrayContaining([
+          Camp,
+          UserAccount,
+          ExplorationPerson,
+          ExplorationResource,
+        ]),
       );
       expect(
         getInverseProperties(Exploration, {
@@ -178,12 +195,16 @@ describe("Explorations support files", () => {
       const relations = getRelations(ExplorationPerson).map(
         (relation) => relation.propertyName,
       );
-      expect(relations).toEqual(expect.arrayContaining(["exploration", "person"]));
+      expect(relations).toEqual(
+        expect.arrayContaining(["exploration", "person"]),
+      );
       expect(getRelationTypes(ExplorationPerson)).toEqual(
         expect.arrayContaining([Exploration, Person]),
       );
       expect(
-        getInverseProperties(ExplorationPerson, { explorationPersons: "explorationPersons" }),
+        getInverseProperties(ExplorationPerson, {
+          explorationPersons: "explorationPersons",
+        }),
       ).toEqual(expect.arrayContaining(["explorationPersons"]));
     });
 
@@ -211,7 +232,9 @@ describe("Explorations support files", () => {
       const relations = getRelations(ExplorationResource).map(
         (relation) => relation.propertyName,
       );
-      expect(relations).toEqual(expect.arrayContaining(["exploration", "resource"]));
+      expect(relations).toEqual(
+        expect.arrayContaining(["exploration", "resource"]),
+      );
       expect(getRelationTypes(ExplorationResource)).toEqual(
         expect.arrayContaining([Exploration, Resource]),
       );
