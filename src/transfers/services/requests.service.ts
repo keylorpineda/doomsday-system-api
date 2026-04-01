@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -70,6 +70,7 @@ export class RequestsService {
         status: "pending",
         request_date: new Date(),
         notes: dto.notes,
+        travel_days: dto.travel_days ?? 1,
       });
 
       const savedRequest = await queryRunner.manager.save(

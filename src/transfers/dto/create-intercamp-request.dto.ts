@@ -1,4 +1,4 @@
-﻿import {
+import {
   IsString,
   IsInt,
   IsOptional,
@@ -38,6 +38,11 @@ export class CreateIntercampRequestDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  travel_days?: number;
 
   @IsOptional()
   @IsArray()

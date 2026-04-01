@@ -1,8 +1,4 @@
-﻿import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
 import { IntercampRequest } from "../entities/intercamp-request.entity";
@@ -11,8 +7,13 @@ import { RequestPersonDetail } from "../entities/request-person-detail.entity";
 import { Person } from "../../users/entities/person.entity";
 import { UserAccount } from "../../users/entities/user-account.entity";
 import { Inventory } from "../../resources/entities/inventory.entity";
+import { Resource } from "../../resources/entities/resource.entity";
 import { InventoryMovement } from "../../resources/entities/inventory-movement.entity";
 import { AuditLog } from "../../common/entities/audit-log.entity";
+import {
+  PersonStatus,
+  DAILY_CONSUMPTION,
+} from "../../users/constants/professions.constants";
 
 @Injectable()
 export class TransferExecutionService {
@@ -36,13 +37,13 @@ export class TransferExecutionService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async executeTransfer(
+  async departTransfer(
     request: IntercampRequest,
     userId: number,
   ): Promise<void> {
     if (request.status !== "approved") {
       throw new BadRequestException(
-        "La solicitud debe estar aprobada por ambos campamentos",
+        "La solicitud debe estar aprobada para poder salir",
       );
     }
 
@@ -51,27 +52,139 @@ export class TransferExecutionService {
     await queryRunner.startTransaction();
 
     try {
-      if (request.resourceDetails && request.resourceDetails.length > 0) {
-        await this.transferResources(queryRunner, request, userId);
+      if (request.resourceDetails?.length > 0) {
+        for (const rd of request.resourceDetails) {
+          const originInv = await queryRunner.manager.findOne(Inventory, {
+            where: {
+              camp_id: request.camp_origin_id,
+              resource_id: Number(rd.resource_id),
+            },
+          });
+
+          if (
+            !originInv ||
+            Number(originInv.current_quantity) < Number(rd.requested_quantity)
+          ) {
+            throw new BadRequestException(
+              `Recurso insuficiente en origen para recurso ID ${rd.resource_id}`,
+            );
+          }
+
+          originInv.current_quantity =
+            Number(originInv.current_quantity) - Number(rd.requested_quantity);
+          originInv.alert_active =
+            Number(originInv.current_quantity) <
+            Number(originInv.minimum_stock_required);
+          originInv.last_update = new Date();
+          await queryRunner.manager.save(Inventory, originInv);
+
+          await queryRunner.manager.save(InventoryMovement, {
+            camp_id: request.camp_origin_id,
+            resource_id: Number(rd.resource_id),
+            quantity: rd.requested_quantity,
+            type: "transfer_out",
+            description: `Salida de transferencia a destino (Solicitud #${request.id})`,
+            date: new Date(),
+            user_id: userId,
+          });
+        }
       }
 
-      if (request.personDetails && request.personDetails.length > 0) {
-        await this.transferPersons(queryRunner, request);
+      let personsCount = 0;
+      if (request.personDetails?.length > 0) {
+        personsCount = request.personDetails.length;
+        for (const pd of request.personDetails) {
+          const person = await queryRunner.manager.findOne(Person, {
+            where: { id: pd.person_id },
+          });
+          if (person) {
+            person.status = PersonStatus.TRAVELING;
+            await queryRunner.manager.save(Person, person);
+          }
+          pd.transfer_status = "in_transit";
+          await queryRunner.manager.save(RequestPersonDetail, pd);
+        }
       }
 
-      request.status = "completed";
+      if (personsCount > 0 && request.travel_days && request.travel_days > 0) {
+        const foodRes = await queryRunner.manager.findOne(Resource, {
+          where: { category: "food" },
+        });
+        const waterRes = await queryRunner.manager.findOne(Resource, {
+          where: { category: "water" },
+        });
+
+        if (foodRes) {
+          const neededFood =
+            personsCount *
+            request.travel_days *
+            DAILY_CONSUMPTION.FOOD_PER_PERSON;
+          const invFood = await queryRunner.manager.findOne(Inventory, {
+            where: {
+              camp_id: request.camp_origin_id,
+              resource_id: Number(foodRes.id),
+            },
+          });
+          if (!invFood || Number(invFood.current_quantity) < neededFood) {
+            throw new BadRequestException(
+              "No hay suficiente comida para el viaje",
+            );
+          }
+          invFood.current_quantity =
+            Number(invFood.current_quantity) - neededFood;
+          await queryRunner.manager.save(Inventory, invFood);
+          await queryRunner.manager.save(InventoryMovement, {
+            camp_id: request.camp_origin_id,
+            resource_id: Number(foodRes.id),
+            quantity: neededFood,
+            type: "transfer_out",
+            description: `Raciones de viaje de ida (Solicitud #${request.id})`,
+            date: new Date(),
+            user_id: userId,
+          });
+        }
+
+        if (waterRes) {
+          const neededWater =
+            personsCount *
+            request.travel_days *
+            DAILY_CONSUMPTION.WATER_PER_PERSON;
+          const invWater = await queryRunner.manager.findOne(Inventory, {
+            where: {
+              camp_id: request.camp_origin_id,
+              resource_id: Number(waterRes.id),
+            },
+          });
+          if (!invWater || Number(invWater.current_quantity) < neededWater) {
+            throw new BadRequestException(
+              "No hay suficiente agua para el viaje",
+            );
+          }
+          invWater.current_quantity =
+            Number(invWater.current_quantity) - neededWater;
+          await queryRunner.manager.save(Inventory, invWater);
+          await queryRunner.manager.save(InventoryMovement, {
+            camp_id: request.camp_origin_id,
+            resource_id: Number(waterRes.id),
+            quantity: neededWater,
+            type: "transfer_out",
+            description: `Agua de viaje de ida (Solicitud #${request.id})`,
+            date: new Date(),
+            user_id: userId,
+          });
+        }
+      }
+
+      request.status = "in_transit";
+      request.departure_date = new Date();
       await queryRunner.manager.save(IntercampRequest, request);
 
       await queryRunner.manager.save(AuditLog, {
         user_id: userId,
         camp_id: request.camp_origin_id,
-        action: "intercamp_transfer_executed",
+        action: "intercamp_transfer_departed",
         entity_type: "intercamp_request",
         entity_id: Number(request.id),
-        new_value: {
-          resources_transferred: request.resourceDetails?.length ?? 0,
-          persons_transferred: request.personDetails?.length ?? 0,
-        },
         date: new Date(),
       });
 
@@ -84,115 +197,116 @@ export class TransferExecutionService {
     }
   }
 
-  private async transferResources(
-    queryRunner: any,
+  async arriveTransfer(
     request: IntercampRequest,
     userId: number,
   ): Promise<void> {
-    for (const rd of request.resourceDetails!) {
-      const originInv = await queryRunner.manager.findOne(Inventory, {
-        where: {
-          camp_id: request.camp_origin_id,
-          resource_id: Number(rd.resource_id),
-        },
-      });
+    if (request.status !== "in_transit") {
+      throw new BadRequestException(
+        "La solicitud debe estar en tránsito para poder recibirla",
+      );
+    }
 
-      if (!originInv) {
-        throw new NotFoundException(
-          `Inventario origen no encontrado para recurso ${rd.resource_id}`,
-        );
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      if (request.resourceDetails?.length > 0) {
+        for (const rd of request.resourceDetails) {
+          const transferQty = Number(rd.requested_quantity);
+
+          let destInv = await queryRunner.manager.findOne(Inventory, {
+            where: {
+              camp_id: request.camp_destination_id,
+              resource_id: Number(rd.resource_id),
+            },
+          });
+
+          if (!destInv) {
+            destInv = queryRunner.manager.create(Inventory, {
+              camp_id: request.camp_destination_id,
+              resource_id: Number(rd.resource_id),
+              current_quantity: 0,
+              minimum_stock_required: 0,
+              alert_active: false,
+              last_update: new Date(),
+            });
+          }
+
+          destInv.current_quantity =
+            Number(destInv.current_quantity) + transferQty;
+          destInv.alert_active =
+            Number(destInv.current_quantity) <
+            Number(destInv.minimum_stock_required);
+          destInv.last_update = new Date();
+          await queryRunner.manager.save(Inventory, destInv);
+
+          await queryRunner.manager.save(InventoryMovement, {
+            camp_id: request.camp_destination_id,
+            resource_id: Number(rd.resource_id),
+            quantity: transferQty,
+            type: "transfer_in",
+            description: `Recepción de transferencia desde origen (Solicitud #${request.id})`,
+            date: new Date(),
+            user_id: userId,
+          });
+
+          rd.approved_quantity = transferQty;
+          rd.received_quantity = transferQty;
+          await queryRunner.manager.save(RequestResourceDetail, rd);
+        }
       }
 
-      const transferQty = Number(rd.requested_quantity);
+      if (request.personDetails?.length > 0) {
+        for (const pd of request.personDetails) {
+          const person = await queryRunner.manager.findOne(Person, {
+            where: { id: pd.person_id },
+            relations: ["userAccount"],
+          });
 
-      if (Number(originInv.current_quantity) < transferQty) {
-        throw new BadRequestException(
-          `Recurso insuficiente en origen: ${rd.resource.name}`,
-        );
+          if (person) {
+            person.status = PersonStatus.ACTIVE;
+            const xpGained = (request.travel_days || 1) * 10;
+            person.experience_level = (person.experience_level || 0) + xpGained;
+            await queryRunner.manager.save(Person, person);
+
+            if (person.userAccount) {
+              person.userAccount.camp_id = request.camp_destination_id;
+              await queryRunner.manager.save(UserAccount, person.userAccount);
+            }
+          }
+
+          pd.transfer_status = "completed";
+          await queryRunner.manager.save(RequestPersonDetail, pd);
+        }
       }
 
-      originInv.current_quantity =
-        Number(originInv.current_quantity) - transferQty;
-      originInv.alert_active =
-        Number(originInv.current_quantity) <
-        Number(originInv.minimum_stock_required);
-      originInv.last_update = new Date();
-      await queryRunner.manager.save(Inventory, originInv);
+      request.status = "completed";
+      request.arrival_date = new Date();
+      await queryRunner.manager.save(IntercampRequest, request);
 
-      await queryRunner.manager.save(InventoryMovement, {
-        camp_id: request.camp_origin_id,
-        resource_id: Number(rd.resource_id),
-        quantity: transferQty,
-        type: "transfer_out",
-        description: `Transferencia a ${request.campDestination.name} (Solicitud #${request.id})`,
-        date: new Date(),
+      await queryRunner.manager.save(AuditLog, {
         user_id: userId,
-      });
-
-      let destInv = await queryRunner.manager.findOne(Inventory, {
-        where: {
-          camp_id: request.camp_destination_id,
-          resource_id: Number(rd.resource_id),
-        },
-      });
-
-      if (!destInv) {
-        destInv = queryRunner.manager.create(Inventory, {
-          camp_id: request.camp_destination_id,
-          resource_id: Number(rd.resource_id),
-          current_quantity: 0,
-          minimum_stock_required: 0,
-          alert_active: false,
-          last_update: new Date(),
-        });
-      }
-
-      destInv.current_quantity = Number(destInv.current_quantity) + transferQty;
-      destInv.alert_active =
-        Number(destInv.current_quantity) <
-        Number(destInv.minimum_stock_required);
-      destInv.last_update = new Date();
-      await queryRunner.manager.save(Inventory, destInv);
-
-      await queryRunner.manager.save(InventoryMovement, {
         camp_id: request.camp_destination_id,
-        resource_id: Number(rd.resource_id),
-        quantity: transferQty,
-        type: "transfer_in",
-        description: `Transferencia desde ${request.campOrigin.name} (Solicitud #${request.id})`,
+        action: "intercamp_transfer_arrived",
+        entity_type: "intercamp_request",
+        entity_id: Number(request.id),
         date: new Date(),
-        user_id: userId,
       });
 
-      rd.approved_quantity = transferQty;
-      rd.received_quantity = transferQty;
-      await queryRunner.manager.save(RequestResourceDetail, rd);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 
-  private async transferPersons(
-    queryRunner: any,
-    request: IntercampRequest,
-  ): Promise<void> {
-    for (const pd of request.personDetails!) {
-      const person = await queryRunner.manager.findOne(Person, {
-        where: { id: pd.person_id },
-        relations: ["userAccount"],
-      });
-
-      if (!person) {
-        throw new NotFoundException(
-          `Persona con ID ${pd.person_id} no encontrada`,
-        );
-      }
-
-      if (person.userAccount) {
-        person.userAccount.camp_id = request.camp_destination_id;
-        await queryRunner.manager.save(UserAccount, person.userAccount);
-      }
-
-      pd.transfer_status = "completed";
-      await queryRunner.manager.save(RequestPersonDetail, pd);
-    }
+  async executeTransfer() {
+    throw new BadRequestException(
+      "Method deprecated, use departTransfer and arriveTransfer",
+    );
   }
 }

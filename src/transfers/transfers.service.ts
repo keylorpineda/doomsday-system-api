@@ -1,4 +1,4 @@
-﻿import { Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { IntercampRequest } from "./entities/intercamp-request.entity";
@@ -55,9 +55,18 @@ export class TransfersService {
     );
 
     if (bothApproved) {
-      await this.executionService.executeTransfer(request, userId);
+      await this.executionService.departTransfer(request, userId);
     }
 
+    return this.requestsService.findRequestById(requestId);
+  }
+
+  async arriveRequest(
+    requestId: number,
+    userId: number,
+  ): Promise<IntercampRequest> {
+    const request = await this.requestsService.findRequestById(requestId);
+    await this.executionService.arriveTransfer(request, userId);
     return this.requestsService.findRequestById(requestId);
   }
 

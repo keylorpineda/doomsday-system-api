@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import {
@@ -7,6 +7,7 @@ import {
   InventoryAlertView,
   TransferCampSummaryView,
   ExplorationSummaryView,
+  PersonProfessionStatsView,
 } from "../database/views";
 
 interface CampMetrics {
@@ -16,6 +17,7 @@ interface CampMetrics {
   campCapacity: number | null;
   occupancyRate: number | null;
   activeExplorations: number;
+  emptyProfessions: string[];
 }
 
 interface WarehouseMetrics {
@@ -58,6 +60,8 @@ export class DashboardService {
     private readonly transferSummaryView: Repository<TransferCampSummaryView>,
     @InjectRepository(ExplorationSummaryView)
     private readonly explorationSummaryView: Repository<ExplorationSummaryView>,
+    @InjectRepository(PersonProfessionStatsView)
+    private readonly professionStatsView: Repository<PersonProfessionStatsView>,
   ) {}
 
   async getMetricsByCamp(
@@ -90,13 +94,19 @@ export class DashboardService {
     campId: number,
     campPopulation: CampPopulationSummaryView,
   ): Promise<CampMetrics> {
-    // Count active explorations from the exploration summary view
     const activeExplorations = await this.explorationSummaryView.count({
       where: {
         camp_id: campId,
         status: "in_progress",
       },
     });
+
+    const professionStats = await this.professionStatsView.find({
+      where: { camp_id: campId },
+    });
+    const emptyProfessions = professionStats
+      .filter((p) => Number(p.active) === 0)
+      .map((p) => p.profession_name);
 
     return {
       totalPeople: Number(campPopulation.total_people),
@@ -107,6 +117,7 @@ export class DashboardService {
         ? Number(campPopulation.occupancy_rate)
         : null,
       activeExplorations,
+      emptyProfessions,
     };
   }
 

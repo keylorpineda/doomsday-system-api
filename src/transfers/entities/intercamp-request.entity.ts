@@ -1,4 +1,4 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -33,6 +33,15 @@ export class IntercampRequest {
 
   @Column({ type: "text", nullable: true })
   notes: string;
+
+  @Column({ type: "int", nullable: true })
+  travel_days: number;
+
+  @Column({ type: "timestamptz", nullable: true })
+  departure_date: Date;
+
+  @Column({ type: "timestamptz", nullable: true })
+  arrival_date: Date;
 
   @ManyToOne(() => Camp)
   @JoinColumn({ name: "camp_origin_id" })

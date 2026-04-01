@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -89,6 +89,18 @@ export class TransfersController {
     @CurrentUser() user: any,
   ) {
     return this.transfersService.cancelRequest(id, user.userId);
+  }
+
+  @Patch("requests/:id/arrive")
+  @Roles("admin", "gestor_recursos", "encargado_viajes", "trabajador")
+  @ApiOperation({
+    summary: "Registrar llegada de transferencia (solo campamento destino)",
+  })
+  async arriveRequest(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.transfersService.arriveRequest(id, user.userId);
   }
 
   @Get("statistics/:campId")
