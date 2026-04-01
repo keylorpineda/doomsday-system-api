@@ -51,7 +51,9 @@ describe("main bootstrap", () => {
       .fn()
       .mockImplementation(() => sanitizeInterceptorInstance);
     const create = jest.fn().mockResolvedValue(app);
-    const logSpy = jest.spyOn(console, "log").mockImplementation(() => undefined);
+    const logSpy = jest
+      .spyOn(console, "log")
+      .mockImplementation(() => undefined);
 
     jest.doMock("@nestjs/core", () => ({
       NestFactory: { create },
