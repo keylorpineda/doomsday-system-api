@@ -90,7 +90,7 @@ describe("AI E2E Tests", () => {
 
   describe("Setup: Create test users and get tokens", () => {
     it("should create admin user and get token", async () => {
-      const pass = process.env.TEST_ADMIN_PASSWORD ?? "***removed***";
+      const pass = process.env.TEST_ADMIN_PASSWORD || String(Date.now());
       const hashedPassword = await bcrypt.hash(pass, 10);
       await userRepository.save({
         username: "admin_ai_test",
@@ -113,7 +113,7 @@ describe("AI E2E Tests", () => {
     });
 
     it("should create gestor_recursos user and get token", async () => {
-      const pass = process.env.TEST_GESTOR_PASSWORD ?? "***removed***";
+      const pass = process.env.TEST_GESTOR_PASSWORD || String(Date.now());
       const hashedPassword = await bcrypt.hash(pass, 10);
       await userRepository.save({
         username: "gestor_ai_test",
