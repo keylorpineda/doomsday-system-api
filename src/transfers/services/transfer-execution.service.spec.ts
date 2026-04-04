@@ -27,9 +27,9 @@ const createQueryRunnerMock = () => ({
   rollbackTransaction: jest.fn().mockResolvedValue(undefined),
   release: jest.fn().mockResolvedValue(undefined),
   manager: {
-    create: jest.fn((_entity, value) => value),
+    create: jest.fn((_entity: unknown, value: unknown) => value),
     findOne: jest.fn(),
-    save: jest.fn(async (_entity, value) => value),
+    save: jest.fn(async (_entity: unknown, value: unknown) => value),
   },
 });
 
