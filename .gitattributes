@@ -1,0 +1,21 @@
+# Auto-convert CRLF to LF for all files
+* text=auto eol=lf
+
+# Explicitly declare text files to use LF
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.gif binary
+*.jpeg binary
+*.webp binary

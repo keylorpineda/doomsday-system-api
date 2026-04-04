@@ -1,0 +1,27 @@
+﻿import { Controller, Get, Param, ParseIntPipe } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import {
+  DashboardService,
+  DashboardMetricsResponse,
+} from "./dashboard.service";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+
+@ApiTags("dashboard")
+@ApiBearerAuth()
+@Controller("dashboard")
+export class DashboardController {
+  constructor(private readonly dashboardService: DashboardService) {}
+
+  @Get(":campId")
+  @Roles("admin", "gestor_recursos")
+  @ApiOperation({
+    summary: "Get dashboard metrics by camp and role visibility",
+  })
+  async getDashboardByCamp(
+    @Param("campId", ParseIntPipe) campId: number,
+    @CurrentUser() user: { role?: string },
+  ): Promise<DashboardMetricsResponse> {
+    return this.dashboardService.getMetricsByCamp(campId, user?.role ?? "");
+  }
+}

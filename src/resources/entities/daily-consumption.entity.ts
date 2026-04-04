@@ -1,0 +1,42 @@
+﻿import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from "typeorm";
+import { Camp } from "../../camps/entities/camp.entity";
+import { Person } from "../../users/entities/person.entity";
+import { Resource } from "./resource.entity";
+
+@Entity("daily_consumption")
+@Unique(["camp_id", "person_id", "resource_id"])
+export class DailyConsumption {
+  @PrimaryGeneratedColumn("increment", { type: "bigint" })
+  id!: number;
+
+  @Column({ type: "bigint" })
+  camp_id!: number;
+
+  @Column({ type: "bigint", nullable: true })
+  person_id!: number | null;
+
+  @Column({ type: "bigint" })
+  resource_id!: number;
+
+  @Column({ type: "decimal", precision: 12, scale: 3, default: 0 })
+  daily_ration!: number;
+
+  @ManyToOne(() => Camp)
+  @JoinColumn({ name: "camp_id" })
+  camp!: Camp;
+
+  @ManyToOne(() => Person)
+  @JoinColumn({ name: "person_id" })
+  person!: Person;
+
+  @ManyToOne(() => Resource)
+  @JoinColumn({ name: "resource_id" })
+  resource!: Resource;
+}

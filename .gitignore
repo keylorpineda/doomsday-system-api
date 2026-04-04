@@ -1,0 +1,43 @@
+# Dependencies
+/node_modules
+
+# Build
+/dist
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.test.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Python virtual environment
+ai-microservice/venv/
+ai-microservice/.venv/
+ai-microservice/env/
+ai-microservice/.env
+ai-microservice/.env.*
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.pyo
+*.pyd
+*.egg-info/
+pip-wheel-metadata/
+
+# Coverage
+/coverage
+/.jest-cache
+/src/.jest-cache
+/.tmp

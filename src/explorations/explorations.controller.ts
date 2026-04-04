@@ -1,0 +1,72 @@
+﻿import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from "@nestjs/common";
+import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { ExplorationsService } from "./explorations.service";
+import { CreateExplorationDto } from "./dto/create-exploration.dto";
+import { ReturnExplorationDto } from "./dto/return-exploration.dto";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+
+@ApiTags("explorations")
+@Controller("explorations")
+export class ExplorationsController {
+  constructor(private readonly explorationsService: ExplorationsService) {}
+
+  @Post()
+  @Roles("admin", "encargado_viajes")
+  @ApiOperation({ summary: "Crear una nueva exploraci�n" })
+  create(@Body() dto: CreateExplorationDto, @CurrentUser() user: any) {
+    return this.explorationsService.create(dto, user?.id);
+  }
+
+  @Get()
+  @Roles("admin", "encargado_viajes", "gestor_recursos")
+  @ApiOperation({ summary: "Listar exploraciones con filtros opcionales" })
+  findAll(@Query("campId") campId?: string, @Query("status") status?: string) {
+    return this.explorationsService.findAll(
+      campId ? +campId : undefined,
+      status,
+    );
+  }
+
+  @Get(":id")
+  @Roles("admin", "encargado_viajes", "gestor_recursos")
+  @ApiOperation({ summary: "Obtener detalle de una exploraci�n" })
+  findById(@Param("id", ParseIntPipe) id: number) {
+    return this.explorationsService.findById(id);
+  }
+
+  @Patch(":id/depart")
+  @Roles("admin", "encargado_viajes")
+  @ApiOperation({ summary: "Marcar exploraci�n como en curso (partida)" })
+  depart(@Param("id", ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.explorationsService.depart(id, user?.id);
+  }
+
+  @Patch(":id/return")
+  @Roles("admin", "encargado_viajes")
+  @ApiOperation({ summary: "Registrar retorno de exploraci�n" })
+  registerReturn(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: ReturnExplorationDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.explorationsService.registerReturn(id, dto, user?.id);
+  }
+
+  @Delete(":id")
+  @Roles("admin", "encargado_viajes")
+  @ApiOperation({ summary: "Cancelar una exploraci�n programada" })
+  cancel(@Param("id", ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.explorationsService.cancel(id, user?.id);
+  }
+}
