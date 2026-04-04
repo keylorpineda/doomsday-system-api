@@ -17,7 +17,6 @@ describe("main bootstrap", () => {
     const useGlobalInterceptors = jest.fn();
     const enableCors = jest.fn();
     const setGlobalPrefix = jest.fn();
-    const enableVersioning = jest.fn();
     const useGlobalPipes = jest.fn();
     const listen = jest.fn().mockResolvedValue(undefined);
 
@@ -27,7 +26,6 @@ describe("main bootstrap", () => {
       useGlobalInterceptors,
       enableCors,
       setGlobalPrefix,
-      enableVersioning,
       useGlobalPipes,
       listen,
     };
@@ -137,7 +135,6 @@ describe("main bootstrap", () => {
       credentials: false,
     });
     expect(ctx.app.setGlobalPrefix).toHaveBeenCalledWith("api");
-    expect(ctx.app.enableVersioning).toHaveBeenCalledWith({ type: "URI" });
     expect(ctx.ValidationPipe).toHaveBeenCalledWith({
       whitelist: true,
       transform: true,
