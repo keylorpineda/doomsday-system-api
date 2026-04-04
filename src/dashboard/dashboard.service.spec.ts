@@ -8,6 +8,7 @@ import {
   InventoryAlertView,
   TransferCampSummaryView,
   ExplorationSummaryView,
+  PersonProfessionStatsView,
 } from "../database/views";
 
 describe("DashboardService", () => {
@@ -17,6 +18,7 @@ describe("DashboardService", () => {
   let inventoryAlertView: { find: jest.Mock };
   let transferSummaryView: { findOne: jest.Mock };
   let explorationSummaryView: { count: jest.Mock };
+  let professionStatsView: { find: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -42,6 +44,10 @@ describe("DashboardService", () => {
           provide: getRepositoryToken(ExplorationSummaryView),
           useValue: { count: jest.fn() },
         },
+        {
+          provide: getRepositoryToken(PersonProfessionStatsView),
+          useValue: { find: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -56,6 +62,9 @@ describe("DashboardService", () => {
     );
     explorationSummaryView = module.get(
       getRepositoryToken(ExplorationSummaryView),
+    );
+    professionStatsView = module.get(
+      getRepositoryToken(PersonProfessionStatsView),
     );
   });
 
@@ -94,6 +103,10 @@ describe("DashboardService", () => {
       approved: "1",
       completed: "7",
     });
+    professionStatsView.find.mockResolvedValue([
+      { profession_name: "Medico", active: "0" },
+      { profession_name: "Ingeniero", active: "2" },
+    ]);
 
     const result = await service.getMetricsByCamp(3, "admin");
 
@@ -105,6 +118,9 @@ describe("DashboardService", () => {
         camp_id: 3,
         status: "in_progress",
       },
+    });
+    expect(professionStatsView.find).toHaveBeenCalledWith({
+      where: { camp_id: 3 },
     });
     expect(inventoryStatusView.find).toHaveBeenCalledWith({
       where: { camp_id: 3 },
@@ -127,6 +143,7 @@ describe("DashboardService", () => {
         campCapacity: 20,
         occupancyRate: 75.5,
         activeExplorations: 2,
+        emptyProfessions: ["Medico"],
       },
       warehouse: {
         totalResourceTypes: 2,
@@ -163,6 +180,7 @@ describe("DashboardService", () => {
     inventoryStatusView.find.mockResolvedValue([]);
     inventoryAlertView.find.mockResolvedValue([]);
     transferSummaryView.findOne.mockResolvedValue(null);
+    professionStatsView.find.mockResolvedValue([]);
 
     const result = await service.getMetricsByCamp(9, "gestor_recursos");
 
@@ -173,6 +191,7 @@ describe("DashboardService", () => {
       campCapacity: null,
       occupancyRate: null,
       activeExplorations: 0,
+      emptyProfessions: [],
     });
     expect(result.warehouse).toEqual({
       totalResourceTypes: 0,

@@ -181,6 +181,7 @@ describe("RequestsService", () => {
       status: "pending",
       request_date: expect.any(Date),
       notes: "Mover apoyo",
+      travel_days: 1,
     });
     expect(queryRunner.manager.save).toHaveBeenCalledWith(
       RequestResourceDetail,
