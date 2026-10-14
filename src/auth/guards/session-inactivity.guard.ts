@@ -1,17 +1,14 @@
-﻿import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-} from "@nestjs/common";
+import type { CanActivate, ExecutionContext } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Inject } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Session } from "../entities/session.entity";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
-
-const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutos
+import { REDIS_CLIENT } from "../../redis/redis.constants";
+import { Redis } from "ioredis";
 
 /**
  * Guard que valida si la sesi�n ha estado inactiva por m�s de 20 minutos
@@ -24,6 +21,7 @@ export class SessionInactivityGuard implements CanActivate {
     private readonly sessionRepo: Repository<Session>,
     private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -51,33 +49,23 @@ export class SessionInactivityGuard implements CanActivate {
       const payload = this.jwtService.verify(token);
       const userId = payload.sub;
 
-      // Buscar sesiones activas del usuario
-      const sessions = await this.sessionRepo.find({
-        where: { user_id: userId, is_active: true },
-        order: { last_activity: "DESC" },
-      });
-
-      if (sessions.length === 0) {
-        throw new UnauthorizedException(
-          "No hay sesi�n activa. Por favor, inicie sesi�n nuevamente",
-        );
+      // Verificar en Redis si la sesión aún está activa (no ha expirado el TTL)
+      let sessionExists: number;
+      try {
+        sessionExists = await this.redis.exists(`session:${userId}`);
+      } catch {
+        // Redis unavailable — allow the request through; JWT validity is enough
+        return true;
       }
 
-      // Verificar la sesi�n m�s reciente
-      const mostRecentSession = sessions[0];
-      const now = new Date();
-      const timeSinceLastActivity =
-        now.getTime() - mostRecentSession.last_activity.getTime();
-
-      if (timeSinceLastActivity > INACTIVITY_TIMEOUT_MS) {
-        // Marcar todas las sesiones como inactivas por timeout
+      if (!sessionExists) {
         await this.sessionRepo.update(
           { user_id: userId, is_active: true },
           { is_active: false, auto_logout: true },
         );
 
         throw new UnauthorizedException(
-          "Su sesi�n ha expirado por inactividad. Por favor, inicie sesi�n nuevamente",
+          "Su sesión ha expirado por inactividad o no existe. Por favor, inicie sesión nuevamente",
         );
       }
 

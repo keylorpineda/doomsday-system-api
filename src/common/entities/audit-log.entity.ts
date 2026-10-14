@@ -1,9 +1,12 @@
 ﻿import {
+  Index,
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { UserAccount } from "../../users/entities/user-account.entity";
 import { Camp } from "../../camps/entities/camp.entity";
@@ -28,20 +31,28 @@ export class AuditLog {
   @Column({ type: "bigint", nullable: true })
   entity_id: number;
 
-  @Column({ type: "json", nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   old_value: object;
 
-  @Column({ type: "json", nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   new_value: object;
 
   @Column({ type: "timestamptz" })
   date: Date;
 
+  @Index()
   @ManyToOne(() => UserAccount)
   @JoinColumn({ name: "user_id" })
   user: UserAccount;
 
+  @Index()
   @ManyToOne(() => Camp)
   @JoinColumn({ name: "camp_id" })
   camp: Camp;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

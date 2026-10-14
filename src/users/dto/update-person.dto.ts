@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsInt,
   IsBoolean,
+  IsArray,
 } from "class-validator";
 
 export class UpdatePersonDto {
@@ -18,6 +19,10 @@ export class UpdatePersonDto {
   @IsOptional()
   @IsString()
   last_name?: string;
+
+  @IsOptional()
+  @IsString()
+  last_name2?: string;
 
   @IsOptional()
   @IsDateString()
@@ -42,6 +47,15 @@ export class UpdatePersonDto {
   @IsOptional()
   @IsInt()
   experience_level?: number;
+
+  @IsOptional()
+  @IsInt()
+  expeditionsSurvived?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  achievements?: string[];
 
   @IsOptional()
   @IsString()

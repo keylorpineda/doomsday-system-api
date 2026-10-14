@@ -1,4 +1,11 @@
-﻿import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
+import type {
+  NestModule,
+  MiddlewareConsumer,
+  OnApplicationBootstrap,
+} from "@nestjs/common";
+import { Module, Logger } from "@nestjs/common";
+import { InjectDataSource } from "@nestjs/typeorm";
+import { DataSource } from "typeorm";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { CsrfMiddleware } from "./common/middleware/csrf.middleware";
@@ -20,6 +27,11 @@ import { AiModule } from "./ai/ai.module";
 import { UploadModule } from "./upload/upload.module";
 import { HealthModule } from "./health/health.module";
 import { DatabaseModule } from "./database/database.module";
+import { NotificationsModule } from "./notifications/notifications.module";
+import { RedisModule } from "./redis/redis.module";
+import { BullModule } from "@nestjs/bullmq";
+import { MailModule } from "./mail/mail.module";
+import Redis from "ioredis";
 
 @Module({
   imports: [
@@ -52,11 +64,42 @@ import { DatabaseModule } from "./database/database.module";
             ? { rejectUnauthorized: false }
             : false,
         logging: config.get("NODE_ENV") === "development",
+        extra: {
+          max: config.get<number>("DB_POOL_MAX", 5),
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 5000,
+        },
       }),
       inject: [ConfigService],
     }),
 
     ScheduleModule.forRoot(),
+
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => {
+        const redisUrl = config.get("REDIS_URL");
+        const client = redisUrl
+          ? new Redis(redisUrl, { maxRetriesPerRequest: null })
+          : new Redis({
+              host: config.get("REDIS_HOST", "localhost"),
+              port: config.get("REDIS_PORT", 6379),
+              password: config.get("REDIS_PASSWORD"),
+              maxRetriesPerRequest: null,
+            });
+
+        client.on("error", (err) => {
+          console.error("BullMQ Redis error:", err.message);
+        });
+
+        return {
+          connection: client,
+        };
+      },
+      inject: [ConfigService],
+    }),
+
+    RedisModule,
 
     HealthModule,
     AuthModule,
@@ -69,6 +112,8 @@ import { DatabaseModule } from "./database/database.module";
     AiModule,
     UploadModule,
     DatabaseModule,
+    NotificationsModule,
+    MailModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
@@ -78,8 +123,16 @@ import { DatabaseModule } from "./database/database.module";
     { provide: APP_INTERCEPTOR, useClass: SessionActivityInterceptor },
   ],
 })
-export class AppModule implements NestModule {
+export class AppModule implements NestModule, OnApplicationBootstrap {
+  private readonly logger = new Logger(AppModule.name);
+
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(CsrfMiddleware).forRoutes("*");
+  }
+
+  async onApplicationBootstrap() {
+    // onApplicationBootstrap
   }
 }

@@ -1,4 +1,5 @@
-import { Test, TestingModule } from "@nestjs/testing";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
 import { CampAnalysisService } from "./camp-analysis.service";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { Camp } from "../../camps/entities/camp.entity";
@@ -334,7 +335,7 @@ describe("CampAnalysisService extra coverage", () => {
     campRepo.findOne.mockResolvedValue(null);
 
     await expect(service.analyzeCampContext(999)).rejects.toThrow(
-      "Camp 999 not found",
+      "Camp with ID 999 not found",
     );
   });
 
@@ -346,7 +347,7 @@ describe("CampAnalysisService extra coverage", () => {
       fail("Expected analyzeCampContext to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe("Camp 321 not found");
+      expect((error as Error).message).toBe("Camp with ID 321 not found");
     }
   });
 
@@ -375,7 +376,7 @@ describe("CampAnalysisService extra coverage", () => {
     professionsService.getProfessionsNeedingWorkers.mockResolvedValue([
       { profession: { name: "Guardia" }, deficit: 1 },
       { profession: { name: "Ingeniero" }, deficit: 4 },
-      { profession: { name: "Médico" }, deficit: 2 },
+      { profession: { name: "Medico" }, deficit: 2 },
     ]);
 
     const result = await service.analyzeCampContext(2);
@@ -388,7 +389,7 @@ describe("CampAnalysisService extra coverage", () => {
       professionsNeeded: [
         { profession: "Guardia", deficit: 1 },
         { profession: "Ingeniero", deficit: 4 },
-        { profession: "Médico", deficit: 2 },
+        { profession: "Medico", deficit: 2 },
       ],
       criticalProfession: "Ingeniero",
       criticalDeficit: 4,

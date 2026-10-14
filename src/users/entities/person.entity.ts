@@ -1,4 +1,5 @@
 import {
+  Index,
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -6,10 +7,14 @@ import {
   JoinColumn,
   OneToOne,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Profession } from "./profession.entity";
 import { UserAccount } from "./user-account.entity";
 import { AiAdmission } from "../../ai/entities/ai-admission.entity";
+import { PersonAchievement } from "./person-achievement.entity";
+import { Camp } from "../../camps/entities/camp.entity";
 
 @Entity("person")
 export class Person {
@@ -18,6 +23,9 @@ export class Person {
 
   @Column({ type: "bigint", nullable: true })
   profession_id: number;
+
+  @Column({ type: "bigint", nullable: true })
+  camp_id: number;
 
   @Column({ type: "text" })
   first_name: string;
@@ -46,6 +54,15 @@ export class Person {
   @Column({ type: "int", default: 1 })
   experience_level: number;
 
+  @Column({ type: "int", default: 0 })
+  experience_points: number;
+
+  @Column({ name: "expeditions_survived", type: "int", default: 0 })
+  expeditionsSurvived: number;
+
+  @OneToMany(() => PersonAchievement, (pa) => pa.person, { cascade: true })
+  achievements: PersonAchievement[];
+
   @Column({ type: "text", nullable: true })
   photo_url: string;
 
@@ -55,19 +72,31 @@ export class Person {
   @Column({ type: "text", nullable: true })
   previous_skills: string;
 
-  @Column({ type: "json", nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   ai_admission_result: object;
 
   @Column({ type: "text", nullable: true })
   notes: string;
 
+  @Index()
   @ManyToOne(() => Profession, (p) => p.persons)
   @JoinColumn({ name: "profession_id" })
   profession: Profession;
+
+  @Index()
+  @ManyToOne(() => Camp, { nullable: true })
+  @JoinColumn({ name: "camp_id" })
+  camp: Camp;
 
   @OneToOne(() => UserAccount, (ua) => ua.person)
   userAccount: UserAccount;
 
   @OneToMany(() => AiAdmission, (ai) => ai.person)
   aiAdmissions: AiAdmission[];
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

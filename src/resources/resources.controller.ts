@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Post,
@@ -32,25 +32,49 @@ import { UpdateInventoryDto } from "./dto/update-inventory.dto";
 export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
+  @Get("inventory/alerts/all")
+  @Roles("admin", "resource_manager", "travel_manager", "camp_leader")
+  @ApiOperation({
+    summary: "Alertas de inventario de todos los campamentos",
+    description:
+      "Retorna un objeto { campId: alertas[] } con todas las alertas activas. Un solo request en lugar de N llamadas por campamento.",
+  })
+  async getAllAlerts() {
+    return this.resourcesService.getInventoryAlertsAll();
+  }
+
   @Get("inventory/:campId")
-  @Roles("admin", "gestor_recursos", "trabajador", "encargado_viajes")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "worker",
+    "travel_manager",
+    "resource_manager",
+    "camp_leader",
+  )
   @ApiOperation({ summary: "Consultar inventario completo del campamento" })
   async getInventory(@Param("campId", ParseIntPipe) campId: number) {
     return this.resourcesService.getInventoryByCamp(campId);
   }
 
   @Get("inventory/:campId/alerts")
-  @Roles("admin", "gestor_recursos")
-  @ApiOperation({ summary: "Alertas de recursos por debajo del m�nimo" })
+  @Roles(
+    "admin",
+    "resource_manager",
+    "camp_leader",
+    "travel_manager",
+    "resource_manager",
+  )
+  @ApiOperation({ summary: "Alertas de recursos por debajo del mï¿½nimo" })
   async getAlerts(@Param("campId", ParseIntPipe) campId: number) {
     return this.resourcesService.getInventoryAlerts(campId);
   }
 
   @Patch("inventory/:campId/:resourceId")
-  @Roles("admin", "gestor_recursos")
+  @Roles("admin", "resource_manager", "travel_manager", "resource_manager")
   @ApiOperation({
     summary:
-      "Actualizar configuraci�n de inventario (m�nimo requerido, cantidad)",
+      "Actualizar configuracion de inventario (minimo requerido, cantidad)",
   })
   async updateInventory(
     @Param("campId", ParseIntPipe) campId: number,
@@ -61,7 +85,7 @@ export class ResourcesController {
   }
 
   @Post("inventory/initialize/:campId")
-  @Roles("admin")
+  @Roles("admin", "travel_manager", "resource_manager")
   @ApiOperation({
     summary: "Inicializar inventario para un campamento con todos los recursos",
   })
@@ -70,7 +94,14 @@ export class ResourcesController {
   }
 
   @Get("movements/:campId")
-  @Roles("admin", "gestor_recursos", "trabajador")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "worker",
+    "travel_manager",
+    "resource_manager",
+    "camp_leader",
+  )
   @ApiOperation({
     summary: "Historial de movimientos de inventario del campamento",
   })
@@ -78,7 +109,7 @@ export class ResourcesController {
     name: "limit",
     required: false,
     type: Number,
-    description: "M�ximo de registros (default 50)",
+    description: "Maximo de registros (default 50)",
   })
   async getMovements(
     @Param("campId", ParseIntPipe) campId: number,
@@ -91,7 +122,13 @@ export class ResourcesController {
   }
 
   @Post("movements")
-  @Roles("admin", "gestor_recursos", "trabajador")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "worker",
+    "travel_manager",
+    "resource_manager",
+  )
   @ApiOperation({
     summary: "Registrar movimiento de inventario (ingreso/egreso)",
   })
@@ -103,18 +140,49 @@ export class ResourcesController {
   }
 
   @Post("daily-process/:campId")
-  @Roles("admin", "gestor_recursos")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "camp_leader",
+    "travel_manager",
+    "resource_manager",
+  )
   @ApiOperation({
-    summary: "Ejecutar proceso diario manualmente (producci�n + consumo)",
+    summary: "Ejecutar proceso diario manualmente (produccion + consumo)",
   })
   async triggerDailyProcess(@Param("campId", ParseIntPipe) campId: number) {
-    return this.resourcesService.executeDailyProcess(campId);
+    const result = await this.resourcesService.executeDailyProcess(campId);
+    return {
+      message: `Proceso diario ejecutado: ${result.movementCount} movimientos registrados`,
+      metrics: {
+        foodProduced: result.production["food"] ?? 0,
+        foodConsumed: result.consumption["food"] ?? 0,
+        waterProduced: result.production["water"] ?? 0,
+        waterConsumed: result.consumption["water"] ?? 0,
+      },
+    };
+  }
+
+  @Get("production-ranking/:campId")
+  @Roles("admin", "resource_manager", "camp_leader", "travel_manager")
+  @ApiOperation({
+    summary:
+      "Ranking de productividad diaria de trabajadores activos en el campamento",
+  })
+  async getProductionRanking(@Param("campId", ParseIntPipe) campId: number) {
+    return this.resourcesService.getProductionRanking(campId);
   }
 
   @Post("daily-production/:personId")
-  @Roles("admin", "gestor_recursos", "trabajador")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "worker",
+    "travel_manager",
+    "resource_manager",
+  )
   @ApiOperation({
-    summary: "Ajustar producci�n diaria de una persona manualmente",
+    summary: "Ajustar produccion diaria de una persona manualmente",
   })
   async adjustDailyProduction(
     @Param("personId", ParseIntPipe) personId: number,
@@ -129,22 +197,29 @@ export class ResourcesController {
   }
 
   @Get()
-  @Roles("admin", "gestor_recursos", "trabajador", "encargado_viajes")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "worker",
+    "travel_manager",
+    "resource_manager",
+    "camp_leader",
+  )
   @ApiOperation({ summary: "Listar todos los recursos disponibles" })
   @ApiQuery({
     name: "page",
     required: false,
-    description: "Página (default 1)",
+    description: "Pagina (default 1)",
   })
   @ApiQuery({
     name: "limit",
     required: false,
-    description: "Elementos por página (default 20)",
+    description: "Elementos por pagina (default 20)",
   })
   @ApiQuery({
     name: "category",
     required: false,
-    description: "Filtrar por categoría (opcional)",
+    description: "Filtrar por categoria (opcional)",
   })
   async findAll(
     @Query("page") page?: string,
@@ -159,21 +234,27 @@ export class ResourcesController {
   }
 
   @Get(":id")
-  @Roles("admin", "gestor_recursos", "trabajador", "encargado_viajes")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "worker",
+    "travel_manager",
+    "resource_manager",
+  )
   @ApiOperation({ summary: "Obtener un recurso por ID" })
   async findById(@Param("id", ParseIntPipe) id: number) {
     return this.resourcesService.findResourceById(id);
   }
 
   @Post()
-  @Roles("admin", "gestor_recursos")
+  @Roles("admin", "resource_manager", "travel_manager", "resource_manager")
   @ApiOperation({ summary: "Crear un nuevo recurso" })
   async create(@Body() dto: CreateResourceDto) {
     return this.resourcesService.create(dto);
   }
 
   @Patch(":id")
-  @Roles("admin", "gestor_recursos")
+  @Roles("admin", "resource_manager", "travel_manager", "resource_manager")
   @ApiOperation({ summary: "Actualizar un recurso" })
   async update(
     @Param("id", ParseIntPipe) id: number,
@@ -183,7 +264,7 @@ export class ResourcesController {
   }
 
   @Delete(":id")
-  @Roles("admin")
+  @Roles("admin", "travel_manager", "resource_manager")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "Eliminar un recurso" })
   async remove(@Param("id", ParseIntPipe) id: number) {

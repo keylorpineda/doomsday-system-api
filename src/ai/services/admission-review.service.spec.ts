@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
 import { AdmissionReviewService } from "./admission-review.service";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import * as bcrypt from "bcrypt";
@@ -7,6 +8,17 @@ import { AiAdmission } from "../entities/ai-admission.entity";
 import { Person } from "../../users/entities/person.entity";
 import { UserAccount } from "../../users/entities/user-account.entity";
 import { PersonStatus } from "../../users/constants/professions.constants";
+import { MailService } from "../../mail/mail.service";
+import { DataSource } from "typeorm";
+
+// DataSource mock whose transaction() runs the callback with a manager that
+// behaves like the repositories (save returns the entity with an id).
+const createDataSourceMock = (
+  managerSave: jest.Mock = jest.fn(async (entity) => ({ id: 1, ...entity })),
+) =>
+  ({
+    transaction: jest.fn(async (cb: any) => cb({ save: managerSave })),
+  }) as unknown as DataSource;
 
 describe("AdmissionReviewService", () => {
   let service: AdmissionReviewService;
@@ -40,6 +52,7 @@ describe("AdmissionReviewService", () => {
             create: jest.fn().mockReturnValue({ id: 1, first_name: "John" }),
             save: jest.fn().mockResolvedValue({ id: 1, first_name: "John" }),
             findOne: jest.fn().mockResolvedValue({ id: 1 }),
+            manager: { findOne: jest.fn().mockResolvedValue({ id: 1 }) },
           },
         },
         {
@@ -50,6 +63,14 @@ describe("AdmissionReviewService", () => {
             findOne: jest.fn().mockResolvedValue(null),
           },
         },
+        {
+          provide: MailService,
+          useValue: {
+            sendAdmissionDecision: jest.fn().mockResolvedValue(true),
+            sendAccountCredentials: jest.fn().mockResolvedValue(true),
+          },
+        },
+        { provide: DataSource, useValue: createDataSourceMock() },
       ],
     }).compile();
 
@@ -65,19 +86,19 @@ describe("AdmissionReviewService", () => {
   });
 
   it("should review an admission as accepted", async () => {
-    const dto = { decision: "ACCEPTED", admin_notes: "Approved" };
+    const dto = { decision: "accepted", notes: "Approved" };
     const result = await service.reviewAdmission(1, dto as any, 1);
     expect(result).toBeDefined();
   });
 
   it("should review an admission as rejected", async () => {
-    const dto = { decision: "REJECTED", admin_notes: "Not qualified" };
+    const dto = { decision: "rejected", notes: "Not qualified" };
     const result = await service.reviewAdmission(1, dto as any, 1);
     expect(result).toBeDefined();
   });
 
   it("should throw when admission not found", async () => {
-    const dto = { decision: "ACCEPTED" };
+    const dto = { decision: "accepted" };
     try {
       await service.reviewAdmission(999, dto as any, 1);
     } catch (error: any) {
@@ -86,7 +107,7 @@ describe("AdmissionReviewService", () => {
   });
 
   it("should throw when admission already reviewed", async () => {
-    const dto = { decision: "ACCEPTED" };
+    const dto = { decision: "accepted" };
     try {
       await service.reviewAdmission(2, dto as any, 1);
     } catch (error) {
@@ -156,19 +177,19 @@ describe("AdmissionReviewService", () => {
   });
 
   it("should include override profession in review", async () => {
-    const dto = { decision: "ACCEPTED", override_profession_id: 5 };
+    const dto = { decision: "accepted", override_profession_id: 5 };
     const result = await service.reviewAdmission(1, dto as any, 1);
     expect(result).toBeDefined();
   });
 
   it("should generate survivor code for accepted admission", async () => {
-    const dto = { decision: "ACCEPTED" };
+    const dto = { decision: "accepted" };
     const result = await service.reviewAdmission(1, dto as any, 1);
     expect(result).toBeDefined();
   });
 
   it("should create person in camp if not exists", async () => {
-    const dto = { decision: "ACCEPTED" };
+    const dto = { decision: "accepted" };
     const result = await service.reviewAdmission(1, dto as any, 1);
     if (result?.person) {
       expect(result.person).toBeDefined();
@@ -185,14 +206,17 @@ describe("AdmissionReviewService extra coverage", () => {
   let personRepo: {
     create: jest.Mock;
     save: jest.Mock;
+    manager?: { findOne: jest.Mock };
   };
   let userAccountRepo: {
     findOne: jest.Mock;
     create: jest.Mock;
     save: jest.Mock;
   };
+  let managerSave: jest.Mock;
 
   beforeEach(async () => {
+    managerSave = jest.fn(async (entity) => ({ id: 99, ...entity }));
     admissionRepo = {
       findOne: jest.fn(),
       save: jest.fn(async (entity) => entity),
@@ -200,6 +224,7 @@ describe("AdmissionReviewService extra coverage", () => {
     personRepo = {
       create: jest.fn((entity) => entity),
       save: jest.fn(async (entity) => ({ id: 99, ...entity })),
+      manager: { findOne: jest.fn().mockResolvedValue({ id: 1 }) },
     };
     userAccountRepo = {
       findOne: jest.fn(),
@@ -213,6 +238,14 @@ describe("AdmissionReviewService extra coverage", () => {
         { provide: getRepositoryToken(AiAdmission), useValue: admissionRepo },
         { provide: getRepositoryToken(Person), useValue: personRepo },
         { provide: getRepositoryToken(UserAccount), useValue: userAccountRepo },
+        {
+          provide: MailService,
+          useValue: {
+            sendAdmissionDecision: jest.fn().mockResolvedValue(true),
+            sendAccountCredentials: jest.fn().mockResolvedValue(true),
+          },
+        },
+        { provide: DataSource, useValue: createDataSourceMock(managerSave) },
       ],
     }).compile();
 
@@ -227,7 +260,7 @@ describe("AdmissionReviewService extra coverage", () => {
     admissionRepo.findOne.mockResolvedValue(null);
 
     await expect(
-      service.reviewAdmission(404, { decision: "ACCEPTED" } as any, 1),
+      service.reviewAdmission(404, { decision: "accepted" } as any, 1),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -235,11 +268,11 @@ describe("AdmissionReviewService extra coverage", () => {
     admissionRepo.findOne.mockResolvedValue({ id: 1, status: "REJECTED" });
 
     await expect(
-      service.reviewAdmission(1, { decision: "ACCEPTED" } as any, 7),
+      service.reviewAdmission(1, { decision: "accepted" } as any, 7),
     ).rejects.toThrow(BadRequestException);
   });
 
-  it("should throw BadRequestException when an accepted admission has no profession", async () => {
+  it("should fallback to a default profession when an accepted admission has no profession", async () => {
     admissionRepo.findOne.mockResolvedValue({
       id: 1,
       status: "PENDING_REVIEW",
@@ -252,9 +285,11 @@ describe("AdmissionReviewService extra coverage", () => {
       },
     });
 
-    await expect(
-      service.reviewAdmission(1, { decision: "ACCEPTED" } as any, 3),
-    ).rejects.toThrow("Profession ID required");
+    await service.reviewAdmission(1, { decision: "accepted" } as any, 3);
+
+    expect(personRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ profession_id: 1 }),
+    );
   });
 
   it("should create a person with the expected mapped fields when an admission is accepted", async () => {
@@ -276,7 +311,7 @@ describe("AdmissionReviewService extra coverage", () => {
 
     const result = await service.reviewAdmission(
       10,
-      { decision: "ACCEPTED", admin_notes: "Looks good" } as any,
+      { decision: "accepted", notes: "Looks good" } as any,
       44,
     );
 
@@ -300,7 +335,7 @@ describe("AdmissionReviewService extra coverage", () => {
         first_name: "Jane",
       }),
     );
-    expect(admissionRepo.save).toHaveBeenCalledWith(
+    expect(managerSave).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 10,
         person_id: 99,
@@ -322,7 +357,7 @@ describe("AdmissionReviewService extra coverage", () => {
 
     const result = await service.reviewAdmission(
       22,
-      { decision: "REJECTED" } as any,
+      { decision: "rejected" } as any,
       91,
     );
 

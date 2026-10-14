@@ -1,0 +1,274 @@
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+@Injectable()
+export class MailService {
+  private readonly logger = new Logger(MailService.name);
+  private transporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
+
+  constructor(private configService: ConfigService) {
+    this.init();
+  }
+
+  private async init() {
+    const resendApiKey = this.configService.get<string>("RESEND_API_KEY");
+
+    if (resendApiKey) {
+      this.resend = new Resend(resendApiKey);
+      this.logger.log("[MailService] Usando Resend como proveedor de correo.");
+      return;
+    }
+
+    // Fallback a SMTP si no hay clave de Resend
+    const smtpHost = this.configService.get<string>("SMTP_HOST");
+    const smtpPortStr = this.configService.get<string>("SMTP_PORT");
+    const smtpPort = smtpPortStr ? parseInt(smtpPortStr, 10) : 587;
+    const smtpUser = this.configService.get<string>("SMTP_USER");
+    const smtpPass = this.configService.get<string>("SMTP_PASS");
+
+    if (smtpHost && smtpUser && smtpPass) {
+      this.transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: { user: smtpUser, pass: smtpPass },
+      });
+      this.logger.log(
+        `[MailService] SMTP configurado: ${smtpHost}:${smtpPort} usuario=${smtpUser}`,
+      );
+      this.transporter.verify((err) => {
+        if (err) {
+          this.logger.error(
+            `[MailService] SMTP verify FALLÓ — los correos no se enviarán. Error: ${String(err?.message ?? err)}`,
+          );
+        } else {
+          this.logger.log(
+            `[MailService] SMTP verify OK — servidor listo para enviar correos.`,
+          );
+        }
+      });
+    } else {
+      try {
+        const testAccount = await nodemailer.createTestAccount();
+        this.transporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email",
+          port: 587,
+          secure: false,
+          auth: { user: testAccount.user, pass: testAccount.pass },
+        });
+        this.logger.warn(
+          `[MailService] ⚠ Usando Ethereal (emails de prueba, NO llegan a destinatarios reales). Configura RESEND_API_KEY o SMTP_HOST/USER/PASS para producción.`,
+        );
+      } catch (error) {
+        this.logger.error(
+          "[MailService] No se pudo inicializar ningún transporte de correo.",
+          error,
+        );
+      }
+    }
+  }
+
+  private getFromAddress(): string {
+    return (
+      this.configService.get<string>("SMTP_FROM") ||
+      "Sistema Gestión del Fin <noreply@doomsday-system-api.onrender.com>"
+    );
+  }
+
+  private async sendMail(opts: {
+    to: string;
+    subject: string;
+    html: string;
+  }): Promise<void> {
+    const brevoApiKey = this.configService.get<string>("BREVO_API_KEY");
+    if (brevoApiKey) {
+      try {
+        const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": brevoApiKey,
+          },
+          body: JSON.stringify({
+            sender: {
+              name: "Sistema Admisiones",
+              email: "sistemareservaspz@gmail.com",
+            },
+            to: [{ email: opts.to }],
+            subject: opts.subject,
+            htmlContent: opts.html,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Brevo API Error: ${response.status} - ${errorBody}`);
+        }
+
+        const result = await response.json();
+        this.logger.log(
+          `[MailService] Brevo HTTP API: correo enviado a ${opts.to} — id=${result.messageId ?? "?"}`,
+        );
+        return;
+      } catch (error) {
+        this.logger.error(
+          `[MailService] Error enviando correo con Brevo a ${opts.to}`,
+          error,
+        );
+        throw error;
+      }
+    }
+
+    if (this.transporter) {
+      const info = await this.transporter.sendMail({
+        from: this.getFromAddress(),
+        to: opts.to,
+        subject: opts.subject,
+        html: opts.html,
+      });
+      this.logger.log(
+        `[MailService] SMTP: correo enviado a ${opts.to} — id=${info.messageId}`,
+      );
+      if (!this.configService.get<string>("SMTP_HOST")) {
+        this.logger.log(
+          `[MailService] Vista previa Ethereal: ${nodemailer.getTestMessageUrl(info)}`,
+        );
+      }
+      return;
+    }
+
+    this.logger.warn(
+      `[MailService] No hay proveedor de correo configurado. El correo a ${opts.to} NO fue enviado.`,
+    );
+  }
+
+  async sendAdmissionDecision(
+    email: string,
+    decision: string,
+    reportHtml: string,
+    campName: string,
+    registrationToken?: string,
+  ) {
+    const isAccepted = decision === "accepted";
+    const subject = isAccepted
+      ? `[TRANSMISIÓN SEGURA] Has sido aceptado en ${campName}`
+      : `[TRANSMISIÓN SEGURA] Decisión de Admisión: ${campName}`;
+
+    let body = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;600;700&family=Special+Elite&display=swap');
+        </style>
+      </head>
+      <body style="background-color:#161513; margin:0; padding:40px 20px; font-family:'Inter', system-ui, sans-serif; color:#e5e5e5;">
+        <div style="max-width:600px; margin:0 auto; background-color:#9a9080; padding:40px; border:2px solid #000; box-shadow:4px 4px 0px rgba(0,0,0,0.85); color:#000;">
+          <div style="text-align:center; border-bottom:2px dashed #635b50; padding-bottom:20px; margin-bottom:30px;">
+            <div style="font-size:24px; font-weight:700; letter-spacing:0.05em; font-family:'Special Elite', 'Courier New', monospace; text-transform:uppercase; color:#000;">DOOMSDAY</div>
+            <div style="font-size:14px; font-weight:600; letter-spacing:0.1em; font-family:'JetBrains Mono', monospace; color:#111; margin-top:5px; text-transform:uppercase;">Sistema de Gestión Post-Apocalíptico</div>
+            <div style="display:inline-block; border:2px solid #9c2720; color:#9c2720; font-weight:700; padding:4px 8px; margin-top:15px; font-family:'JetBrains Mono', monospace; letter-spacing:0.1em; text-transform:uppercase; font-size:12px;">[ DOCUMENTO CLASIFICADO ]</div>
+          </div>
+          <div style="font-size:14px; line-height:1.5; color:#111;">
+            <p style="font-family:'JetBrains Mono', monospace; font-size:12px;"><strong>FECHA:</strong> ${new Date().toLocaleDateString()}</p>
+            <p style="font-family:'JetBrains Mono', monospace; font-size:12px;"><strong>ASUNTO:</strong> RESOLUCIÓN DE ADMISIÓN — ${campName}</p>
+            <div style="text-align:center; margin:40px 0;">
+              <div style="display:inline-block; border:4px solid ${isAccepted ? "#4c6351" : "#9c2720"}; color:${isAccepted ? "#4c6351" : "#9c2720"}; font-size:24px; font-weight:700; padding:10px 20px; letter-spacing:0.05em; font-family:'Special Elite', 'Courier New', monospace; text-transform:uppercase;">
+                ${isAccepted ? "APROBADO" : "DENEGADO"}
+              </div>
+            </div>
+            <div style="background-color:rgba(0,0,0,0.05); border:1px solid #635b50; padding:20px; font-size:14px; font-family:'Inter', sans-serif;">
+              <h3 style="margin-top:0; font-size:16px; font-family:'Special Elite', monospace; border-bottom:1px solid #635b50; padding-bottom:5px; color:#000;">INFORME TÉCNICO</h3>
+              ${reportHtml.replace(/\n/g, "<br/>")}
+            </div>
+          </div>`;
+
+    if (isAccepted && registrationToken) {
+      const frontendUrl =
+        this.configService.get<string>("FRONTEND_URL") ||
+        "http://localhost:5173";
+      const registrationLink = `${frontendUrl}/register?token=${registrationToken}`;
+      body += `
+          <div style="margin-top:40px; border-top:2px dashed #635b50; padding-top:30px;">
+            <p style="font-family:'Special Elite', monospace; font-weight:700; font-size:16px; margin-bottom:10px; color:#000;">INSTRUCCIONES DE INGRESO:</p>
+            <div style="background-color:#161513; color:#e5e5e5; border:1px solid #000; padding:20px; margin-top:20px; text-align:center;">
+              <div style="font-weight:700; font-size:18px; margin-bottom:15px; font-family:'Special Elite', monospace; color:#fca311; letter-spacing:0.05em;">PASE DE ABORDAJE</div>
+              <a href="${registrationLink}" style="display:inline-block; background-color:#c27c2f; color:#000; font-weight:600; padding:10px 20px; text-decoration:none; font-family:'JetBrains Mono', monospace; text-transform:uppercase; letter-spacing:0.05em; font-size:14px; border:1px solid #000;">RECLAMAR IDENTIFICACIÓN</a>
+              <p style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:15px; font-family:'JetBrains Mono', monospace;">ESTE PASE CADUCA EN 48 HORAS.</p>
+            </div>
+          </div>`;
+    }
+
+    body += `
+          <div style="margin-top:50px; font-size:12px; color:#111; border-top:1px solid #635b50; padding-top:10px; text-align:right; font-family:'JetBrains Mono', monospace;">
+            <p>___________________________</p><p>OFICIAL A CARGO</p>
+          </div>
+        </div>
+      </body>
+      </html>`;
+
+    await this.sendMail({ to: email, subject, html: body });
+  }
+
+  async sendAccountCredentials(
+    email: string,
+    username: string,
+    password: string,
+    campName: string,
+  ) {
+    const frontendUrl =
+      this.configService.get<string>("FRONTEND_URL") || "http://localhost:5173";
+    const subject = `[TRANSMISIÓN SEGURA] Credenciales de acceso — ${campName}`;
+
+    const body = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;600;700&family=Special+Elite&display=swap');
+        </style>
+      </head>
+      <body style="background-color:#161513; margin:0; padding:40px 20px; font-family:'Inter', system-ui, sans-serif; color:#e5e5e5;">
+        <div style="max-width:600px; margin:0 auto; background-color:#9a9080; padding:40px; border:2px solid #000; box-shadow:4px 4px 0px rgba(0,0,0,0.85); color:#000;">
+          <div style="text-align:center; border-bottom:2px dashed #635b50; padding-bottom:20px; margin-bottom:30px;">
+            <div style="font-size:24px; font-weight:700; letter-spacing:0.05em; font-family:'Special Elite', 'Courier New', monospace; text-transform:uppercase; color:#000;">DOOMSDAY</div>
+            <div style="font-size:14px; font-weight:600; letter-spacing:0.1em; font-family:'JetBrains Mono', monospace; color:#111; margin-top:5px; text-transform:uppercase;">Sistema de Gestión Post-Apocalíptico</div>
+            <div style="display:inline-block; border:2px solid #4c6351; color:#4c6351; font-weight:700; padding:4px 12px; margin-top:15px; font-family:'JetBrains Mono', monospace; letter-spacing:0.1em; text-transform:uppercase; font-size:12px;">[ ACCESO AUTORIZADO ]</div>
+          </div>
+          <div style="font-size:14px; line-height:1.5; color:#111;">
+            <p style="font-family:'JetBrains Mono', monospace; font-size:12px;"><strong>FECHA:</strong> ${new Date().toLocaleDateString()}</p>
+            <p style="font-family:'JetBrains Mono', monospace; font-size:12px;"><strong>CAMPAMENTO:</strong> ${campName}</p>
+            <p style="margin-top:20px;">Sus credenciales de acceso han sido generadas. Guárdelas en lugar seguro.</p>
+            
+            <div style="background-color:#161513; border:1px solid #000; padding:24px; margin:30px 0; font-family:'JetBrains Mono', monospace; color:#e5e5e5;">
+              <div style="font-weight:700; font-size:16px; letter-spacing:0.05em; margin-bottom:16px; text-transform:uppercase; color:#fca311; font-family:'Special Elite', monospace;">CREDENCIALES DE ACCESO</div>
+              <div style="margin-bottom:15px;">
+                <span style="font-size:12px; color:rgba(255,255,255,0.4); text-transform:uppercase; display:block; margin-bottom:4px;">Usuario</span>
+                <span style="font-size:16px; font-weight:600; color:#e5e5e5; letter-spacing:0.05em;">${username}</span>
+              </div>
+              <div style="margin-top:15px;">
+                <span style="font-size:12px; color:rgba(255,255,255,0.4); text-transform:uppercase; display:block; margin-bottom:4px;">Contraseña temporal</span>
+                <span style="font-size:18px; font-weight:700; color:#c27c2f; letter-spacing:0.1em; font-family:'JetBrains Mono', monospace;">${password}</span>
+              </div>
+            </div>
+            
+            <div style="text-align:center; margin:40px 0;">
+              <a href="${frontendUrl}/login" style="display:inline-block; background-color:#c27c2f; color:#000; font-weight:600; padding:12px 24px; text-decoration:none; font-family:'JetBrains Mono', monospace; text-transform:uppercase; letter-spacing:0.05em; font-size:14px; border:1px solid #000;">INGRESAR AL SISTEMA</a>
+            </div>
+            <p style="font-size:12px; color:#111; font-family:'Inter', sans-serif;">Se recomienda cambiar la contraseña tras el primer inicio de sesión.</p>
+          </div>
+          <div style="margin-top:40px; font-size:12px; color:#111; border-top:1px solid #635b50; padding-top:10px; text-align:right; font-family:'JetBrains Mono', monospace;">
+            <p>___________________________</p><p>OFICIAL A CARGO — ${campName}</p>
+          </div>
+        </div>
+      </body>
+      </html>`;
+
+    await this.sendMail({ to: email, subject, html: body });
+  }
+}

@@ -1,10 +1,13 @@
 import {
+  Index,
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Camp } from "../../camps/entities/camp.entity";
 import { RequestResourceDetail } from "./request-resource-detail.entity";
@@ -25,6 +28,7 @@ export class IntercampRequest {
   @Column({ type: "text" })
   type: string;
 
+  @Index()
   @Column({ type: "text", default: "pending" })
   status: string;
 
@@ -43,10 +47,12 @@ export class IntercampRequest {
   @Column({ type: "timestamptz", nullable: true })
   arrival_date: Date;
 
+  @Index()
   @ManyToOne(() => Camp)
   @JoinColumn({ name: "camp_origin_id" })
   campOrigin: Camp;
 
+  @Index()
   @ManyToOne(() => Camp)
   @JoinColumn({ name: "camp_destination_id" })
   campDestination: Camp;
@@ -59,4 +65,10 @@ export class IntercampRequest {
 
   @OneToMany(() => Approval, (a) => a.intercampRequest)
   approvals: Approval[];
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

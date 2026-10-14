@@ -1,4 +1,5 @@
 # Build stage
+# Cache buster: 2026-05-04T05:00:00
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -15,26 +16,38 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Verify build output in builder stage
+RUN ls -la dist/
+
 # Production stage
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install only production dependencies
-COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
-
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
-
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
+# Install all dependencies (needed for migration CLI)
+COPY --chown=nestjs:nodejs package*.json ./
+RUN npm ci && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+
+# Copy TypeScript source for migration CLI
+COPY --from=builder --chown=nestjs:nodejs /app/src ./src
+COPY --from=builder --chown=nestjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nestjs:nodejs /app/tsconfig.build.json ./tsconfig.build.json
+
+# Run as non-root user
 USER nestjs
 
-# Expose port (Cloud Run uses PORT env variable)
-EXPOSE 8080
+# Final image structure check (debug)
+RUN ls -R dist | head -n 20
 
-# Start the application
-CMD ["node", "dist/main.js"]
+# Expose port (Render defaults to 10000 or uses $PORT)
+EXPOSE 3000
+
+# Run migrations then start the app
+CMD ["sh", "-c", "npx typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts && node dist/main.js"]

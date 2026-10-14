@@ -1,10 +1,13 @@
 ﻿import {
+  Index,
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Camp } from "../../camps/entities/camp.entity";
 import { UserAccount } from "../../users/entities/user-account.entity";
@@ -37,6 +40,7 @@ export class Exploration {
   @Column({ type: "timestamptz", nullable: true })
   real_return_date!: Date;
 
+  @Index()
   @Column({ type: "text", default: "scheduled" })
   status!: string;
 
@@ -46,10 +50,12 @@ export class Exploration {
   @Column({ type: "bigint", nullable: true })
   user_create_id!: number;
 
+  @Index()
   @ManyToOne(() => Camp)
   @JoinColumn({ name: "camp_id" })
   camp!: Camp;
 
+  @Index()
   @ManyToOne(() => UserAccount)
   @JoinColumn({ name: "user_create_id" })
   userCreate!: UserAccount;
@@ -59,4 +65,10 @@ export class Exploration {
 
   @OneToMany(() => ExplorationResource, (er) => er.exploration)
   explorationResources!: ExplorationResource[];
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

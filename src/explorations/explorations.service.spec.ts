@@ -3,19 +3,22 @@ import {
   ConflictException,
   NotFoundException,
 } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
 import { AuditLog } from "../common/entities/audit-log.entity";
+import { PythonAiService } from "../ai/services/python-ai.service";
 import { ResourcesService } from "../resources/resources.service";
 import { PersonStatus } from "../users/constants/professions.constants";
 import { Person } from "../users/entities/person.entity";
-import { CreateExplorationDto } from "./dto/create-exploration.dto";
-import { ReturnExplorationDto } from "./dto/return-exploration.dto";
+import type { CreateExplorationDto } from "./dto/create-exploration.dto";
+import type { ReturnExplorationDto } from "./dto/return-exploration.dto";
 import { Exploration } from "./entities/exploration.entity";
 import { ExplorationPerson } from "./entities/exploration-person.entity";
 import { ExplorationResource } from "./entities/exploration-resource.entity";
 import { ExplorationsService } from "./explorations.service";
+import { REDIS_CLIENT } from "../redis/redis.constants";
 
 type RepoMock = {
   find: jest.Mock;
@@ -57,8 +60,10 @@ describe("ExplorationsService", () => {
   let personRepo: RepoMock;
   let auditRepo: RepoMock;
   let resourcesService: { findAll: jest.Mock; createMovement: jest.Mock };
-  let dataSource: { createQueryRunner: jest.Mock };
+  let pythonAiService: { analyzeExpedition: jest.Mock };
+  let dataSource: { createQueryRunner: jest.Mock; transaction: jest.Mock };
   let queryRunner: ReturnType<typeof createQueryRunnerMock>;
+  let departManagerSave: jest.Mock;
 
   const baseDto: CreateExplorationDto = {
     camp_id: 1,
@@ -91,8 +96,26 @@ describe("ExplorationsService", () => {
       findAll: jest.fn(),
       createMovement: jest.fn(),
     };
+    pythonAiService = {
+      analyzeExpedition: jest
+        .fn()
+        .mockResolvedValue({ success_probability: 80 }),
+    };
+    departManagerSave = jest.fn(asyncPassThrough);
+    const departManager = {
+      // findOne is called inside the transaction to re-fetch with pessimistic_write.
+      // By default return a scheduled exploration; individual tests can override.
+      findOne: jest.fn().mockResolvedValue({
+        id: 0,
+        status: "scheduled",
+        departure_date: null,
+      }),
+      create: jest.fn((_Entity: any, dto: any) => dto),
+      save: departManagerSave,
+    };
     dataSource = {
       createQueryRunner: jest.fn(() => queryRunner),
+      transaction: jest.fn(async (cb: any) => cb(departManager)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -117,8 +140,16 @@ describe("ExplorationsService", () => {
           useValue: resourcesService,
         },
         {
+          provide: PythonAiService,
+          useValue: pythonAiService,
+        },
+        {
           provide: DataSource,
           useValue: dataSource,
+        },
+        {
+          provide: REDIS_CLIENT,
+          useValue: { keys: jest.fn().mockResolvedValue([]), del: jest.fn() },
         },
       ],
     }).compile();
@@ -289,6 +320,7 @@ describe("ExplorationsService", () => {
           type: "exploration_out",
         }),
         99,
+        queryRunner.manager,
       );
       expect(resourcesService.createMovement).toHaveBeenNthCalledWith(
         2,
@@ -298,6 +330,7 @@ describe("ExplorationsService", () => {
           type: "exploration_out",
         }),
         99,
+        queryRunner.manager,
       );
       expect(resourcesService.createMovement).toHaveBeenNthCalledWith(
         3,
@@ -307,6 +340,7 @@ describe("ExplorationsService", () => {
           type: "exploration_out",
         }),
         99,
+        queryRunner.manager,
       );
       expect(queryRunner.manager.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -430,11 +464,13 @@ describe("ExplorationsService", () => {
         1,
         expect.objectContaining({ quantity: 4 }),
         5,
+        queryRunner.manager,
       );
       expect(resourcesService.createMovement).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({ quantity: 6 }),
         5,
+        queryRunner.manager,
       );
     });
 
@@ -549,6 +585,7 @@ describe("ExplorationsService", () => {
           type: "exploration_in",
         }),
         4,
+        queryRunner.manager,
       );
       expect(auditRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -616,8 +653,10 @@ describe("ExplorationsService", () => {
       const queryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([{ id: 1 }]),
+        getManyAndCount: jest.fn().mockResolvedValue([[{ id: 1 }], 1]),
       };
       explorationRepo.createQueryBuilder.mockReturnValue(queryBuilder);
 
@@ -625,15 +664,18 @@ describe("ExplorationsService", () => {
 
       expect(explorationRepo.createQueryBuilder).toHaveBeenCalledWith("e");
       expect(queryBuilder.andWhere).not.toHaveBeenCalled();
-      expect(result).toEqual([{ id: 1 }]);
+      expect(result.data).toEqual([{ id: 1 }]);
+      expect(result.total).toBe(1);
     });
 
     it("should apply camp and status filters", async () => {
       const queryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([{ id: 2 }]),
+        getManyAndCount: jest.fn().mockResolvedValue([[{ id: 2 }], 1]),
       };
       explorationRepo.createQueryBuilder.mockReturnValue(queryBuilder);
 
@@ -743,6 +785,7 @@ describe("ExplorationsService", () => {
           type: "exploration_in",
         }),
         8,
+        queryRunner.manager,
       );
       expect(exploration.explorationPersons[0].person.status).toBe(
         PersonStatus.ACTIVE,
@@ -798,12 +841,57 @@ describe("ExplorationsService", () => {
       const exploration = {
         id: 80,
         camp_id: 3,
+        name: "Salida norte",
+        destination_description: "Zona norte",
+        estimated_days: 4,
         status: "scheduled",
         departure_date: new Date("2026-03-20T00:00:00.000Z"),
-      } as Exploration;
+        explorationPersons: [
+          {
+            person_id: 10,
+            is_leader: true,
+            person: {
+              id: 10,
+              status: PersonStatus.EXPLORING,
+              can_work: false,
+              experience_level: 3,
+              achievements: ["VETERANO_PARAMO"],
+            },
+          },
+          {
+            person_id: 11,
+            is_leader: false,
+            person: {
+              id: 11,
+              status: PersonStatus.EXPLORING,
+              can_work: false,
+              experience_level: 2,
+              achievements: [],
+            },
+          },
+        ],
+      } as unknown as Exploration;
 
+      // The locked row re-fetched inside the transaction
+      const lockedRow = {
+        id: 80,
+        camp_id: 3,
+        status: "scheduled",
+        departure_date: null,
+      };
       explorationRepo.findOne.mockResolvedValue(exploration);
       explorationRepo.save.mockResolvedValue(exploration);
+      // Override the dataSource.transaction for this test so txManager.findOne
+      // returns the locked row (with status "scheduled") as it would in production.
+      dataSource.transaction = jest.fn(async (cb: any) => {
+        const txManager = {
+          findOne: jest.fn().mockResolvedValue(lockedRow),
+          create: jest.fn((_Entity: any, dto: any) => dto),
+          save: departManagerSave,
+        };
+        return cb(txManager);
+      });
+
       auditRepo.create.mockImplementation((value) => value);
       auditRepo.save.mockResolvedValue({});
       jest
@@ -814,11 +902,38 @@ describe("ExplorationsService", () => {
 
       expect(exploration.status).toBe("in_progress");
       expect(exploration.departure_date).toBeInstanceOf(Date);
-      expect(explorationRepo.save).toHaveBeenCalledWith(exploration);
-      expect(auditRepo.save).toHaveBeenCalledWith(
+      // departManagerSave is called with the locked row (after mutations)
+      expect(departManagerSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "in_progress",
+          departure_date: expect.any(Date),
+        }),
+      );
+      expect(pythonAiService.analyzeExpedition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          explorers: [
+            {
+              id: 10,
+              role: "leader",
+              health_status: 85,
+              achievements: ["VETERANO_PARAMO"],
+            },
+            {
+              id: 11,
+              role: "member",
+              health_status: 85,
+              achievements: [],
+            },
+          ],
+        }),
+      );
+      expect(departManagerSave).toHaveBeenCalledWith(
         expect.objectContaining({
           action: "exploration_departed",
           entity_id: 80,
+          new_value: expect.objectContaining({
+            expedition_ai_analysis: expect.anything(),
+          }),
         }),
       );
       expect(result).toEqual({ id: 80 });

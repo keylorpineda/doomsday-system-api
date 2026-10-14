@@ -1,5 +1,6 @@
-﻿import { Injectable, NestMiddleware, ForbiddenException } from "@nestjs/common";
-import { Request, Response, NextFunction } from "express";
+import type { NestMiddleware } from "@nestjs/common";
+import { Injectable, ForbiddenException } from "@nestjs/common";
+import type { Request, Response, NextFunction } from "express";
 
 @Injectable()
 export class CsrfMiddleware implements NestMiddleware {
@@ -9,6 +10,9 @@ export class CsrfMiddleware implements NestMiddleware {
     this.allowedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
       .split(",")
       .map((o) => o.trim());
+    const port = process.env.PORT ?? 3000;
+    this.allowedOrigins.push(`http://localhost:${port}`);
+    this.allowedOrigins.push(`http://127.0.0.1:${port}`);
   }
 
   use(req: Request, _res: Response, next: NextFunction) {

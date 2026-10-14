@@ -1,5 +1,5 @@
 ﻿import { Injectable, Logger } from "@nestjs/common";
-import { SubmitAdmissionDto } from "../dto/submit-admission.dto";
+import type { SubmitAdmissionDto } from "../dto/submit-admission.dto";
 
 export interface PythonNlpResult {
   nlp_score: number;
@@ -40,7 +40,7 @@ export interface PythonNlpResult {
 
 /**
  * Servicio que llama al microservicio Python de IA No Generativa.
- * Si el microservicio no está disponible, retorna null (graceful fallback).
+ * Si el microservicio no esta disponible, retorna null (graceful fallback).
  */
 @Injectable()
 export class PythonAiService {

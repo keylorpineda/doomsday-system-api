@@ -1,4 +1,5 @@
-import { Test, TestingModule } from "@nestjs/testing";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
@@ -8,8 +9,21 @@ import { AuthService } from "./auth.service";
 import { LoginAttempt } from "./entities/login-attempt.entity";
 import { Session } from "./entities/session.entity";
 import { UserAccount } from "../users/entities/user-account.entity";
+import { Camp } from "../camps/entities/camp.entity";
+import { REDIS_CLIENT } from "../redis/redis.constants";
 
 jest.mock("bcrypt");
+
+const makeQbMock = (result: any) => ({
+  addSelect: jest.fn().mockReturnThis(),
+  leftJoinAndSelect: jest.fn().mockReturnThis(),
+  where: jest.fn().mockReturnThis(),
+  andWhere: jest.fn().mockReturnThis(),
+  getOne: jest.fn().mockResolvedValue(result),
+  getMany: jest
+    .fn()
+    .mockResolvedValue(Array.isArray(result) ? result : [result]),
+});
 
 describe("AuthService", () => {
   let service: AuthService;
@@ -73,6 +87,7 @@ describe("AuthService", () => {
             find: jest.fn(),
             findOne: jest.fn(),
             update: jest.fn(),
+            createQueryBuilder: jest.fn(),
           },
         },
         {
@@ -80,6 +95,24 @@ describe("AuthService", () => {
           useValue: {
             findOne: jest.fn(),
             save: jest.fn(),
+            update: jest.fn(),
+            createQueryBuilder: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Camp),
+          useValue: {
+            findOne: jest.fn(),
+          },
+        },
+        {
+          provide: REDIS_CLIENT,
+          useValue: {
+            setex: jest.fn().mockResolvedValue("OK"),
+            del: jest.fn().mockResolvedValue(1),
+            exists: jest.fn().mockResolvedValue(1),
+            ttl: jest.fn().mockResolvedValue(1200),
+            expire: jest.fn().mockResolvedValue(1),
           },
         },
       ],
@@ -101,7 +134,7 @@ describe("AuthService", () => {
       const ipAddress = "192.168.1.1";
       const userAgent = "Mozilla/5.0";
 
-      userRepo.findOne.mockResolvedValueOnce(mockUser);
+      userRepo.createQueryBuilder.mockReturnValueOnce(makeQbMock(mockUser));
       jwtService.sign.mockReturnValueOnce("access_token");
       jwtService.sign.mockReturnValueOnce("refresh_token");
       loginAttemptRepo.create.mockReturnValue({});
@@ -113,17 +146,14 @@ describe("AuthService", () => {
       expect(result).toHaveProperty("refresh_token");
       expect(result).toHaveProperty("user");
       expect(result.user.username).toBe("testuser");
-      expect(userRepo.findOne).toHaveBeenCalledWith({
-        where: { username: "testuser" },
-        relations: ["role", "camp", "person"],
-      });
+      expect(userRepo.createQueryBuilder).toHaveBeenCalled();
     });
 
     it("should throw error when user not found", async () => {
       const loginDto = { username: "nonexistent", password: "password123" };
       const ipAddress = "192.168.1.1";
 
-      userRepo.findOne.mockResolvedValueOnce(null);
+      userRepo.createQueryBuilder.mockReturnValueOnce(makeQbMock(null));
       loginAttemptRepo.count.mockResolvedValueOnce(0);
 
       await expect(service.login(loginDto, ipAddress)).rejects.toThrow(
@@ -135,7 +165,7 @@ describe("AuthService", () => {
       const loginDto = { username: "testuser", password: "wrongpassword" };
       const ipAddress = "192.168.1.1";
 
-      userRepo.findOne.mockResolvedValueOnce(mockUser);
+      userRepo.createQueryBuilder.mockReturnValueOnce(makeQbMock(mockUser));
       loginAttemptRepo.count.mockResolvedValueOnce(0);
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
 
@@ -148,7 +178,7 @@ describe("AuthService", () => {
       const loginDto = { username: "testuser", password: "password123" };
       const ipAddress = "192.168.1.1";
 
-      loginAttemptRepo.count.mockResolvedValueOnce(5); // MAX_LOGIN_ATTEMPTS = 5
+      loginAttemptRepo.count.mockResolvedValueOnce(10); // exceeds MAX_LOGIN_ATTEMPTS (5)
 
       await expect(service.login(loginDto, ipAddress)).rejects.toThrow(
         UnauthorizedException,
@@ -159,7 +189,7 @@ describe("AuthService", () => {
       const loginDto = { username: "testuser", password: "password123" };
       const ipAddress = "192.168.1.1";
 
-      userRepo.findOne.mockResolvedValueOnce(mockUser);
+      userRepo.createQueryBuilder.mockReturnValueOnce(makeQbMock(mockUser));
       jwtService.sign.mockReturnValueOnce("access_token");
       jwtService.sign.mockReturnValueOnce("refresh_token");
       loginAttemptRepo.create.mockReturnValue({});
@@ -178,7 +208,9 @@ describe("AuthService", () => {
         role: null,
       };
 
-      userRepo.findOne.mockResolvedValueOnce(userWithoutRole);
+      userRepo.createQueryBuilder.mockReturnValueOnce(
+        makeQbMock(userWithoutRole),
+      );
       jwtService.sign.mockReturnValueOnce("access_token");
       jwtService.sign.mockReturnValueOnce("refresh_token");
       loginAttemptRepo.create.mockReturnValue({});
@@ -208,18 +240,20 @@ describe("AuthService", () => {
       const userId = 1;
       const refreshToken = "refresh_token";
 
-      sessionRepo.find.mockResolvedValueOnce([mockSession]);
+      sessionRepo.createQueryBuilder.mockReturnValueOnce(
+        makeQbMock([mockSession]),
+      );
 
       await service.logout(userId, refreshToken);
 
-      expect(sessionRepo.find).toHaveBeenCalled();
+      expect(sessionRepo.createQueryBuilder).toHaveBeenCalled();
     });
 
     it("should handle logout when session not found", async () => {
       const userId = 1;
       const refreshToken = "refresh_token";
 
-      sessionRepo.find.mockResolvedValueOnce([]);
+      sessionRepo.createQueryBuilder.mockReturnValueOnce(makeQbMock([]));
       sessionRepo.update.mockResolvedValueOnce({});
 
       await service.logout(userId, refreshToken);
@@ -234,7 +268,9 @@ describe("AuthService", () => {
       const payload = { sub: 1, username: "testuser" };
 
       jwtService.verify.mockReturnValueOnce(payload);
-      sessionRepo.find.mockResolvedValueOnce([mockSession]);
+      sessionRepo.createQueryBuilder.mockReturnValueOnce(
+        makeQbMock([mockSession]),
+      );
       userRepo.findOne.mockResolvedValueOnce(mockUser);
       jwtService.sign.mockReturnValueOnce("new_access_token");
       jwtService.sign.mockReturnValueOnce("new_refresh_token");
@@ -262,7 +298,7 @@ describe("AuthService", () => {
       const payload = { sub: 1, username: "testuser" };
 
       jwtService.verify.mockReturnValueOnce(payload);
-      sessionRepo.find.mockResolvedValueOnce([]);
+      sessionRepo.createQueryBuilder.mockReturnValueOnce(makeQbMock([]));
 
       await expect(service.refresh(refreshToken)).rejects.toThrow(
         UnauthorizedException,
@@ -278,7 +314,9 @@ describe("AuthService", () => {
       };
 
       jwtService.verify.mockReturnValueOnce(payload);
-      sessionRepo.find.mockResolvedValueOnce([expiredSession]);
+      sessionRepo.createQueryBuilder.mockReturnValueOnce(
+        makeQbMock([expiredSession]),
+      );
 
       await expect(service.refresh(refreshToken)).rejects.toThrow(
         UnauthorizedException,
@@ -294,7 +332,9 @@ describe("AuthService", () => {
       };
 
       jwtService.verify.mockReturnValueOnce(payload);
-      sessionRepo.find.mockResolvedValueOnce([mockSession]);
+      sessionRepo.createQueryBuilder.mockReturnValueOnce(
+        makeQbMock([mockSession]),
+      );
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
       userRepo.findOne.mockResolvedValueOnce(userWithoutRole);
       jwtService.sign.mockReturnValueOnce("new_access_token");
@@ -316,7 +356,9 @@ describe("AuthService", () => {
       const payload = { sub: 1, username: "testuser" };
 
       jwtService.verify.mockReturnValueOnce(payload);
-      sessionRepo.find.mockResolvedValueOnce([mockSession]);
+      sessionRepo.createQueryBuilder.mockReturnValueOnce(
+        makeQbMock([mockSession]),
+      );
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
       userRepo.findOne.mockResolvedValueOnce(null);
 
@@ -452,10 +494,17 @@ describe("AuthService", () => {
   });
 
   describe("checkSessionStatus", () => {
+    let redisClient: any;
+
+    beforeEach(() => {
+      redisClient = (service as any).redis;
+    });
+
     it("should return active session status", async () => {
       const userId = 1;
 
-      sessionRepo.findOne.mockResolvedValueOnce(mockSession);
+      redisClient.exists.mockResolvedValueOnce(1);
+      redisClient.ttl.mockResolvedValueOnce(1200); // 20 minutos restantes
 
       const result = await service.checkSessionStatus(userId);
 
@@ -469,7 +518,7 @@ describe("AuthService", () => {
     it("should return inactive session when no active session", async () => {
       const userId = 999;
 
-      sessionRepo.findOne.mockResolvedValueOnce(null);
+      redisClient.exists.mockResolvedValueOnce(0); // no existe en Redis
 
       const result = await service.checkSessionStatus(userId);
 
@@ -479,12 +528,9 @@ describe("AuthService", () => {
 
     it("should indicate when session will expire soon", async () => {
       const userId = 1;
-      const recentSession = {
-        ...mockSession,
-        last_activity: new Date(Date.now() - 18 * 60 * 1000), // 18 minutos  atrás
-      };
 
-      sessionRepo.findOne.mockResolvedValueOnce(recentSession);
+      redisClient.exists.mockResolvedValueOnce(1);
+      redisClient.ttl.mockResolvedValueOnce(90); // 1.5 minutos → willExpireSoon = true (≤2 min)
 
       const result = await service.checkSessionStatus(userId);
 

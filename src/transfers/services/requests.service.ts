@@ -13,7 +13,11 @@ import { Person } from "../../users/entities/person.entity";
 import { Inventory } from "../../resources/entities/inventory.entity";
 import { Resource } from "../../resources/entities/resource.entity";
 import { AuditLog } from "../../common/entities/audit-log.entity";
-import { CreateIntercampRequestDto } from "../dto/create-intercamp-request.dto";
+import type { CreateIntercampRequestDto } from "../dto/create-intercamp-request.dto";
+import { NotificationsGateway } from "../../notifications/notifications.gateway";
+import { Inject } from "@nestjs/common";
+import { REDIS_CLIENT } from "../../redis/redis.constants";
+import { Redis } from "ioredis";
 
 @Injectable()
 export class RequestsService {
@@ -35,7 +39,20 @@ export class RequestsService {
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
     private readonly dataSource: DataSource,
+    private readonly notificationsGateway: NotificationsGateway,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
+
+  private async invalidateCampDashboardCache(campId: number): Promise<void> {
+    try {
+      const keys = await this.redis.keys(`dashboard:metrics:${campId}:*`);
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+      }
+    } catch (err) {
+      // Ignore
+    }
+  }
 
   async createRequest(
     dto: CreateIntercampRequestDto,
@@ -109,7 +126,20 @@ export class RequestsService {
 
       await queryRunner.commitTransaction();
 
-      return this.findRequestById(Number(savedRequest.id));
+      await this.invalidateCampDashboardCache(dto.camp_origin_id);
+      await this.invalidateCampDashboardCache(dto.camp_destination_id);
+
+      const finalRequest = await this.findRequestById(Number(savedRequest.id));
+
+      // Emitir notificacin por WebSocket
+      this.notificationsGateway.emitTransferRequest(dto.camp_destination_id, {
+        id: finalRequest.id,
+        type: finalRequest.type,
+        originCamp: originCamp.name,
+        requestDate: finalRequest.request_date,
+      });
+
+      return finalRequest;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -138,6 +168,7 @@ export class RequestsService {
           camp_id: dto.camp_origin_id,
           resource_id: rd.resource_id,
         },
+        lock: { mode: "pessimistic_write" },
       });
 
       if (
@@ -176,7 +207,7 @@ export class RequestsService {
         );
       }
 
-      if (person.userAccount?.camp_id !== dto.camp_origin_id) {
+      if (person.userAccount?.camp_id != dto.camp_origin_id) {
         throw new BadRequestException(
           `La persona ${person.first_name} ${person.last_name} no pertenece al campamento origen`,
         );
@@ -218,7 +249,20 @@ export class RequestsService {
   async findRequestsByCamp(
     campId: number,
     role?: "origin" | "destination",
-  ): Promise<IntercampRequest[]> {
+    status?: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: IntercampRequest[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (safePage - 1) * safeLimit;
+
     const queryBuilder = this.requestRepo
       .createQueryBuilder("req")
       .leftJoinAndSelect("req.campOrigin", "campOrigin")
@@ -241,7 +285,34 @@ export class RequestsService {
       );
     }
 
-    return queryBuilder.orderBy("req.request_date", "DESC").getMany();
+    if (status) {
+      const allowed = [
+        "pending",
+        "approved",
+        "in_transit",
+        "completed",
+        "rejected",
+        "cancelled",
+      ];
+      if (!allowed.includes(status)) {
+        throw new BadRequestException("Estado de solicitud invalido");
+      }
+      queryBuilder.andWhere("req.status = :status", { status });
+    }
+
+    const [data, total] = await queryBuilder
+      .orderBy("req.request_date", "DESC")
+      .skip(skip)
+      .take(safeLimit)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
+    };
   }
 
   async findPendingRequestsByCamp(campId: number): Promise<IntercampRequest[]> {
@@ -261,6 +332,22 @@ export class RequestsService {
         "approvals.user",
       ],
       order: { request_date: "DESC" },
+    });
+  }
+
+  async findActiveTransfersForMap(): Promise<
+    Pick<
+      IntercampRequest,
+      "id" | "camp_origin_id" | "camp_destination_id" | "type"
+    >[]
+  > {
+    return this.requestRepo.find({
+      where: [
+        { status: "pending" },
+        { status: "approved" },
+        { status: "in_transit" },
+      ],
+      select: ["id", "camp_origin_id", "camp_destination_id", "type"],
     });
   }
 
@@ -296,6 +383,9 @@ export class RequestsService {
         date: new Date(),
       }),
     );
+
+    await this.invalidateCampDashboardCache(request.camp_origin_id);
+    await this.invalidateCampDashboardCache(request.camp_destination_id);
 
     return this.findRequestById(requestId);
   }

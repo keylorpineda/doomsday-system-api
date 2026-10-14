@@ -12,8 +12,12 @@ import { ExplorationResource } from "./entities/exploration-resource.entity";
 import { Person } from "../users/entities/person.entity";
 import { AuditLog } from "../common/entities/audit-log.entity";
 import { ResourcesService } from "../resources/resources.service";
-import { CreateExplorationDto } from "./dto/create-exploration.dto";
-import { ReturnExplorationDto } from "./dto/return-exploration.dto";
+import { PythonAiService } from "../ai/services/python-ai.service";
+import type { CreateExplorationDto } from "./dto/create-exploration.dto";
+import type { ReturnExplorationDto } from "./dto/return-exploration.dto";
+import { Inject } from "@nestjs/common";
+import { REDIS_CLIENT } from "../redis/redis.constants";
+import { Redis } from "ioredis";
 import {
   DAILY_CONSUMPTION,
   PersonStatus,
@@ -33,8 +37,21 @@ export class ExplorationsService {
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
     private readonly resourcesService: ResourcesService,
+    private readonly pythonAiService: PythonAiService,
     private readonly dataSource: DataSource,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
+
+  private async invalidateCampDashboardCache(campId: number): Promise<void> {
+    try {
+      const keys = await this.redis.keys(`dashboard:metrics:${campId}:*`);
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+      }
+    } catch (err) {
+      // Ignore
+    }
+  }
 
   async create(
     dto: CreateExplorationDto,
@@ -42,7 +59,7 @@ export class ExplorationsService {
   ): Promise<Exploration> {
     if (!dto.persons || dto.persons.length === 0) {
       throw new BadRequestException(
-        "Debe asignar al menos una persona a la exploraci�n",
+        "Debe asignar al menos una persona a la exploración",
       );
     }
 
@@ -64,7 +81,7 @@ export class ExplorationsService {
     for (const person of persons) {
       if (!person.profession || !person.profession.can_explore) {
         throw new BadRequestException(
-          `${person.first_name} ${person.last_name} (ID ${person.id}) no tiene profesi�n habilitada para explorar`,
+          `${person.first_name} ${person.last_name} (ID ${person.id}) no tiene profesión habilitada para explorar`,
         );
       }
 
@@ -76,7 +93,7 @@ export class ExplorationsService {
 
       if (person.status !== PersonStatus.ACTIVE) {
         throw new BadRequestException(
-          `${person.first_name} ${person.last_name} (ID ${person.id}) no est� activo (estado: ${person.status})`,
+          `${person.first_name} ${person.last_name} (ID ${person.id}) no está activo (estado: ${person.status})`,
         );
       }
 
@@ -89,7 +106,7 @@ export class ExplorationsService {
 
       if (alreadyExploring > 0) {
         throw new ConflictException(
-          `${person.first_name} ${person.last_name} (ID ${person.id}) ya est� asignado a otra exploraci�n activa`,
+          `${person.first_name} ${person.last_name} (ID ${person.id}) ya está asignado a otra exploración activa`,
         );
       }
     }
@@ -147,9 +164,10 @@ export class ExplorationsService {
           resource_id: Number(foodResource.id),
           quantity: foodNeeded,
           type: "exploration_out",
-          description: `Raciones de comida para exploraci�n "${dto.name}" (${totalPersons} personas � ${totalDays} d�as)`,
+          description: `Raciones de comida para exploración "${dto.name}" (${totalPersons} personas x ${totalDays} días)`,
         },
         userId,
+        queryRunner.manager,
       );
 
       await this.resourcesService.createMovement(
@@ -158,9 +176,10 @@ export class ExplorationsService {
           resource_id: Number(waterResource.id),
           quantity: waterNeeded,
           type: "exploration_out",
-          description: `Raciones de agua para exploraci�n "${dto.name}" (${totalPersons} personas � ${totalDays} d�as)`,
+          description: `Raciones de agua para exploración "${dto.name}" (${totalPersons} personas x ${totalDays} días)`,
         },
         userId,
+        queryRunner.manager,
       );
 
       const foodExpRes = this.expResourceRepo.create({
@@ -187,9 +206,10 @@ export class ExplorationsService {
               resource_id: resDto.resource_id,
               quantity: resDto.quantity,
               type: "exploration_out",
-              description: `Recurso adicional para exploraci�n "${dto.name}"`,
+              description: `Recurso adicional para exploración "${dto.name}"`,
             },
             userId,
+            queryRunner.manager,
           );
 
           const er = this.expResourceRepo.create({
@@ -228,6 +248,8 @@ export class ExplorationsService {
 
       await queryRunner.commitTransaction();
 
+      await this.invalidateCampDashboardCache(dto.camp_id);
+
       return this.findById(Number(saved.id));
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -252,15 +274,15 @@ export class ExplorationsService {
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
     }
 
     if (exploration.status === "completed") {
-      throw new ConflictException("Esta exploraci�n ya fue completada");
+      throw new ConflictException("Esta exploración ya fue completada");
     }
 
     if (exploration.status === "cancelled") {
-      throw new ConflictException("Esta exploraci�n fue cancelada");
+      throw new ConflictException("Esta exploración fue cancelada");
     }
 
     if (exploration.status === "scheduled") {
@@ -270,6 +292,7 @@ export class ExplorationsService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+    let transactionCommitted = false;
 
     try {
       exploration.real_return_date = new Date(dto.real_return_date);
@@ -298,9 +321,10 @@ export class ExplorationsService {
               resource_id: fr.resource_id,
               quantity: fr.quantity,
               type: "exploration_in",
-              description: `Recursos encontrados en exploraci�n "${exploration.name}"`,
+              description: `Recursos encontrados en exploración "${exploration.name}"`,
             },
             userId,
+            queryRunner.manager,
           );
 
           const er = this.expResourceRepo.create({
@@ -329,17 +353,107 @@ export class ExplorationsService {
       );
 
       await queryRunner.commitTransaction();
+      transactionCommitted = true;
+
+      await this.invalidateCampDashboardCache(exploration.camp_id);
+
+      await this.awardAchievements(
+        exploration.explorationPersons.map((ep) => String(ep.person_id)),
+      );
 
       return this.findById(Number(exploration.id));
     } catch (err) {
-      await queryRunner.rollbackTransaction();
+      if (!transactionCommitted) {
+        await queryRunner.rollbackTransaction();
+      }
       throw err;
     } finally {
       await queryRunner.release();
     }
   }
 
-  async findAll(campId?: number, status?: string): Promise<Exploration[]> {
+  private async awardAchievements(personIds: string[]): Promise<void> {
+    if (!personIds?.length) {
+      return;
+    }
+
+    const normalizedIds = [
+      ...new Set(personIds.map((id) => Number(id))),
+    ].filter((id) => Number.isInteger(id));
+
+    if (!normalizedIds.length) {
+      return;
+    }
+
+    await this.personRepo.increment(
+      { id: In(normalizedIds) },
+      "expeditionsSurvived",
+      1,
+    );
+
+    const persons = await this.personRepo.find({
+      where: { id: In(normalizedIds) },
+      relations: ["achievements"],
+    });
+
+    for (const person of persons) {
+      const achievements = Array.isArray(person.achievements)
+        ? person.achievements.map((pa: any) => pa.achievement_name)
+        : [];
+
+      let newExpPoints = person.experience_points + 50; // 50 XP por expedicion
+      let newLevel = person.experience_level;
+      if (newExpPoints >= 100) {
+        newLevel += Math.floor(newExpPoints / 100);
+        newExpPoints = newExpPoints % 100;
+      }
+      let addedAchievements = false;
+      if (!person.achievements) person.achievements = [];
+      if (
+        person.expeditionsSurvived === 5 &&
+        !achievements.includes("VETERANO_PARAMO")
+      ) {
+        person.achievements.push({
+          achievement_name: "VETERANO_PARAMO",
+        } as any);
+        addedAchievements = true;
+      }
+      if (newLevel >= 5 && !achievements.includes("SOBREVIVIENTE_ELITE")) {
+        person.achievements.push({
+          achievement_name: "SOBREVIVIENTE_ELITE",
+        } as any);
+        addedAchievements = true;
+      }
+
+      if (addedAchievements) {
+        person.experience_points = newExpPoints;
+        person.experience_level = newLevel;
+        await this.personRepo.save(person);
+      } else {
+        await this.personRepo.update(person.id, {
+          experience_points: newExpPoints,
+          experience_level: newLevel,
+        });
+      }
+    }
+  }
+
+  async findAll(
+    campId?: number,
+    status?: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: Exploration[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (safePage - 1) * safeLimit;
+
     const qb = this.explorationRepo
       .createQueryBuilder("e")
       .leftJoinAndSelect("e.explorationPersons", "ep")
@@ -348,7 +462,9 @@ export class ExplorationsService {
       .leftJoinAndSelect("e.explorationResources", "er")
       .leftJoinAndSelect("er.resource", "resource")
       .leftJoinAndSelect("e.camp", "camp")
-      .orderBy("e.departure_date", "DESC");
+      .orderBy("e.departure_date", "DESC")
+      .skip(skip)
+      .take(safeLimit);
 
     if (campId) {
       qb.andWhere("e.camp_id = :campId", { campId });
@@ -358,7 +474,15 @@ export class ExplorationsService {
       qb.andWhere("e.status = :status", { status });
     }
 
-    return qb.getMany();
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
+    };
   }
 
   async findById(id: number): Promise<Exploration> {
@@ -376,7 +500,7 @@ export class ExplorationsService {
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
     }
 
     return exploration;
@@ -393,7 +517,7 @@ export class ExplorationsService {
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
     }
 
     if (exploration.status !== "scheduled") {
@@ -418,9 +542,10 @@ export class ExplorationsService {
             resource_id: Number(er.resource_id),
             quantity: Number(er.quantity),
             type: "exploration_in",
-            description: `Devoluci�n por cancelaci�n de exploraci�n "${exploration.name}"`,
+            description: `Devolución por cancelación de exploración "${exploration.name}"`,
           },
           userId,
+          queryRunner.manager,
         );
       }
 
@@ -449,6 +574,8 @@ export class ExplorationsService {
 
       await queryRunner.commitTransaction();
 
+      await this.invalidateCampDashboardCache(exploration.camp_id);
+
       return this.findById(Number(exploration.id));
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -461,10 +588,11 @@ export class ExplorationsService {
   async depart(id: number, userId?: number): Promise<Exploration> {
     const exploration = await this.explorationRepo.findOne({
       where: { id },
+      relations: ["explorationPersons", "explorationPersons.person"],
     });
 
     if (!exploration) {
-      throw new NotFoundException(`Exploraci�n con ID ${id} no encontrada`);
+      throw new NotFoundException(`Exploración con ID ${id} no encontrada`);
     }
 
     if (exploration.status !== "scheduled") {
@@ -473,22 +601,135 @@ export class ExplorationsService {
       );
     }
 
-    exploration.status = "in_progress";
-    exploration.departure_date = new Date();
-    await this.explorationRepo.save(exploration);
+    // La llamada al microservicio de IA se hace ANTES de abrir la transacción
+    // para no mantener locks de BD abiertos durante una operación de red.
+    const expeditionPayload = this.buildExpeditionPayload(exploration);
+    const expeditionAiAnalysis =
+      await this.pythonAiService.analyzeExpedition(expeditionPayload);
 
-    await this.auditRepo.save(
-      this.auditRepo.create({
-        user_id: userId,
-        camp_id: exploration.camp_id,
-        action: "exploration_departed",
-        entity_type: "exploration",
-        entity_id: Number(exploration.id),
-        new_value: { departed_at: new Date() },
-        date: new Date(),
-      }),
-    );
+    const departedAt = new Date();
+    // El cambio de estado y el registro de auditoría se confirman juntos.
+    // Dentro de la transacción re-fetcheamos con pessimistic_write para
+    // serializar llamadas concurrentes: el segundo request verá
+    // status='in_progress' tras adquirir el lock y lanzará ConflictException.
+    await this.dataSource.transaction(async (manager) => {
+      const locked = await manager.findOne(Exploration, {
+        where: { id },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!locked || locked.status !== "scheduled") {
+        throw new ConflictException(
+          `Solo se pueden iniciar exploraciones programadas. Estado actual: ${locked?.status ?? "not found"}`,
+        );
+      }
+      locked.status = "in_progress";
+      locked.departure_date = departedAt;
+      await manager.save(locked);
+      await manager.save(
+        manager.create(AuditLog, {
+          user_id: userId,
+          camp_id: exploration.camp_id,
+          action: "exploration_departed",
+          entity_type: "exploration",
+          entity_id: Number(exploration.id),
+          new_value: {
+            departed_at: departedAt,
+            expedition_ai_analysis: expeditionAiAnalysis,
+          },
+          date: new Date(),
+        }),
+      );
+      // Propagar al objeto externo para que invalidateCampDashboardCache
+      // y findById vean el estado actualizado.
+      exploration.status = locked.status;
+      exploration.departure_date = locked.departure_date;
+    });
+
+    await this.invalidateCampDashboardCache(exploration.camp_id);
 
     return this.findById(Number(exploration.id));
+  }
+
+  private buildExpeditionPayload(
+    exploration: Exploration,
+  ): Record<string, unknown> {
+    const explorers = (exploration.explorationPersons ?? []).map((ep) => ({
+      id: Number(ep.person_id),
+      role: ep.is_leader ? "leader" : "member",
+      health_status: this.resolveHealthStatus(ep.person),
+      achievements: Array.isArray(ep.person?.achievements)
+        ? ep.person.achievements.map((pa: any) =>
+            typeof pa === "string" ? pa : pa.achievement_name,
+          )
+        : [],
+    }));
+
+    const avgHealth = explorers.length
+      ? explorers.reduce((sum, person) => sum + person.health_status, 0) /
+        explorers.length
+      : 75;
+
+    const avgExperience = (exploration.explorationPersons ?? []).length
+      ? (exploration.explorationPersons ?? []).reduce(
+          (sum, ep) => sum + Number(ep.person?.experience_level ?? 1),
+          0,
+        ) / (exploration.explorationPersons ?? []).length
+      : 1;
+
+    return {
+      objective: exploration.destination_description ?? exploration.name,
+      difficulty: this.resolveDifficulty(exploration),
+      group_size: explorers.length,
+      leaders: explorers.filter((person) => person.role === "leader").length,
+      avg_experience: Number(avgExperience.toFixed(2)),
+      duration_days: Number(exploration.estimated_days ?? 1),
+      avg_health: Number(avgHealth.toFixed(2)),
+      explorers,
+    };
+  }
+
+  private resolveHealthStatus(person?: Person): number {
+    if (!person) {
+      return 75;
+    }
+
+    if (person.status === PersonStatus.SICK) {
+      return 40;
+    }
+
+    if (person.status === PersonStatus.INJURED) {
+      return 60;
+    }
+
+    if (
+      person.status === PersonStatus.EXPLORING ||
+      person.status === PersonStatus.ACTIVE
+    ) {
+      return 85;
+    }
+
+    return person.can_work ? 80 : 70;
+  }
+
+  private resolveDifficulty(exploration: Exploration): number {
+    const duration = Number(exploration.estimated_days ?? 1);
+
+    if (duration >= 10) {
+      return 5;
+    }
+
+    if (duration >= 7) {
+      return 4;
+    }
+
+    if (duration >= 4) {
+      return 3;
+    }
+
+    if (duration >= 2) {
+      return 2;
+    }
+
+    return 1;
   }
 }
