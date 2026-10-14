@@ -8,8 +8,8 @@ import { Repository, DataSource } from "typeorm";
 import { Camp } from "./entities/camp.entity";
 import { Inventory } from "../resources/entities/inventory.entity";
 import { Resource } from "../resources/entities/resource.entity";
-import { CreateCampDto } from "./dto/create-camp.dto";
-import { UpdateCampDto } from "./dto/update-camp.dto";
+import type { CreateCampDto } from "./dto/create-camp.dto";
+import type { UpdateCampDto } from "./dto/update-camp.dto";
 
 @Injectable()
 export class CampsService {
@@ -69,6 +69,31 @@ export class CampsService {
   async findAll(): Promise<Camp[]> {
     return this.campRepo.find({
       where: { active: true },
+      order: { id: "ASC" },
+    });
+  }
+
+  async findMapMarkers(): Promise<
+    Pick<
+      Camp,
+      | "id"
+      | "name"
+      | "latitude"
+      | "longitude"
+      | "location_description"
+      | "max_capacity"
+    >[]
+  > {
+    return this.campRepo.find({
+      where: { active: true },
+      select: [
+        "id",
+        "name",
+        "latitude",
+        "longitude",
+        "location_description",
+        "max_capacity",
+      ],
       order: { id: "ASC" },
     });
   }
@@ -140,5 +165,3 @@ export class CampsService {
     return { message: `Campamento "${camp.name}" desactivado correctamente` };
   }
 }
-//Falta Middleware de contexto de campamento (requiere auth funcionando)
-//M�tricas de personas en findOne

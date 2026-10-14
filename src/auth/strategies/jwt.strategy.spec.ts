@@ -1,4 +1,5 @@
-import { Test, TestingModule } from "@nestjs/testing";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
 import { UnauthorizedException } from "@nestjs/common";
 import { JwtStrategy } from "./jwt.strategy";
@@ -45,16 +46,25 @@ describe("JwtStrategy", () => {
       role: { name: "USER" },
     };
 
-    const payload = { sub: 1, username: "testuser", role: "USER" };
+    const payload = {
+      sub: 1,
+      username: "testuser",
+      role: "USER",
+      email: "test@example.com",
+      camp_id: 7,
+    };
 
     usersService.findUserById.mockResolvedValueOnce(mockUser as any);
 
     const result = await strategy.validate(payload);
 
     expect(result).toEqual({
+      id: 1,
       userId: 1,
       username: "testuser",
+      email: "test@example.com",
       role: "USER",
+      camp_id: 7,
     });
     expect(usersService.findUserById).toHaveBeenCalledWith(1);
   });

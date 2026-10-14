@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
 
 @Entity("role")
 export class Role {
@@ -6,11 +12,17 @@ export class Role {
   id: number;
 
   /**
-   * Values: "admin" | "worker" | "resource_manager" | "travel_comms"
+   * Values: "admin" | "worker" | "resource_manager" | "travel_manager" | "camp_leader"
    */
   @Column({ type: "text", unique: true })
   name: string;
 
   @Column({ type: "text", nullable: true })
   description: string;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

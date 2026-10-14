@@ -1,4 +1,13 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import {
+  Index,
+  Entity,
+  PrimaryColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { Camp } from "../../camps/entities/camp.entity";
 import { Resource } from "./resource.entity";
 
@@ -22,11 +31,19 @@ export class Inventory {
   @Column({ type: "timestamptz", nullable: true })
   last_update: Date;
 
+  @Index()
   @ManyToOne(() => Camp)
   @JoinColumn({ name: "camp_id" })
   camp: Camp;
 
+  @Index()
   @ManyToOne(() => Resource, (r) => r.inventories)
   @JoinColumn({ name: "resource_id" })
   resource: Resource;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

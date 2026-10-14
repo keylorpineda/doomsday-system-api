@@ -1,4 +1,13 @@
-﻿import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+﻿import {
+  Index,
+  Entity,
+  PrimaryColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { IntercampRequest } from "./intercamp-request.entity";
 import { Person } from "../../users/entities/person.entity";
 
@@ -16,11 +25,19 @@ export class RequestPersonDetail {
   @Column({ type: "text", default: "pending" })
   transfer_status: string;
 
+  @Index()
   @ManyToOne(() => IntercampRequest, (r) => r.personDetails)
   @JoinColumn({ name: "request_id" })
   request: IntercampRequest;
 
+  @Index()
   @ManyToOne(() => Person)
   @JoinColumn({ name: "person_id" })
   person: Person;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

@@ -1,4 +1,4 @@
-﻿import { Controller, Get } from "@nestjs/common";
+import { Controller, Get } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { Public } from "../auth/decorators/public.decorator";
 import { HealthService } from "./health.service";
@@ -11,7 +11,7 @@ export class HealthController {
   @Public()
   @Get()
   @ApiOperation({
-    summary: "Health check endpoint - Verifica que la API est� activa",
+    summary: "Health check endpoint - Verifica que la API esta activa",
   })
   @ApiResponse({ status: 200, description: "API funcionando correctamente" })
   check() {
@@ -43,5 +43,16 @@ export class HealthController {
       timestampUnix: Math.floor(now.getTime() / 1000),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
+  }
+
+  @Public()
+  @Get("shutdown")
+  @ApiOperation({ summary: "Graceful shutdown for coverage generation" })
+  shutdown() {
+    if (process.env.NODE_ENV !== "production") {
+      setTimeout(() => process.exit(0), 500);
+      return { status: "shutting down" };
+    }
+    return { status: "ignored in production" };
   }
 }

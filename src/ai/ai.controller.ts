@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -15,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiParam,
+  ApiBody,
 } from "@nestjs/swagger";
 import { AiService } from "./ai.service";
 import { SubmitAdmissionDto } from "./dto/submit-admission.dto";
@@ -28,6 +30,8 @@ import { Public } from "../auth/decorators/public.decorator";
 @Controller("ai")
 export class AiController {
   constructor(private readonly aiService: AiService) {}
+
+  // ── Public ────────────────────────────────────────────────────────────────
 
   @Public()
   @Post("admissions/submit")
@@ -45,13 +49,46 @@ export class AiController {
     return this.aiService.trackAdmission(code);
   }
 
+  @Public()
+  @Post("admissions/complete-registration")
+  @ApiOperation({ summary: "Complete registration using email token" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        token: { type: "string" },
+        username: { type: "string" },
+        password: { type: "string" },
+        email: { type: "string" },
+      },
+    },
+  })
+  async completeRegistration(
+    @Body()
+    body: {
+      token: string;
+      username: string;
+      password: string;
+      email: string;
+    },
+  ) {
+    const dto = new CreateUserAccountDto();
+    dto.username = body.username;
+    dto.password = body.password;
+    dto.email = body.email;
+    dto.role_id = 2; // Default worker role
+    return this.aiService.completeRegistrationFromToken(body.token, dto);
+  }
+
+  // ── Admin: pending (human review queue) ──────────────────────────────────
+
   @ApiBearerAuth()
   @Get("admissions/pending")
-  @Roles("admin", "gestor_recursos")
-  @ApiOperation({ summary: "Get pending admissions for review" })
+  @Roles("admin", "resource_manager", "camp_leader", "travel_manager")
+  @ApiOperation({ summary: "Get pending admissions waiting for human review" })
   @ApiQuery({ name: "campId", required: false, description: "Filter by camp" })
-  @ApiQuery({ name: "page", required: false, description: "Page number" })
-  @ApiQuery({ name: "limit", required: false, description: "Items per page" })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "limit", required: false })
   async getPendingAdmissions(
     @Query("campId") campId?: string,
     @Query("page") page?: string,
@@ -64,31 +101,87 @@ export class AiController {
     );
   }
 
+  // ── Admin: auto-decided (for admin to review & archive) ───────────────────
+
+  @ApiBearerAuth()
+  @Get("admissions/auto-decided")
+  @Roles("admin", "resource_manager", "camp_leader", "travel_manager")
+  @ApiOperation({
+    summary:
+      "Get auto-accepted and auto-rejected admissions for admin visibility",
+  })
+  @ApiQuery({ name: "campId", required: false, description: "Filter by camp" })
+  @ApiQuery({
+    name: "archived",
+    required: false,
+    description: "true to see archived, false (default) for active",
+  })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  async getAutoDecidedAdmissions(
+    @Query("campId") campId?: string,
+    @Query("archived") archived?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.aiService.getAutoDecidedAdmissions({
+      campId: campId ? parseInt(campId) : undefined,
+      archived: archived === "true",
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 20,
+    });
+  }
+
+  // ── Admin: detail ─────────────────────────────────────────────────────────
+
   @ApiBearerAuth()
   @Get("admissions/:id")
-  @Roles("admin", "gestor_recursos")
+  @Roles("admin", "resource_manager", "camp_leader", "travel_manager")
   @ApiOperation({ summary: "Get admission detail" })
   @ApiParam({ name: "id", description: "Admission ID" })
   async getAdmissionDetail(@Param("id", ParseIntPipe) id: number) {
     return this.aiService.getAdmissionDetail(id);
   }
 
+  // ── Admin: manual review ──────────────────────────────────────────────────
+
   @ApiBearerAuth()
   @Post("admissions/:id/review")
-  @Roles("admin")
-  @ApiOperation({ summary: "Review and accept/reject admission" })
+  @Roles("admin", "camp_leader", "travel_manager", "resource_manager")
+  @ApiOperation({
+    summary: "Manually accept or reject a PENDING_REVIEW admission",
+  })
   @ApiParam({ name: "id", description: "Admission ID" })
   async reviewAdmission(
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: ReviewAdmissionDto,
     @CurrentUser() user: any,
   ) {
-    return this.aiService.reviewAdmission(id, dto, user.userId);
+    return this.aiService.reviewAdmission(id, dto, user.id);
   }
+
+  // ── Admin: archive ────────────────────────────────────────────────────────
+
+  @ApiBearerAuth()
+  @Patch("admissions/:id/archive")
+  @Roles("admin", "camp_leader", "travel_manager", "resource_manager")
+  @ApiOperation({
+    summary:
+      "Archive a completed admission (auto or manual) so it leaves the active list",
+  })
+  @ApiParam({ name: "id", description: "Admission ID" })
+  async archiveAdmission(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.aiService.archiveAdmission(id, user.id);
+  }
+
+  // ── Admin: create account for accepted person ─────────────────────────────
 
   @ApiBearerAuth()
   @Post("admissions/:id/create-account")
-  @Roles("admin")
+  @Roles("admin", "camp_leader", "travel_manager", "resource_manager")
   @ApiOperation({ summary: "Create user account for accepted person" })
   @ApiParam({ name: "id", description: "Admission ID" })
   async createUserAccount(

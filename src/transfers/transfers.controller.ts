@@ -27,7 +27,13 @@ export class TransfersController {
   constructor(private readonly transfersService: TransfersService) {}
 
   @Post("requests")
-  @Roles("admin", "gestor_recursos", "encargado_viajes")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "travel_manager",
+    "camp_leader",
+    "resource_manager",
+  )
   @ApiOperation({
     summary: "Crear solicitud de transferencia inter-campamento",
   })
@@ -38,15 +44,25 @@ export class TransfersController {
     return this.transfersService.createRequest(dto, user.userId);
   }
 
-  @Get("requests/:id")
-  @Roles("admin", "gestor_recursos", "encargado_viajes", "trabajador")
-  @ApiOperation({ summary: "Obtener detalle de solicitud de transferencia" })
-  async getRequest(@Param("id", ParseIntPipe) id: number) {
-    return this.transfersService.findRequestById(id);
+  @Get("requests/map")
+  @Roles("admin", "resource_manager", "travel_manager", "camp_leader")
+  @ApiOperation({
+    summary: "Transferencias activas para el mapa táctico",
+    description:
+      "Retorna id, camp_origin_id, camp_destination_id y type de todas las transferencias pending/approved/in_transit. Un solo request en lugar de N llamadas por campamento.",
+  })
+  async getActiveTransfersForMap() {
+    return this.transfersService.findActiveTransfersForMap();
   }
 
   @Get("requests/camp/:campId")
-  @Roles("admin", "gestor_recursos", "encargado_viajes")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "travel_manager",
+    "camp_leader",
+    "resource_manager",
+  )
   @ApiOperation({ summary: "Listar solicitudes de un campamento" })
   @ApiQuery({
     name: "role",
@@ -54,22 +70,71 @@ export class TransfersController {
     enum: ["origin", "destination"],
     description: "Filtrar por rol del campamento",
   })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    enum: [
+      "pending",
+      "approved",
+      "in_transit",
+      "completed",
+      "rejected",
+      "cancelled",
+    ],
+    description: "Filtrar por estado de la solicitud",
+  })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   async getRequestsByCamp(
     @Param("campId", ParseIntPipe) campId: number,
     @Query("role") role?: "origin" | "destination",
+    @Query("status") status?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.transfersService.findRequestsByCamp(campId, role);
+    return this.transfersService.findRequestsByCamp(
+      campId,
+      role,
+      status,
+      page ? +page : 1,
+      limit ? +limit : 20,
+    );
   }
 
   @Get("requests/camp/:campId/pending")
-  @Roles("admin", "gestor_recursos", "encargado_viajes")
-  @ApiOperation({ summary: "Solicitudes pendientes de aprobaci�n" })
+  @Roles(
+    "admin",
+    "resource_manager",
+    "travel_manager",
+    "camp_leader",
+    "resource_manager",
+  )
+  @ApiOperation({ summary: "Solicitudes pendientes de aprobacion" })
   async getPendingRequests(@Param("campId", ParseIntPipe) campId: number) {
     return this.transfersService.findPendingRequestsByCamp(campId);
   }
 
+  @Get("requests/:id")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "travel_manager",
+    "worker",
+    "resource_manager",
+  )
+  @ApiOperation({ summary: "Obtener detalle de solicitud de transferencia" })
+  async getRequest(@Param("id", ParseIntPipe) id: number) {
+    return this.transfersService.findRequestById(id);
+  }
+
   @Patch("requests/:id/approval")
-  @Roles("admin", "gestor_recursos", "encargado_viajes")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "travel_manager",
+    "camp_leader",
+    "resource_manager",
+  )
   @ApiOperation({ summary: "Aprobar o rechazar solicitud de transferencia" })
   async approveOrReject(
     @Param("id", ParseIntPipe) id: number,
@@ -80,7 +145,13 @@ export class TransfersController {
   }
 
   @Patch("requests/:id/cancel")
-  @Roles("admin", "gestor_recursos", "encargado_viajes")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "travel_manager",
+    "camp_leader",
+    "resource_manager",
+  )
   @ApiOperation({
     summary: "Cancelar solicitud pendiente (solo campamento origen)",
   })
@@ -92,7 +163,13 @@ export class TransfersController {
   }
 
   @Patch("requests/:id/arrive")
-  @Roles("admin", "gestor_recursos", "encargado_viajes", "trabajador")
+  @Roles(
+    "admin",
+    "resource_manager",
+    "travel_manager",
+    "worker",
+    "resource_manager",
+  )
   @ApiOperation({
     summary: "Registrar llegada de transferencia (solo campamento destino)",
   })
@@ -104,8 +181,14 @@ export class TransfersController {
   }
 
   @Get("statistics/:campId")
-  @Roles("admin", "gestor_recursos")
-  @ApiOperation({ summary: "Estad�sticas de transferencias del campamento" })
+  @Roles(
+    "admin",
+    "resource_manager",
+    "camp_leader",
+    "travel_manager",
+    "resource_manager",
+  )
+  @ApiOperation({ summary: "Estadisticas de transferencias del campamento" })
   async getStatistics(@Param("campId", ParseIntPipe) campId: number) {
     return this.transfersService.getTransferStatistics(campId);
   }

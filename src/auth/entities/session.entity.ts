@@ -1,9 +1,12 @@
 ﻿import {
+  Index,
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { UserAccount } from "../../users/entities/user-account.entity";
 
@@ -15,7 +18,10 @@ export class Session {
   @Column({ type: "bigint" })
   user_id: number;
 
-  @Column({ type: "text" })
+  // `select: false` keeps this column out of every default response (see
+  // docs/ALIGNMENT_SPEC.md P2-1). Refresh/logout flows opt-in via QueryBuilder
+  // + addSelect("s.token_hash") to bcrypt-compare.
+  @Column({ type: "text", select: false })
   token_hash: string;
 
   @Column({ type: "timestamptz" })
@@ -30,7 +36,14 @@ export class Session {
   @Column({ type: "boolean", default: true })
   is_active: boolean;
 
+  @Index()
   @ManyToOne(() => UserAccount, (ua) => ua.sessions)
   @JoinColumn({ name: "user_id" })
   user: UserAccount;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

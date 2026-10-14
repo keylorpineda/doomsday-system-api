@@ -3,6 +3,7 @@
 
 # Build
 /dist
+*.tsbuildinfo
 
 # Environment
 .env
@@ -41,3 +42,11 @@ pip-wheel-metadata/
 /.jest-cache
 /src/.jest-cache
 /.tmp
+/coverage-e2e
+/test-results
+/playwright-report
+/.nyc_output
+/.claude
+# AI Agent Configs
+.geminiignore
+ANTIGRAVITY_SKILLS.md

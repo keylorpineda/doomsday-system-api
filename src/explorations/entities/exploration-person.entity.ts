@@ -1,4 +1,13 @@
-﻿import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+﻿import {
+  Index,
+  Entity,
+  PrimaryColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { Exploration } from "./exploration.entity";
 import { Person } from "../../users/entities/person.entity";
 
@@ -16,11 +25,19 @@ export class ExplorationPerson {
   @Column({ type: "boolean", default: false })
   return_confirmed!: boolean;
 
+  @Index()
   @ManyToOne(() => Exploration, (e) => e.explorationPersons)
   @JoinColumn({ name: "exploration_id" })
   exploration!: Exploration;
 
+  @Index()
   @ManyToOne(() => Person)
   @JoinColumn({ name: "person_id" })
   person!: Person;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

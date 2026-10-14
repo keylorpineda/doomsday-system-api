@@ -16,6 +16,8 @@ import { Inventory } from "../resources/entities/inventory.entity";
 import { Resource } from "../resources/entities/resource.entity";
 import { InventoryMovement } from "../resources/entities/inventory-movement.entity";
 import { AuditLog } from "../common/entities/audit-log.entity";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { RedisModule } from "../redis/redis.module";
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { AuditLog } from "../common/entities/audit-log.entity";
       InventoryMovement,
       AuditLog,
     ]),
+    NotificationsModule,
+    RedisModule,
   ],
   controllers: [TransfersController],
   providers: [

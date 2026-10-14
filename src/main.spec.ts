@@ -15,6 +15,7 @@ describe("main bootstrap", () => {
     const use = jest.fn();
     const set = jest.fn();
     const useGlobalInterceptors = jest.fn();
+    const useWebSocketAdapter = jest.fn();
     const enableCors = jest.fn();
     const setGlobalPrefix = jest.fn();
     const useGlobalPipes = jest.fn();
@@ -24,6 +25,7 @@ describe("main bootstrap", () => {
       use,
       set,
       useGlobalInterceptors,
+      useWebSocketAdapter,
       enableCors,
       setGlobalPrefix,
       useGlobalPipes,
@@ -79,6 +81,9 @@ describe("main bootstrap", () => {
     jest.doMock("./common/interceptors/sanitize.interceptor", () => ({
       SanitizeInterceptor,
     }));
+    jest.doMock("./notifications/redis-io.adapter", () => ({
+      RedisIoAdapter: class RedisIoAdapter {},
+    }));
 
     await import("./main");
     await new Promise((resolve) => setImmediate(resolve));
@@ -129,12 +134,12 @@ describe("main bootstrap", () => {
     });
     expect(ctx.app.set).toHaveBeenCalledWith("trust proxy", 1);
     expect(ctx.app.enableCors).toHaveBeenCalledWith({
-      origin: ["http://localhost:3000"],
+      origin: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
-      credentials: false,
+      credentials: true,
     });
-    expect(ctx.app.setGlobalPrefix).toHaveBeenCalledWith("api");
+    expect(ctx.app.setGlobalPrefix).toHaveBeenCalledWith("api/v1");
     expect(ctx.ValidationPipe).toHaveBeenCalledWith({
       whitelist: true,
       transform: true,
@@ -143,15 +148,15 @@ describe("main bootstrap", () => {
     expect(ctx.app.useGlobalPipes).toHaveBeenCalledWith({
       kind: "validation-pipe",
     });
-    expect(ctx.setTitle).toHaveBeenCalledWith("Gesti�n del Fin API");
+    expect(ctx.setTitle).toHaveBeenCalledWith("Gestión del Fin API");
     expect(ctx.setDescription).toHaveBeenCalledWith(
-      "API del sistema de gesti�n de campamentos - Apocalipsis Zombie",
+      "API del sistema de gestión de campamentos - Apocalipsis Zombie",
     );
     expect(ctx.setVersion).toHaveBeenCalledWith("1.0");
     expect(ctx.addBearerAuth).toHaveBeenCalledTimes(1);
     expect(ctx.build).toHaveBeenCalledTimes(1);
     expect(ctx.createDocument).toHaveBeenCalledWith(ctx.app, { built: true });
-    expect(ctx.setup).toHaveBeenCalledWith("api/docs", ctx.app, {
+    expect(ctx.setup).toHaveBeenCalledWith("api/v1/docs", ctx.app, {
       openapi: "3.0.0",
     });
     expect(ctx.app.listen).toHaveBeenCalledWith(3000, "0.0.0.0");
@@ -172,11 +177,7 @@ describe("main bootstrap", () => {
     });
     expect(ctx.app.enableCors).toHaveBeenCalledWith(
       expect.objectContaining({
-        origin: [
-          "https://one.example",
-          "https://two.example",
-          "https://three.example",
-        ],
+        origin: true,
       }),
     );
     expect(ctx.app.listen).toHaveBeenCalledWith("4010", "0.0.0.0");

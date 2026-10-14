@@ -1,10 +1,12 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { ExecutionContext, CallHandler } from "@nestjs/common";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
+import type { ExecutionContext, CallHandler } from "@nestjs/common";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { JwtService } from "@nestjs/jwt";
 import { SessionActivityInterceptor } from "./session-activity.interceptor";
 import { Session } from "../entities/session.entity";
 import { firstValueFrom, of } from "rxjs";
+import { REDIS_CLIENT } from "../../redis/redis.constants";
 
 describe("SessionActivityInterceptor", () => {
   let interceptor: SessionActivityInterceptor;
@@ -25,6 +27,17 @@ describe("SessionActivityInterceptor", () => {
           provide: JwtService,
           useValue: {
             verify: jest.fn(),
+          },
+        },
+        {
+          provide: REDIS_CLIENT,
+          useValue: {
+            expire: jest.fn().mockResolvedValue(1),
+            // SET NX EX returns 'OK' → this request won the race → DB write proceeds
+            set: jest.fn().mockResolvedValue("OK"),
+            setex: jest.fn().mockResolvedValue("OK"),
+            del: jest.fn().mockResolvedValue(1),
+            exists: jest.fn().mockResolvedValue(1),
           },
         },
       ],
@@ -136,7 +149,7 @@ describe("SessionActivityInterceptor", () => {
     const stream = await interceptor.intercept(mockContext, mockCallHandler);
     await firstValueFrom(stream);
 
-    // No debe throws, solo continúa
+    // No debe throws, solo continua
     expect(mockCallHandler.handle).toHaveBeenCalled();
   });
 
@@ -163,7 +176,7 @@ describe("SessionActivityInterceptor", () => {
       const stream = await interceptor.intercept(mockContext, mockCallHandler);
       await firstValueFrom(stream);
     } catch (error) {
-      // Si hay error, verifica que el handle aún fue llamado después
+      // Si hay error, verifica que el handle aun fue llamado despues
     }
 
     expect(mockCallHandler.handle).toHaveBeenCalled();

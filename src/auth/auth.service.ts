@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -7,7 +12,10 @@ import * as bcrypt from "bcrypt";
 import { LoginAttempt } from "./entities/login-attempt.entity";
 import { Session } from "./entities/session.entity";
 import { UserAccount } from "../users/entities/user-account.entity";
-import { LoginDto } from "./dto/login.dto";
+import { Camp } from "../camps/entities/camp.entity";
+import type { LoginDto } from "./dto/login.dto";
+import { REDIS_CLIENT } from "../redis/redis.constants";
+import { Redis } from "ioredis";
 
 const SALT_ROUNDS = 12;
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -24,6 +32,9 @@ export class AuthService {
     private readonly sessionRepo: Repository<Session>,
     @InjectRepository(UserAccount)
     private readonly userRepo: Repository<UserAccount>,
+    @InjectRepository(Camp)
+    private readonly campRepo: Repository<Camp>,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
   async login(
@@ -34,11 +45,11 @@ export class AuthService {
     access_token: string;
     refresh_token: string;
     user: {
-      id: number;
+      id: string;
       username: string;
       email: string;
       role: string;
-      camp_id: number;
+      camp_id: string | null;
     };
   }> {
     const recentFailures = await this.countRecentFailures(ipAddress);
@@ -55,10 +66,16 @@ export class AuthService {
       );
     }
 
-    const user = await this.userRepo.findOne({
-      where: { username: dto.username },
-      relations: ["role", "camp", "person"],
-    });
+    // `password_hash` is `select: false`; QueryBuilder + addSelect opts back in
+    // just for the credential check. Default responses elsewhere stay scrubbed.
+    const user = await this.userRepo
+      .createQueryBuilder("u")
+      .addSelect("u.password_hash")
+      .leftJoinAndSelect("u.role", "role")
+      .leftJoinAndSelect("u.camp", "camp")
+      .leftJoinAndSelect("u.person", "person")
+      .where("u.username = :username", { username: dto.username })
+      .getOne();
 
     if (!user) {
       await this.logLoginAttempt({
@@ -68,19 +85,7 @@ export class AuthService {
         success: false,
         failure_reason: "User not found",
       });
-      throw new UnauthorizedException("Credenciales inv�lidas");
-    }
-
-    if (!user.is_active) {
-      await this.logLoginAttempt({
-        username: dto.username,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        success: false,
-        failure_reason: "Inactive user",
-        user_id: Number(user.id),
-      });
-      throw new UnauthorizedException("Usuario inactivo");
+      throw new UnauthorizedException("Credenciales inválidas");
     }
 
     const isPasswordValid = await this.verifyPassword(
@@ -97,7 +102,7 @@ export class AuthService {
         failure_reason: "Invalid password",
         user_id: Number(user.id),
       });
-      throw new UnauthorizedException("Credenciales inv�lidas");
+      throw new UnauthorizedException("Credenciales inválidas");
     }
 
     const payload = {
@@ -105,7 +110,7 @@ export class AuthService {
       username: user.username,
       email: user.email,
       role: user.role?.name,
-      campId: user.camp_id,
+      camp_id: user.camp_id,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -126,6 +131,11 @@ export class AuthService {
       }),
     );
 
+    // Guardar sesión en Redis para timeout de inactividad de 20 mins (1200 seg)
+    await this.safeRedis(() =>
+      this.redis.setex(`session:${user.id}`, 1200, "active"),
+    );
+
     user.last_access = new Date();
     await this.userRepo.save(user);
 
@@ -141,20 +151,23 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
       user: {
-        id: Number(user.id),
+        id: String(user.id),
         username: user.username,
         email: user.email,
         role: user.role?.name ?? "unknown",
-        camp_id: Number(user.camp_id),
+        camp_id: user.camp_id == null ? null : String(user.camp_id),
       },
     };
   }
 
   async logout(userId: number, refreshToken?: string): Promise<void> {
     if (refreshToken) {
-      const sessions = await this.sessionRepo.find({
-        where: { user_id: userId, is_active: true },
-      });
+      const sessions = await this.sessionRepo
+        .createQueryBuilder("s")
+        .addSelect("s.token_hash")
+        .where("s.user_id = :userId", { userId })
+        .andWhere("s.is_active = true")
+        .getMany();
 
       for (const session of sessions) {
         const isMatch = await this.verifyPassword(
@@ -174,6 +187,9 @@ export class AuthService {
       { user_id: userId, is_active: true },
       { is_active: false, auto_logout: false },
     );
+
+    // Eliminar sesión de Redis
+    await this.safeRedis(() => this.redis.del(`session:${userId}`));
   }
 
   async refresh(refreshToken: string): Promise<{
@@ -185,12 +201,15 @@ export class AuthService {
     try {
       payload = this.jwtService.verify(refreshToken);
     } catch (error) {
-      throw new UnauthorizedException("Refresh token inv�lido o expirado");
+      throw new UnauthorizedException("Refresh token inválido o expirado");
     }
 
-    const sessions = await this.sessionRepo.find({
-      where: { user_id: payload.sub, is_active: true },
-    });
+    const sessions = await this.sessionRepo
+      .createQueryBuilder("s")
+      .addSelect("s.token_hash")
+      .where("s.user_id = :userId", { userId: payload.sub })
+      .andWhere("s.is_active = true")
+      .getMany();
 
     let validSession: Session | null = null;
 
@@ -206,13 +225,13 @@ export class AuthService {
     }
 
     if (!validSession) {
-      throw new UnauthorizedException("Sesi�n inv�lida o expirada");
+      throw new UnauthorizedException("Sesión inv�lida o expirada");
     }
 
     if (new Date() > validSession.expires_at) {
       validSession.is_active = false;
       await this.sessionRepo.save(validSession);
-      throw new UnauthorizedException("Sesi�n expirada");
+      throw new UnauthorizedException("Sesión expirada");
     }
 
     const user = await this.userRepo.findOne({
@@ -244,9 +263,102 @@ export class AuthService {
     validSession.expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await this.sessionRepo.save(validSession);
 
+    // Actualizar sesión en Redis
+    await this.safeRedis(() =>
+      this.redis.setex(`session:${user.id}`, 1200, "active"),
+    );
+
     return {
       access_token: newAccessToken,
       refresh_token: newRefreshToken,
+    };
+  }
+
+  async switchCamp(
+    userId: number,
+    campId: number,
+  ): Promise<{
+    access_token: string;
+    refresh_token: string;
+    user: {
+      id: string;
+      username: string;
+      email: string;
+      role: string;
+      camp_id: string;
+    };
+  }> {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: ["role", "camp", "person"],
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("Usuario no encontrado");
+    }
+
+    const camp = await this.campRepo.findOne({
+      where: { id: campId, active: true },
+    });
+
+    if (!camp) {
+      throw new NotFoundException(`Campamento con ID ${campId} no encontrado`);
+    }
+
+    // Update only the touched columns; using save() on an entity loaded without
+    // password_hash (select:false) risks TypeORM nulling the hash column.
+    await this.userRepo.update(
+      { id: userId },
+      { camp_id: campId, last_access: new Date() },
+    );
+    user.camp_id = campId;
+
+    const payload = {
+      sub: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role?.name,
+      camp_id: campId,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get<string>("JWT_REFRESH_EXPIRES_IN", "7d"),
+    });
+
+    const tokenHash = await this.hashPassword(refreshToken);
+
+    await this.sessionRepo.update(
+      { user_id: userId, is_active: true },
+      { is_active: false, auto_logout: false },
+    );
+
+    await this.sessionRepo.save(
+      this.sessionRepo.create({
+        user_id: userId,
+        token_hash: tokenHash,
+        last_activity: new Date(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        is_active: true,
+        auto_logout: false,
+      }),
+    );
+
+    // Actualizar sesión en Redis
+    await this.safeRedis(() =>
+      this.redis.setex(`session:${userId}`, 1200, "active"),
+    );
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      user: {
+        id: String(user.id),
+        username: user.username,
+        email: user.email,
+        role: user.role?.name ?? "unknown",
+        camp_id: String(campId),
+      },
     };
   }
 
@@ -290,8 +402,20 @@ export class AuthService {
     return bcrypt.compare(plain, hash);
   }
 
+  private async safeRedis<T>(fn: () => Promise<T>): Promise<T | null> {
+    try {
+      return await fn();
+    } catch (err) {
+      console.warn(
+        "Redis operation failed, continuing without session tracking:",
+        (err as Error).message,
+      );
+      return null;
+    }
+  }
+
   /**
-   * Verifica el estado de la sesi�n del usuario
+   * Verifica el estado de la sesión del usuario
    * Retorna informaci�n sobre actividad y tiempo restante antes del auto-logout
    */
   async checkSessionStatus(userId: number): Promise<{
@@ -300,32 +424,34 @@ export class AuthService {
     minutesUntilExpiration: number;
     willExpireSoon: boolean;
   }> {
-    const session = await this.sessionRepo.findOne({
-      where: { user_id: userId, is_active: true },
-      order: { last_activity: "DESC" },
-    });
+    try {
+      const sessionExists = await this.redis.exists(`session:${userId}`);
+      if (!sessionExists) {
+        return {
+          isActive: false,
+          lastActivity: new Date(),
+          minutesUntilExpiration: 0,
+          willExpireSoon: false,
+        };
+      }
 
-    if (!session) {
+      const ttl = await this.redis.ttl(`session:${userId}`);
+      const minutesRemaining = Math.max(0, Math.floor(ttl / 60));
+
       return {
-        isActive: false,
+        isActive: true,
         lastActivity: new Date(),
-        minutesUntilExpiration: 0,
+        minutesUntilExpiration: minutesRemaining,
+        willExpireSoon: minutesRemaining <= 2,
+      };
+    } catch {
+      // Redis unavailable — report session as active to avoid false logouts
+      return {
+        isActive: true,
+        lastActivity: new Date(),
+        minutesUntilExpiration: 20,
         willExpireSoon: false,
       };
     }
-
-    const now = new Date();
-    const timeSinceLastActivity =
-      now.getTime() - session.last_activity.getTime();
-    const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutos
-    const timeRemaining = INACTIVITY_TIMEOUT_MS - timeSinceLastActivity;
-    const minutesRemaining = Math.max(0, Math.floor(timeRemaining / 60000));
-
-    return {
-      isActive: true,
-      lastActivity: session.last_activity,
-      minutesUntilExpiration: minutesRemaining,
-      willExpireSoon: minutesRemaining <= 2, // Advertir si quedan 2 min o menos
-    };
   }
 }

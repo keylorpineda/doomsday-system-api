@@ -1,4 +1,5 @@
 ﻿import {
+  Index,
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -6,6 +7,8 @@
   OneToOne,
   JoinColumn,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Camp } from "../../camps/entities/camp.entity";
 import { Person } from "./person.entity";
@@ -34,11 +37,11 @@ export class UserAccount {
   @Column({ type: "text", unique: true })
   email: string;
 
-  @Column({ type: "text" })
+  // `select: false` keeps this column out of every default response (see
+  // docs/ALIGNMENT_SPEC.md P2-1). Auth flows that need the hash for bcrypt
+  // comparison must opt-in via QueryBuilder + addSelect("u.password_hash").
+  @Column({ type: "text", select: false })
   password_hash: string;
-
-  @Column({ type: "boolean", default: true })
-  is_active: boolean;
 
   @Column({ type: "timestamptz", nullable: true })
   last_access: Date;
@@ -49,6 +52,7 @@ export class UserAccount {
   @Column({ type: "text", nullable: true })
   avatar_public_id: string;
 
+  @Index()
   @ManyToOne(() => Camp, (c) => c.userAccounts)
   @JoinColumn({ name: "camp_id" })
   camp: Camp;
@@ -57,6 +61,7 @@ export class UserAccount {
   @JoinColumn({ name: "person_id" })
   person: Person;
 
+  @Index()
   @ManyToOne(() => Role)
   @JoinColumn({ name: "role_id" })
   role: Role;
@@ -69,4 +74,14 @@ export class UserAccount {
 
   @OneToMany(() => UserAsset, (ua) => ua.userAccount)
   userAssets: UserAsset[];
+
+  @Index()
+  @Column({ type: "text", default: "ACTIVE" })
+  status: string;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updated_at: Date;
 }

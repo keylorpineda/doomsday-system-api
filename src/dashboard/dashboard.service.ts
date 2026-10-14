@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import {
@@ -7,44 +9,60 @@ import {
   InventoryAlertView,
   TransferCampSummaryView,
   ExplorationSummaryView,
+  PersonStatusStatsView,
   PersonProfessionStatsView,
 } from "../database/views";
 
 interface CampMetrics {
-  totalPeople: number;
-  activeWorkers: number;
-  unavailablePeople: number;
-  campCapacity: number | null;
-  occupancyRate: number | null;
-  activeExplorations: number;
-  emptyProfessions: string[];
+  total_people: number;
+  active_workers: number;
+  unavailable_people: number;
+  camp_capacity: number | null;
+  occupancy_rate: number | null;
+  active_explorations: number;
+  empty_professions: string[];
 }
 
 interface WarehouseMetrics {
-  totalResourceTypes: number;
-  resourcesWithAlerts: number;
-  inventoryTotalQuantity: number;
-  criticalResources: Array<{
-    resourceId: number;
-    resourceName: string;
-    currentQuantity: number;
-    minimumRequired: number;
+  total_resource_types: number;
+  resources_with_alerts: number;
+  inventory_total_quantity: number;
+  critical_resources: Array<{
+    resource_id: number;
+    resource_name: string;
+    current_quantity: number;
+    minimum_required: number;
   }>;
 }
 
 interface TransfersMetrics {
-  pendingTransfers: number;
-  approvedTransfers: number;
-  completedTransfers: number;
+  pending_transfers: number;
+  approved_transfers: number;
+  completed_transfers: number;
 }
 
 export interface DashboardMetricsResponse {
-  campId: number;
+  camp_id: number;
   role: string;
-  generatedAt: Date;
+  generated_at: Date;
   camp: CampMetrics;
   warehouse: WarehouseMetrics | null;
   transfers: TransfersMetrics;
+}
+
+export interface CampLeaderboardEntry {
+  camp_id: number;
+  camp_name: string;
+  survival_score: number;
+  resources: {
+    food_rations: number;
+    water_rations: number;
+  };
+  population: {
+    healthy: number;
+    sick: number;
+    deceased: number;
+  };
 }
 
 @Injectable()
@@ -60,14 +78,127 @@ export class DashboardService {
     private readonly transferSummaryView: Repository<TransferCampSummaryView>,
     @InjectRepository(ExplorationSummaryView)
     private readonly explorationSummaryView: Repository<ExplorationSummaryView>,
+    @InjectRepository(PersonStatusStatsView)
+    private readonly personStatusStatsView: Repository<PersonStatusStatsView>,
     @InjectRepository(PersonProfessionStatsView)
     private readonly professionStatsView: Repository<PersonProfessionStatsView>,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
+
+  async getCampLeaderboard(): Promise<CampLeaderboardEntry[]> {
+    const activeCamps = await this.campPopulationView.find({
+      order: { camp_id: "ASC" },
+    });
+
+    if (!activeCamps.length) {
+      return [];
+    }
+
+    const [inventoryRows, personStatusRows] = await Promise.all([
+      this.inventoryStatusView.find(),
+      this.personStatusStatsView.find(),
+    ]);
+
+    const rationByCamp = new Map<number, { food: number; water: number }>();
+    for (const row of inventoryRows) {
+      const campId = Number(row.camp_id);
+      if (!Number.isInteger(campId)) {
+        continue;
+      }
+
+      const current = rationByCamp.get(campId) ?? { food: 0, water: 0 };
+      const quantity = Number(row.current_quantity) || 0;
+      const category = String(row.resource_category ?? "").toLowerCase();
+
+      if (category === "food") {
+        current.food += quantity;
+      }
+
+      if (category === "water") {
+        current.water += quantity;
+      }
+
+      rationByCamp.set(campId, current);
+    }
+
+    const populationByCamp = new Map<
+      number,
+      { healthy: number; sick: number; deceased: number }
+    >();
+    for (const row of personStatusRows) {
+      const campId = Number(row.camp_id);
+      if (!Number.isInteger(campId)) {
+        continue;
+      }
+
+      const current = populationByCamp.get(campId) ?? {
+        healthy: 0,
+        sick: 0,
+        deceased: 0,
+      };
+      const status = String(row.status ?? "").toLowerCase();
+      const personCount = Number(row.person_count) || 0;
+
+      if (status === "active") {
+        current.healthy += personCount;
+      } else if (status === "sick") {
+        current.sick += personCount;
+      } else if (status === "deceased") {
+        current.deceased += personCount;
+      }
+
+      populationByCamp.set(campId, current);
+    }
+
+    return activeCamps
+      .map((camp): CampLeaderboardEntry => {
+        const campId = Number(camp.camp_id);
+        const resources = rationByCamp.get(campId) ?? { food: 0, water: 0 };
+        const population = populationByCamp.get(campId) ?? {
+          healthy: 0,
+          sick: 0,
+          deceased: 0,
+        };
+
+        const survivalScore =
+          resources.food +
+          resources.water +
+          population.healthy * 50 -
+          population.sick * 20 -
+          population.deceased * 100;
+
+        return {
+          camp_id: campId,
+          camp_name: camp.camp_name,
+          survival_score: survivalScore,
+          resources: {
+            food_rations: resources.food,
+            water_rations: resources.water,
+          },
+          population,
+        };
+      })
+      .sort((a, b) => b.survival_score - a.survival_score)
+      .slice(0, 10);
+  }
 
   async getMetricsByCamp(
     campId: number,
     role: string,
   ): Promise<DashboardMetricsResponse> {
+    const cacheKey = `dashboard:metrics:${campId}:${role}`;
+    let cachedMetrics: DashboardMetricsResponse | undefined;
+    try {
+      cachedMetrics =
+        await this.cacheManager.get<DashboardMetricsResponse>(cacheKey);
+    } catch {
+      cachedMetrics = undefined;
+    }
+
+    if (cachedMetrics) {
+      return cachedMetrics;
+    }
+
     const campPopulation = await this.campPopulationView.findOne({
       where: { camp_id: campId },
     });
@@ -80,14 +211,22 @@ export class DashboardService {
     const warehouse = await this.buildWarehouseMetrics(campId);
     const transfers = await this.buildTransferMetrics(campId);
 
-    return {
-      campId,
+    const metrics: DashboardMetricsResponse = {
+      camp_id: campId,
       role,
-      generatedAt: new Date(),
+      generated_at: new Date(),
       camp: campMetrics,
       warehouse,
       transfers,
     };
+
+    try {
+      await this.cacheManager.set(cacheKey, metrics);
+    } catch {
+      // Cache is best-effort; do not fail dashboard response if cache backend is down.
+    }
+
+    return metrics;
   }
 
   private async buildCampMetrics(
@@ -109,15 +248,15 @@ export class DashboardService {
       .map((p) => p.profession_name);
 
     return {
-      totalPeople: Number(campPopulation.total_people),
-      activeWorkers: Number(campPopulation.active_workers),
-      unavailablePeople: Number(campPopulation.unavailable_people),
-      campCapacity: campPopulation.max_capacity,
-      occupancyRate: campPopulation.occupancy_rate
+      total_people: Number(campPopulation.total_people),
+      active_workers: Number(campPopulation.active_workers),
+      unavailable_people: Number(campPopulation.unavailable_people),
+      camp_capacity: campPopulation.max_capacity,
+      occupancy_rate: campPopulation.occupancy_rate
         ? Number(campPopulation.occupancy_rate)
         : null,
-      activeExplorations,
-      emptyProfessions,
+      active_explorations: activeExplorations,
+      empty_professions: emptyProfessions,
     };
   }
 
@@ -137,10 +276,10 @@ export class DashboardService {
     });
 
     const criticalResources = criticalResourcesView.map((item) => ({
-      resourceId: Number(item.resource_id),
-      resourceName: item.resource_name,
-      currentQuantity: Number(item.current_quantity),
-      minimumRequired: Number(item.minimum_stock_required),
+      resource_id: Number(item.resource_id),
+      resource_name: item.resource_name,
+      current_quantity: Number(item.current_quantity),
+      minimum_required: Number(item.minimum_stock_required),
     }));
 
     const inventoryTotalQuantity = inventoryItems.reduce(
@@ -149,10 +288,10 @@ export class DashboardService {
     );
 
     return {
-      totalResourceTypes: inventoryItems.length,
-      resourcesWithAlerts: criticalResources.length,
-      inventoryTotalQuantity,
-      criticalResources,
+      total_resource_types: inventoryItems.length,
+      resources_with_alerts: criticalResources.length,
+      inventory_total_quantity: inventoryTotalQuantity,
+      critical_resources: criticalResources,
     };
   }
 
@@ -165,16 +304,16 @@ export class DashboardService {
 
     if (!transferSummary) {
       return {
-        pendingTransfers: 0,
-        approvedTransfers: 0,
-        completedTransfers: 0,
+        pending_transfers: 0,
+        approved_transfers: 0,
+        completed_transfers: 0,
       };
     }
 
     return {
-      pendingTransfers: Number(transferSummary.pending),
-      approvedTransfers: Number(transferSummary.approved),
-      completedTransfers: Number(transferSummary.completed),
+      pending_transfers: Number(transferSummary.pending),
+      approved_transfers: Number(transferSummary.approved),
+      completed_transfers: Number(transferSummary.completed),
     };
   }
 }
