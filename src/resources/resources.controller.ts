@@ -25,6 +25,7 @@ import { UpdateResourceDto } from "./dto/update-resource.dto";
 import { CreateInventoryMovementDto } from "./dto/create-inventory-movement.dto";
 import { AdjustDailyProductionDto } from "./dto/adjust-daily-production.dto";
 import { UpdateInventoryDto } from "./dto/update-inventory.dto";
+import { EmitCampUpdate } from "../notifications/camp-update.decorator";
 
 @ApiTags("Resources")
 @ApiBearerAuth()
@@ -70,6 +71,7 @@ export class ResourcesController {
     return this.resourcesService.getInventoryAlerts(campId);
   }
 
+  @EmitCampUpdate("inventory")
   @Patch("inventory/:campId/:resourceId")
   @Roles("admin", "resource_manager", "travel_manager", "resource_manager")
   @ApiOperation({
@@ -84,6 +86,7 @@ export class ResourcesController {
     return this.resourcesService.updateInventory(campId, resourceId, dto);
   }
 
+  @EmitCampUpdate("inventory")
   @Post("inventory/initialize/:campId")
   @Roles("admin", "travel_manager", "resource_manager")
   @ApiOperation({
@@ -121,6 +124,7 @@ export class ResourcesController {
     );
   }
 
+  @EmitCampUpdate("inventory")
   @Post("movements")
   @Roles(
     "admin",
@@ -139,6 +143,7 @@ export class ResourcesController {
     return this.resourcesService.createMovement(dto, user?.userId);
   }
 
+  @EmitCampUpdate("inventory")
   @Post("daily-process/:campId")
   @Roles(
     "admin",
@@ -173,6 +178,7 @@ export class ResourcesController {
     return this.resourcesService.getProductionRanking(campId);
   }
 
+  @EmitCampUpdate("inventory")
   @Post("daily-production/:personId")
   @Roles(
     "admin",
