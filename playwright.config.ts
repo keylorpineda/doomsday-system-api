@@ -5,18 +5,18 @@ import { defineConfig } from "@playwright/test";
  * Proyecto: Gestion del Fin — Apocalipsis Zombie
  * Requerimiento no funcional: Pruebas E2E automaticas (enunciado)
  *
- * Para ejecutar: npm run test:playwright
- * Para ver reporte: npm run test:playwright:report
+ * Para ejecutar: pnpm test:playwright
+ * Para ver reporte: pnpm test:playwright:report
  *
  * Modos de ejecucion:
  *
  * 1. Contra servidor LOCAL (requiere Redis + BD corriendo):
- *      npm run test:playwright
+ *      pnpm test:playwright
  *    Playwright levanta el servidor NestJS automaticamente con `webServer`.
  *    Prerequisito: docker run -d -p 6379:6379 redis:alpine
  *
  * 2. Contra servidor REMOTO / Produccion:
- *      API_BASE_URL=https://doomsday-system-api.onrender.com/api/v1 npm run test:playwright
+ *      API_BASE_URL=https://doomsday-system-api.onrender.com/api/v1 pnpm test:playwright
  *    En este modo no se levanta ningun servidor local.
  */
 
@@ -56,7 +56,7 @@ export default defineConfig({
     ? undefined
     : {
         command:
-          "npx cross-env TS_NODE_TRANSPILE_ONLY=true nyc ts-node -r tsconfig-paths/register src/main.ts",
+          "pnpm exec cross-env TS_NODE_TRANSPILE_ONLY=true nyc ts-node -r tsconfig-paths/register src/main.ts",
         url: "http://localhost:3000/api/v1/health",
         reuseExistingServer: true,
         timeout: 90_000,
