@@ -133,8 +133,14 @@ describe("main bootstrap", () => {
       kind: "sanitize-interceptor",
     });
     expect(ctx.app.set).toHaveBeenCalledWith("trust proxy", 1);
+    // Solo body parsers + helmet: ningún middleware debe forzar el Content-Type
+    expect(ctx.app.use).toHaveBeenCalledTimes(4);
     expect(ctx.app.enableCors).toHaveBeenCalledWith({
-      origin: true,
+      origin: [
+        "http://localhost:5173",
+        "https://doomsday-system-ui.vercel.app",
+        "https://doomsday-system-ui-keylor-pineda-s-projects.vercel.app",
+      ],
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
@@ -177,7 +183,12 @@ describe("main bootstrap", () => {
     });
     expect(ctx.app.enableCors).toHaveBeenCalledWith(
       expect.objectContaining({
-        origin: true,
+        origin: expect.arrayContaining([
+          "https://doomsday-system-ui.vercel.app",
+          "https://one.example",
+          "https://two.example",
+          "https://three.example",
+        ]),
       }),
     );
     expect(ctx.app.listen).toHaveBeenCalledWith("4010", "0.0.0.0");
