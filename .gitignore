@@ -21,11 +21,11 @@ npm-debug.log*
 .idea/
 
 # Python virtual environment
-ai-microservice/venv/
-ai-microservice/.venv/
-ai-microservice/env/
-ai-microservice/.env
-ai-microservice/.env.*
+rules-engine/venv/
+rules-engine/.venv/
+rules-engine/env/
+rules-engine/.env
+rules-engine/.env.*
 __pycache__/
 *.pyc
 .pytest_cache/

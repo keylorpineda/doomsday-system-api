@@ -1,5 +1,5 @@
 """
-Microservicio IA — Inteligencia Artificial No Generativa
+Motor de reglas — Inteligencia Artificial No Generativa
 Sistema de Reglas Determinísticas ("Caja de Cristal")
 
 Puerto por defecto: 8000
@@ -26,7 +26,7 @@ PORT = int(os.environ.get("PORT", 8080))
 app = FastAPI(
     title="IA No Generativa — Sistema de Reglas (Caja de Cristal)",
     description=(
-        "Microservicio de Inteligencia Artificial Determinística para\n"
+        "Motor de reglas determinísticas (IA no generativa) para la\n"
         "gestión de campamentos post-apocalípticos.\n\n"
         "**Sin ML. Sin entrenamiento. Sin archivos .pkl.**\n"
         "Todas las decisiones son 100% auditables y trazables."
@@ -51,7 +51,7 @@ app.include_router(events.router)
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    """Verifica que el microservicio IA esté activo y spaCy cargado."""
+    """Verifica que el motor de reglas esté activo y spaCy cargado."""
     try:
         import spacy
         try:

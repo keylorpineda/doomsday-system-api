@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "Gestión del Fin - AI Microservice"
+    APP_NAME: str = "Gestión del Fin - Rules Engine"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     AI_SERVICE_PORT: int = 8000

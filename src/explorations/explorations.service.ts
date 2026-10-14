@@ -601,7 +601,7 @@ export class ExplorationsService {
       );
     }
 
-    // La llamada al microservicio de IA se hace ANTES de abrir la transacción
+    // La llamada al motor de reglas de IA se hace ANTES de abrir la transacción
     // para no mantener locks de BD abiertos durante una operación de red.
     const expeditionPayload = this.buildExpeditionPayload(exploration);
     const expeditionAiAnalysis =

@@ -1,4 +1,3 @@
-
 services:
   backend:
     build:
@@ -20,20 +19,20 @@ services:
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
-      - AI_SERVICE_URL=http://ai-microservice:8080
+      - AI_SERVICE_URL=http://rules-engine:8080
       - REDIS_HOST=redis
     ports:
       - "8080:8080"
     depends_on:
-      - ai-microservice
+      - rules-engine
       - redis
     restart: unless-stopped
 
-  ai-microservice:
+  rules-engine:
     build:
-      context: ./ai-microservice
+      context: ./rules-engine
       dockerfile: Dockerfile
-    container_name: ai-microservice
+    container_name: rules-engine
     environment:
       - PORT=8080
     ports:
