@@ -89,7 +89,7 @@ This API handles much more than simple CRUD (Create, Read, Update, Delete). It f
   Camps can dispatch scouting missions to find resources. The API manages the entire lifecycle: scheduling the departure, tracking the mission status as 'IN PROGRESS', and upon return, automatically calculating and injecting the newly found scavenged resources directly into the camp's inventory logs.
 
 - **🤖 AI Admissions & Human Review:**
-  When new survivors seek entry to a camp, the API sends their profile to an integrated external AI microservice. The AI evaluates their survival skills and provides a transparent justification. However, the system requires a final Human Review by a high-ranking user to override or confirm the admission, keeping humans safely in control of automated decisions.
+  When new survivors seek entry to a camp, the API scores their profile with a deterministic rules engine (NestJS plus a Python NLP rules engine). It evaluates their survival skills and provides a transparent justification. However, the system requires a final Human Review by a high-ranking user to override or confirm the admission, keeping humans safely in control of automated decisions.
 
 - **🛡️ Strict Payload Validation & Global Error Handling:**
   We use `class-validator` combined with Data Transfer Objects (DTOs). If a client sends a request missing required fields, or the data types are wrong (e.g., a string instead of a number for a resource quantity), the framework automatically intercepts the request. It throws a clean 400 Bad Request error with an explicit array of what failed, without ever executing the controller business logic.

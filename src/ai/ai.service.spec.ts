@@ -246,7 +246,7 @@ describe("AiService", () => {
       );
     });
 
-    it("should handle Python microservice unavailability", async () => {
+    it("should handle Python rules engine unavailability", async () => {
       const pythonService = module.get(PythonAiService);
       (pythonService.analyzeAdmission as jest.Mock).mockResolvedValue(null);
 

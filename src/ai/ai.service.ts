@@ -100,7 +100,7 @@ export class AiService {
       bestCampContext!,
     );
 
-    // ── Python NLP microservice ──────────────────────────────────────────────
+    // ── Motor de reglas Python (NLP) ──────────────────────────────────────────────
     const pythonResult = await this.pythonAiService.analyzeAdmission(dto);
 
     let finalScore = bestEvaluation!.score;
@@ -127,7 +127,7 @@ export class AiService {
       finalJustification = `${justification}\n\n${"-".repeat(64)}\nANALISIS IA (CAJA DE CRISTAL):\n${pythonResult.transparency_report}`;
     } else {
       this.logger.warn(
-        "Python AI microservice unavailable – using NestJS-only evaluation",
+        "Python rules engine unavailable – using NestJS-only evaluation",
       );
     }
 
@@ -157,7 +157,7 @@ export class AiService {
         combined_score: finalScore,
         scoring_method: pythonResult
           ? "combined_60_40 (NestJS 60% + Python NLP 40%)"
-          : "nestjs_only (Python microservice unavailable)",
+          : "nestjs_only (Python rules engine unavailable)",
         auto_decision: autoDecision ?? null,
       },
     });
