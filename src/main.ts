@@ -3,12 +3,12 @@ import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { json, urlencoded } from "express";
-import type { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import * as cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { SanitizeInterceptor } from "./common/interceptors/sanitize.interceptor";
 import { RedisIoAdapter } from "./notifications/redis-io.adapter";
+import { getAllowedOrigins } from "./common/config/cors.config";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -24,22 +24,15 @@ async function bootstrap() {
   app.use(cookieParser());
   app.use(helmet());
 
-  // Forzar UTF-8 en todas las respuestas JSON para que tildes y caracteres especiales lleguen correctamente
-  app.use((_req: Request, res: Response, next: NextFunction) => {
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    next();
-  });
+  // Express ya responde los JSON como "application/json; charset=utf-8".
+  // No forzar ese Content-Type globalmente: rompe los assets de Swagger UI.
 
   app.useGlobalInterceptors(new SanitizeInterceptor());
 
   app.useWebSocketAdapter(new RedisIoAdapter(app));
 
   app.enableCors({
-    origin: [
-      "http://localhost:5173", // Para desarrollo local
-      "https://doomsday-system-ui.vercel.app", // URL de producción en Vercel
-      "https://doomsday-system-ui-keylor-pineda-s-projects.vercel.app", // URL del proyecto actual en Vercel
-    ],
+    origin: getAllowedOrigins(),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
