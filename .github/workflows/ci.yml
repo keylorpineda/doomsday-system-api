@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: 20 # Igual que la imagen de producción (node:20-alpine)
+  NODE_VERSION: 22 # Igual que la imagen de producción (node:22-alpine)
   HUSKY: 0 # Los hooks de git no hacen falta en CI
 
 jobs:
@@ -33,21 +33,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Versión de pnpm tomada de "packageManager" en package.json
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci --no-audit --no-fund
+      - run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: npx eslint "{src,apps,libs}/**/*.ts"
+        run: pnpm exec eslint "{src,apps,libs}/**/*.ts"
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
       - name: Build
-        run: npm run build
+        run: pnpm build
 
   test:
     name: Unit tests (${{ matrix.shard }}/2)
@@ -60,21 +63,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Versión de pnpm tomada de "packageManager" en package.json
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci --no-audit --no-fund
+      - run: pnpm install --frozen-lockfile
 
       - name: Jest
-        run: npx jest --ci --silent --shard=${{ matrix.shard }}/2
+        run: pnpm exec jest --ci --silent --shard=${{ matrix.shard }}/2
+
+  # Construye la imagen de producción (la que despliega Render) para detectar
+  # antes del merge cualquier cambio que rompa el Dockerfile
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # Único check a marcar como requerido en la protección de ramas
   ci:
     name: CI
     if: always()
-    needs: [quality, test]
+    needs: [quality, test, docker]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all jobs passed

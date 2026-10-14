@@ -5,7 +5,7 @@
  * para probar todas las funcionalidades del sistema.
  *
  * Uso:
- *   npx ts-node -r tsconfig-paths/register src/database/seeds/main.seed.ts
+ *   pnpm exec ts-node -r tsconfig-paths/register src/database/seeds/main.seed.ts
  */
 import "reflect-metadata";
 import * as path from "path";

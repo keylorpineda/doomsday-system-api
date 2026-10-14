@@ -5,8 +5,10 @@ Este documento contiene toda la información ("bloques de datos") requerida para
 ## Formas de evaluar la API
 
 ### 1. Usando Swagger (Interfaz Gráfica)
+
 Si el proyecto NestJS tiene `@nestjs/swagger` configurado (como se ve en el código), puedes acceder a la documentación automática iterativa.
-1. Ejecuta el servidor de manera local (`npm run start:dev`).
+
+1. Ejecuta el servidor de manera local (`pnpm start:dev`).
 2. Abre tu navegador en [http://localhost:3000/api](http://localhost:3000/api) (o la ruta que hayas configurado en `main.ts` como `v1/docs` o `api`).
 3. Para cada endpoint:
    - Haz clic en el endpoint.
@@ -15,6 +17,7 @@ Si el proyecto NestJS tiene `@nestjs/swagger` configurado (como se ve en el cód
    - Haz clic en **"Execute"**.
 
 ### 2. Usando Postman
+
 1. Crea una variable de entorno en Postman llamada `{{base_url}}`.
    - Para local, su valor será `http://localhost:3000/api` (o `http://localhost:3000/api/v1`).
    - Para producción, su valor será el de Render, por ejemplo: `https://doomsday-system-api.onrender.com/api/v1`.
@@ -28,16 +31,18 @@ Si el proyecto NestJS tiene `@nestjs/swagger` configurado (como se ve en el cód
 Estos datos están pensados para insertarse en el siguiente orden lógico de dependencias.
 
 ### 1. Crear Campamentos (`POST /camps`)
+
 Necesitamos lugares antes de asignar personas o inventarios.
 
 **JSON (Postman - Body - Raw - JSON) / Swagger:**
+
 ```json
 {
   "name": "Campamento Alpha",
   "location_description": "Ubicado en las ruinas geográficas del antiguo centro.",
   "max_capacity": 500,
   "latitude": 40.7128,
-  "longitude": -74.0060,
+  "longitude": -74.006,
   "active": true
 }
 ```
@@ -54,9 +59,11 @@ Necesitamos lugares antes de asignar personas o inventarios.
 ```
 
 ### 2. Crear Profesiones (`POST /users/professions`)
+
 El personal de los refugios tendrá roles/oficios clave.
 
 **Rescatista:**
+
 ```json
 {
   "name": "Rescatista",
@@ -66,6 +73,7 @@ El personal de los refugios tendrá roles/oficios clave.
 ```
 
 **Médico:**
+
 ```json
 {
   "name": "Médico General",
@@ -75,6 +83,7 @@ El personal de los refugios tendrá roles/oficios clave.
 ```
 
 **Ingeniero Agrónomo:**
+
 ```json
 {
   "name": "Ingeniero Agrónomo",
@@ -84,6 +93,7 @@ El personal de los refugios tendrá roles/oficios clave.
 ```
 
 ### 3. Crear Personas (`POST /users/persons`)
+
 Añadir sobrevivientes. (Asegúrate de cambiar los IDs de `profession_id` por los que devolvió el paso anterior).
 
 ```json
@@ -114,6 +124,7 @@ Añadir sobrevivientes. (Asegúrate de cambiar los IDs de `profession_id` por lo
 ### 4. Crear Recursos Base (`POST /resources`)
 
 **Agua Potable:**
+
 ```json
 {
   "name": "Agua Tratada",
@@ -124,6 +135,7 @@ Añadir sobrevivientes. (Asegúrate de cambiar los IDs de `profession_id` por lo
 ```
 
 **Raciones de Comida (Latas):**
+
 ```json
 {
   "name": "Ración MRE (Comida enlatada)",
@@ -134,6 +146,7 @@ Añadir sobrevivientes. (Asegúrate de cambiar los IDs de `profession_id` por lo
 ```
 
 **Municiones:**
+
 ```json
 {
   "name": "Lata de munición 9mm",
@@ -144,6 +157,7 @@ Añadir sobrevivientes. (Asegúrate de cambiar los IDs de `profession_id` por lo
 ```
 
 **Antiobióticos:**
+
 ```json
 {
   "name": "Amoxicilina",
@@ -178,6 +192,7 @@ Añadir sobrevivientes. (Asegúrate de cambiar los IDs de `profession_id` por lo
 ```
 
 ### 6. Sistema de Autorización (Testing Flujo Completo) (`POST /auth/login`)
+
 Si usas el admin por defecto del sistema (AdminSeeder):
 
 ```json
@@ -188,12 +203,14 @@ Si usas el admin por defecto del sistema (AdminSeeder):
 ```
 
 O si corriste el script actualizado de la semilla SQL donde configuramos los de prueba:
+
 ```json
 {
   "username": "worker1",
   "password": "Password123!"
 }
 ```
+
 **Nota en Postman/Swagger:** El servidor te retornará un `access_token` (JWT). Debes añadir este token en Postman en la pestaña **Authorization -> Bearer Token**, y en Swagger dándole clic al botón **Authorize** en la esquina superior derecha de la interfaz.
 
 ---
@@ -201,6 +218,7 @@ O si corriste el script actualizado de la semilla SQL donde configuramos los de 
 ## 🌍 Ejemplos de uso para probar el resto de la App (Endpoints Específicos)
 
 ### 7. Enviar Solicitud de Admisión de AI (`POST /ai/admissions/submit`)
+
 Para simular un formulario de la nueva IA:
 
 ```json
@@ -219,6 +237,7 @@ Para simular un formulario de la nueva IA:
 ```
 
 ### 8. Crear Solicitud de Traslado / Expedición (`POST /transfers/requests`)
+
 Simular expedición de recursos hacia el campamento 2:
 
 ```json
@@ -229,7 +248,7 @@ Simular expedición de recursos hacia el campamento 2:
   "priority": "high",
   "resources": [
     {
-      "resource_id": 4, 
+      "resource_id": 4,
       "quantity": 10
     }
   ],
@@ -259,14 +278,14 @@ Simular expedición de recursos hacia el campamento 2:
 
 ## 📌 Guía Rápida: Postman vs Swagger
 
-| Acción | 🔴 Postman | 🟢 Swagger |
-| --- | --- | --- |
-| **Configurar Base URL** | Usas las variables de entorno `{{base_url}}`. | La URL base ya es la actual (no tienes que configurarla manual). |
-| **Autenticación (JWT)** | Solapa "Authorization", eliges "Bearer Token" y pegas el JWT. | Botón candado "Authorize" (arriba). Pegas y cierras. Se envía automático en la sesión. |
-| **JSON a Enviar** | Solapa "Body" -> Selector "raw" -> Selector "(JSON)" -> Pegas el bloque de texto. | Dentro del endpoint, click en "Try it out". Sustituyes el Request Body con el JSON. |
-| **Guardar Peticiones** | Debes crear colecciones manuales para guardar tu trabajo local. | Todo es estático documentado, te genera esquemas basados en los DTOs de NestJS. |
+| Acción                  | 🔴 Postman                                                                        | 🟢 Swagger                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Configurar Base URL** | Usas las variables de entorno `{{base_url}}`.                                     | La URL base ya es la actual (no tienes que configurarla manual).                       |
+| **Autenticación (JWT)** | Solapa "Authorization", eliges "Bearer Token" y pegas el JWT.                     | Botón candado "Authorize" (arriba). Pegas y cierras. Se envía automático en la sesión. |
+| **JSON a Enviar**       | Solapa "Body" -> Selector "raw" -> Selector "(JSON)" -> Pegas el bloque de texto. | Dentro del endpoint, click en "Try it out". Sustituyes el Request Body con el JSON.    |
+| **Guardar Peticiones**  | Debes crear colecciones manuales para guardar tu trabajo local.                   | Todo es estático documentado, te genera esquemas basados en los DTOs de NestJS.        |
 
-Estos JSON te permitirán crear desde la base la lógica completa de tu Backend de *Apolacalipsis Zombie / Gestión del fin*, probando desde la creación hasta las expediciones y consumo de inventarios.
+Estos JSON te permitirán crear desde la base la lógica completa de tu Backend de _Apolacalipsis Zombie / Gestión del fin_, probando desde la creación hasta las expediciones y consumo de inventarios.
 Admin Global (Campamento Alpha)
 
 Usuario: admin_z
