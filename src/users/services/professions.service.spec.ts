@@ -103,19 +103,29 @@ describe("ProfessionsService", () => {
     });
   });
 
+  const mockWorkerCounts = (professions: any[]) => {
+    const qb = {
+      loadRelationCountAndMap: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue(professions),
+    };
+    professionRepo.createQueryBuilder = jest.fn().mockReturnValue(qb);
+    return qb;
+  };
+
   describe("getProfessionsNeedingWorkers", () => {
     it("should return professions with deficit", async () => {
-      jest
-        .spyOn(service, "findAll")
-        .mockResolvedValue([
-          { id: 1, minimum_active_required: 5 } as any,
-          { id: 2, minimum_active_required: 2 } as any,
-        ]);
-      personsService.countActiveWorkers
-        .mockResolvedValueOnce(3) // For profession 1
-        .mockResolvedValueOnce(2); // For profession 2
+      const qb = mockWorkerCounts([
+        { id: 1, minimum_active_required: 5, activeWorkerCount: 3 },
+        { id: 2, minimum_active_required: 2, activeWorkerCount: 2 },
+      ]);
 
       const res = await service.getProfessionsNeedingWorkers();
+      expect(qb.loadRelationCountAndMap).toHaveBeenCalledWith(
+        "p.activeWorkerCount",
+        "p.persons",
+        "worker",
+        expect.any(Function),
+      );
       expect(res).toHaveLength(1);
       expect(res[0].deficit).toBe(2);
       expect(res[0].profession.id).toBe(1);
@@ -124,15 +134,10 @@ describe("ProfessionsService", () => {
 
   describe("getProfessionsWithExcess", () => {
     it("should return professions with excess", async () => {
-      jest
-        .spyOn(service, "findAll")
-        .mockResolvedValue([
-          { id: 1, minimum_active_required: 5 } as any,
-          { id: 2, minimum_active_required: 2 } as any,
-        ]);
-      personsService.countActiveWorkers
-        .mockResolvedValueOnce(5) // For profession 1
-        .mockResolvedValueOnce(4); // For profession 2
+      mockWorkerCounts([
+        { id: 1, minimum_active_required: 5, activeWorkerCount: 5 },
+        { id: 2, minimum_active_required: 2, activeWorkerCount: 4 },
+      ]);
 
       const res = await service.getProfessionsWithExcess();
       expect(res).toHaveLength(1);
