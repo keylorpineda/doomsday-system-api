@@ -19,6 +19,7 @@ import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { CreateIntercampRequestDto } from "./dto/create-intercamp-request.dto";
 import { ApprovalDto } from "./dto/approval.dto";
+import { EmitCampUpdate } from "../notifications/camp-update.decorator";
 
 @ApiTags("Transfers")
 @ApiBearerAuth()
@@ -26,6 +27,7 @@ import { ApprovalDto } from "./dto/approval.dto";
 export class TransfersController {
   constructor(private readonly transfersService: TransfersService) {}
 
+  @EmitCampUpdate("transfers")
   @Post("requests")
   @Roles(
     "admin",
@@ -127,6 +129,7 @@ export class TransfersController {
     return this.transfersService.findRequestById(id);
   }
 
+  @EmitCampUpdate("transfers", "inventory", "persons")
   @Patch("requests/:id/approval")
   @Roles(
     "admin",
@@ -144,6 +147,7 @@ export class TransfersController {
     return this.transfersService.approveOrRejectRequest(id, user.userId, dto);
   }
 
+  @EmitCampUpdate("transfers")
   @Patch("requests/:id/cancel")
   @Roles(
     "admin",
@@ -162,6 +166,7 @@ export class TransfersController {
     return this.transfersService.cancelRequest(id, user.userId);
   }
 
+  @EmitCampUpdate("transfers", "inventory", "persons")
   @Patch("requests/:id/arrive")
   @Roles(
     "admin",

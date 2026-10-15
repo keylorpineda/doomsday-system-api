@@ -1,26 +1,28 @@
 # Build stage
-# Cache buster: 2026-05-04T05:00:00
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# pnpm via corepack (version pinned by "packageManager" in package.json)
+RUN corepack enable
 
-# Install dependencies
-RUN npm ci
+# Copy manifest + lockfile first so the dependency layer is cached
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Install dependencies (dev dependencies included: the migration CLI needs ts-node)
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN pnpm build
 
 # Verify build output in builder stage
 RUN ls -la dist/
 
 # Production stage
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -28,9 +30,10 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Install all dependencies (needed for migration CLI)
-COPY --chown=nestjs:nodejs package*.json ./
-RUN npm ci && npm cache clean --force
+# Reuse the dependencies installed in the builder (same base image, so native
+# modules such as bcrypt are already compiled for it)
+COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 
 # Copy built application from builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
@@ -50,4 +53,4 @@ RUN ls -R dist | head -n 20
 EXPOSE 3000
 
 # Run migrations then start the app
-CMD ["sh", "-c", "npx typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts && node dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts && node dist/main.js"]

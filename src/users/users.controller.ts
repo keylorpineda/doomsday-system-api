@@ -26,6 +26,7 @@ import { UpdatePersonDto } from "./dto/update-person.dto";
 import { UpdatePersonStatusDto } from "./dto/update-person-status.dto";
 import { CreateTemporaryAssignmentDto } from "./dto/create-temporary-assignment.dto";
 import { CreateProfessionDto } from "./dto/create-profession.dto";
+import { EmitCampUpdate } from "../notifications/camp-update.decorator";
 
 @ApiTags("Users & Persons")
 @ApiBearerAuth()
@@ -109,6 +110,7 @@ export class UsersController {
     return this.usersService.findPersonById(id);
   }
 
+  @EmitCampUpdate("persons")
   @Post("persons")
   @Roles("admin", "camp_leader", "travel_manager", "resource_manager")
   @ApiOperation({ summary: "Crear una nueva persona (despues de admision)" })
@@ -116,6 +118,7 @@ export class UsersController {
     return this.usersService.createPerson(dto);
   }
 
+  @EmitCampUpdate("persons")
   @Put("persons/:id")
   @Roles(
     "admin",
@@ -132,6 +135,7 @@ export class UsersController {
     return this.usersService.updatePerson(id, dto);
   }
 
+  @EmitCampUpdate("persons")
   @Put("persons/:id/status")
   @Roles(
     "admin",
@@ -150,6 +154,7 @@ export class UsersController {
     return this.usersService.updatePersonStatus(id, dto);
   }
 
+  @EmitCampUpdate("persons")
   @Delete("persons/:id")
   @Roles("admin", "travel_manager", "resource_manager")
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -245,6 +250,7 @@ export class UsersController {
     return this.usersService.getProfessionsWithExcess();
   }
 
+  @EmitCampUpdate("persons")
   @Post("temporary-assignments")
   @Roles(
     "admin",
@@ -283,6 +289,7 @@ export class UsersController {
     );
   }
 
+  @EmitCampUpdate("persons")
   @Put("temporary-assignments/:id/end")
   @Roles("admin", "resource_manager", "travel_manager", "resource_manager")
   @ApiOperation({

@@ -29,6 +29,7 @@
 **Gestion del Fin** es una API REST backend para administrar campamentos de supervivencia humana en un apocalipsis zombie. El sistema es **multi-campamento**: varios campamentos comparten la misma plataforma pero cada uno maneja sus propios datos de inventario, personas y operaciones.
 
 **Funcionalidades principales:**
+
 - Admision de nuevas personas evaluada por Inteligencia Artificial con revision humana
 - Gestion de inventario con produccion/consumo automatico diario
 - Exploraciones fuera del campamento con gestion de raciones
@@ -40,25 +41,25 @@
 
 ## 2. Stack Tecnologico y Por Que Cada Herramienta
 
-| Herramienta | Rol | Por que se eligio |
-|------------|-----|-------------------|
-| **NestJS** | Framework backend principal | Arquitectura modular con inyeccion de dependencias. Escala bien para 14 modulos y 70+ endpoints sin volverse caotico como Express puro. Integracion nativa con TypeORM, Passport, Swagger y WebSocket. |
-| **TypeScript** | Lenguaje | Tipado estatico detecta errores en compilacion, no en produccion. Los DTOs con `class-validator` definen el contrato de entrada con decoradores. |
-| **PostgreSQL (Supabase)** | Base de datos | ACID para transacciones criticas (exploraciones, traslados). JOINs complejos entre 22 tablas. Soporte nativo de arrays (`achievements[]`) y JSONB. Supabase provee hosting gestionado con SSL. |
-| **TypeORM** | ORM | Integracion oficial con NestJS. Entidades como clases TypeScript con decoradores. QueryBuilder para consultas complejas. Soporte de `ViewEntity` para vistas SQL. |
-| **Redis (ioredis)** | Cache, sesiones, cola, pub/sub | TTL nativo para timeout de inactividad (20 min). Cache del dashboard (5 min). BullMQ requiere Redis para la cola de jobs. Socket.IO necesita Redis para escalar a multiples instancias. |
-| **BullMQ** | Cola de trabajos | El proceso diario de recursos debe correr exactamente una vez aunque haya multiples instancias del servidor. `@Cron` ejecuta en cada instancia (duplica el proceso). BullMQ garantiza ejecucion unica con Redis. |
-| **Socket.IO + Redis Adapter** | WebSocket | Notificaciones en tiempo real cuando un campamento recibe una solicitud de traslado. El adaptador Redis permite escalar horizontalmente: una instancia puede notificar a clientes de otra instancia. |
-| **JWT + Passport** | Autenticacion | Tokens stateless que cualquier instancia puede validar sin consultar BD. Dual token: access (20 min) + refresh (7 dias) con rotacion de seguridad. |
-| **bcrypt** | Hash de contrasenas | Hash con salt aleatoria y costo configurable. SHA-256 es rapido (malo para passwords). bcrypt es lento a proposito, haciendo ataques de diccionario impracticables. 12 rounds = ~250ms. |
-| **Cloudinary** | Imagenes | CDN global, transformaciones on-the-fly (thumbnails, avatares circulares). El servidor Render puede reiniciarse perdiendo archivos locales; Cloudinary persiste. |
-| **Helmet** | Headers HTTP de seguridad | Inyecta automaticamente `X-XSS-Protection`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy`. Una linea de codigo, multiples protecciones. |
-| **xss** | Sanitizacion de inputs | Elimina/escapa HTML malicioso de todos los inputs antes de procesarlos. Previene ataques XSS que podrian inyectar scripts en datos persistidos. |
-| **class-validator** | Validacion de DTOs | Validacion declarativa con decoradores (`@IsEmail`, `@Min`, `@IsEnum`). Con `whitelist: true` elimina campos no definidos en el DTO (previene mass assignment). |
-| **Swagger** | Documentacion | Generada automaticamente desde los decoradores del codigo: siempre actualizada. UI interactiva en `/api/v1/docs` para probar endpoints. |
-| **Jest + ts-jest** | Tests unitarios | 728 tests, 63 suites. Integracion nativa con NestJS (`TestingModule`). `ts-jest` transpila TypeScript sin compilacion previa. |
-| **Playwright** | Tests E2E | 44 tests contra la API real de produccion (sin browser). Verifica que todos los modulos integran correctamente. |
-| **Render** | Hosting | CI/CD automatico desde GitHub, HTTPS gestionado, variables de entorno seguras. Capa gratuita suficiente para el proyecto. |
+| Herramienta                   | Rol                            | Por que se eligio                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NestJS**                    | Framework backend principal    | Arquitectura modular con inyeccion de dependencias. Escala bien para 14 modulos y 70+ endpoints sin volverse caotico como Express puro. Integracion nativa con TypeORM, Passport, Swagger y WebSocket.           |
+| **TypeScript**                | Lenguaje                       | Tipado estatico detecta errores en compilacion, no en produccion. Los DTOs con `class-validator` definen el contrato de entrada con decoradores.                                                                 |
+| **PostgreSQL (Supabase)**     | Base de datos                  | ACID para transacciones criticas (exploraciones, traslados). JOINs complejos entre 22 tablas. Soporte nativo de arrays (`achievements[]`) y JSONB. Supabase provee hosting gestionado con SSL.                   |
+| **TypeORM**                   | ORM                            | Integracion oficial con NestJS. Entidades como clases TypeScript con decoradores. QueryBuilder para consultas complejas. Soporte de `ViewEntity` para vistas SQL.                                                |
+| **Redis (ioredis)**           | Cache, sesiones, cola, pub/sub | TTL nativo para timeout de inactividad (20 min). Cache del dashboard (5 min). BullMQ requiere Redis para la cola de jobs. Socket.IO necesita Redis para escalar a multiples instancias.                          |
+| **BullMQ**                    | Cola de trabajos               | El proceso diario de recursos debe correr exactamente una vez aunque haya multiples instancias del servidor. `@Cron` ejecuta en cada instancia (duplica el proceso). BullMQ garantiza ejecucion unica con Redis. |
+| **Socket.IO + Redis Adapter** | WebSocket                      | Notificaciones en tiempo real cuando un campamento recibe una solicitud de traslado. El adaptador Redis permite escalar horizontalmente: una instancia puede notificar a clientes de otra instancia.             |
+| **JWT + Passport**            | Autenticacion                  | Tokens stateless que cualquier instancia puede validar sin consultar BD. Dual token: access (20 min) + refresh (7 dias) con rotacion de seguridad.                                                               |
+| **bcrypt**                    | Hash de contrasenas            | Hash con salt aleatoria y costo configurable. SHA-256 es rapido (malo para passwords). bcrypt es lento a proposito, haciendo ataques de diccionario impracticables. 12 rounds = ~250ms.                          |
+| **Cloudinary**                | Imagenes                       | CDN global, transformaciones on-the-fly (thumbnails, avatares circulares). El servidor Render puede reiniciarse perdiendo archivos locales; Cloudinary persiste.                                                 |
+| **Helmet**                    | Headers HTTP de seguridad      | Inyecta automaticamente `X-XSS-Protection`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy`. Una linea de codigo, multiples protecciones.                                              |
+| **xss**                       | Sanitizacion de inputs         | Elimina/escapa HTML malicioso de todos los inputs antes de procesarlos. Previene ataques XSS que podrian inyectar scripts en datos persistidos.                                                                  |
+| **class-validator**           | Validacion de DTOs             | Validacion declarativa con decoradores (`@IsEmail`, `@Min`, `@IsEnum`). Con `whitelist: true` elimina campos no definidos en el DTO (previene mass assignment).                                                  |
+| **Swagger**                   | Documentacion                  | Generada automaticamente desde los decoradores del codigo: siempre actualizada. UI interactiva en `/api/v1/docs` para probar endpoints.                                                                          |
+| **Jest + ts-jest**            | Tests unitarios                | 728 tests, 63 suites. Integracion nativa con NestJS (`TestingModule`). `ts-jest` transpila TypeScript sin compilacion previa.                                                                                    |
+| **Playwright**                | Tests E2E                      | 44 tests contra la API real de produccion (sin browser). Verifica que todos los modulos integran correctamente.                                                                                                  |
+| **Render**                    | Hosting                        | CI/CD automatico desde GitHub, HTTPS gestionado, variables de entorno seguras. Capa gratuita suficiente para el proyecto.                                                                                        |
 
 ---
 
@@ -100,7 +101,7 @@
                                 │
                                 ▼
                      Python / FastAPI
-                     (Microservicio IA)
+                     (Motor de reglas)
                      spaCy + reglas NLP
 ```
 
@@ -160,16 +161,16 @@ audit_log → (user_account, camp) referencias
 
 Entidad raiz del sistema multi-campamento. Todo dato de inventario, personas y operaciones lleva `camp_id`.
 
-| Columna | Tipo | Descripcion |
-|---------|------|-------------|
-| `id` | bigint PK | Auto-incremental |
-| `name` | text | Nombre del campamento |
-| `location_description` | text | Descripcion de ubicacion |
-| `latitude / longitude` | decimal | Coordenadas GPS |
-| `max_capacity` | int | Maximo de personas (nullable) |
-| `active` | bool | Soft delete |
-| `foundation_date` | date | Fecha de fundacion |
-| `logo_url / logo_public_id` | text | Imagen en Cloudinary |
+| Columna                     | Tipo      | Descripcion                   |
+| --------------------------- | --------- | ----------------------------- |
+| `id`                        | bigint PK | Auto-incremental              |
+| `name`                      | text      | Nombre del campamento         |
+| `location_description`      | text      | Descripcion de ubicacion      |
+| `latitude / longitude`      | decimal   | Coordenadas GPS               |
+| `max_capacity`              | int       | Maximo de personas (nullable) |
+| `active`                    | bool      | Soft delete                   |
+| `foundation_date`           | date      | Fecha de fundacion            |
+| `logo_url / logo_public_id` | text      | Imagen en Cloudinary          |
 
 ---
 
@@ -177,14 +178,14 @@ Entidad raiz del sistema multi-campamento. Todo dato de inventario, personas y o
 
 Implementa RBAC. Centralizar roles en BD permite modificarlos sin redeployar.
 
-| Nombre | Descripcion |
-|--------|-------------|
-| `admin` | Acceso total, gestiona ingresos de personas |
-| `trabajador` | Cambios de inventario autorizados |
-| `gestor_recursos` | Traslados y recursos |
-| `encargado_viajes` | Expediciones y negociaciones |
-| `lider_campamento` | Variante de admin por campamento |
-| `supervisor` | Supervision general |
+| Nombre             | Descripcion                                 |
+| ------------------ | ------------------------------------------- |
+| `admin`            | Acceso total, gestiona ingresos de personas |
+| `trabajador`       | Cambios de inventario autorizados           |
+| `gestor_recursos`  | Traslados y recursos                        |
+| `encargado_viajes` | Expediciones y negociaciones                |
+| `lider_campamento` | Variante de admin por campamento            |
+| `supervisor`       | Supervision general                         |
 
 ---
 
@@ -192,18 +193,18 @@ Implementa RBAC. Centralizar roles en BD permite modificarlos sin redeployar.
 
 Define las capacidades productivas. La profesion determina cuanto produce un trabajador al dia.
 
-| Profesion | Food/dia | Water/dia | Puede Explorar | Min. Req. |
-|-----------|----------|-----------|---------------|-----------|
-| Recolector | 10 | 0 | ✅ | 2 |
-| Aguatero | 0 | 15 | ❌ | 2 |
-| Explorador | 5 | 0 | ✅ | 1 |
-| Guardia | 0 | 0 | ❌ | 2 |
-| Medico | 0 | 0 | ❌ | 1 |
-| Ingeniero | 0 | 5 | ❌ | 1 |
-| Cocinero | 3 | 0 | ❌ | 1 |
-| Almacenista | 0 | 0 | ❌ | 1 |
-| Agricultor | 8 | 0 | ❌ | 1 |
-| Constructor | 0 | 0 | ❌ | 1 |
+| Profesion   | Food/dia | Water/dia | Puede Explorar | Min. Req. |
+| ----------- | -------- | --------- | -------------- | --------- |
+| Recolector  | 10       | 0         | ✅             | 2         |
+| Aguatero    | 0        | 15        | ❌             | 2         |
+| Explorador  | 5        | 0         | ✅             | 1         |
+| Guardia     | 0        | 0         | ❌             | 2         |
+| Medico      | 0        | 0         | ❌             | 1         |
+| Ingeniero   | 0        | 5         | ❌             | 1         |
+| Cocinero    | 3        | 0         | ❌             | 1         |
+| Almacenista | 0        | 0         | ❌             | 1         |
+| Agricultor  | 8        | 0         | ❌             | 1         |
+| Constructor | 0        | 0         | ❌             | 1         |
 
 Consumo base: **2 food/persona/dia + 3 water/persona/dia**.
 
@@ -213,27 +214,27 @@ Consumo base: **2 food/persona/dia + 3 water/persona/dia**.
 
 Entidad central del dominio. Representa a cada superviviente con su historia y estado.
 
-| Columna | Descripcion |
-|---------|-------------|
-| `identification_code` | Codigo `SURVIVOR-xxx` generado al aceptar la admision |
-| `status` | Estado actual (ver tabla abajo) |
-| `can_work` | Si puede trabajar (se usa en el proceso diario) |
-| `experience_level / experience_points` | Gamificacion — progresion del superviviente |
-| `expeditionsSurvived` | Contador de expediciones completadas |
-| `achievements[]` | Array de logros (PostgreSQL nativo) |
-| `ai_admission_result` | JSON con el resultado del proceso de admision |
+| Columna                                | Descripcion                                           |
+| -------------------------------------- | ----------------------------------------------------- |
+| `identification_code`                  | Codigo `SURVIVOR-xxx` generado al aceptar la admision |
+| `status`                               | Estado actual (ver tabla abajo)                       |
+| `can_work`                             | Si puede trabajar (se usa en el proceso diario)       |
+| `experience_level / experience_points` | Gamificacion — progresion del superviviente           |
+| `expeditionsSurvived`                  | Contador de expediciones completadas                  |
+| `achievements[]`                       | Array de logros (PostgreSQL nativo)                   |
+| `ai_admission_result`                  | JSON con el resultado del proceso de admision         |
 
 **Estados de una persona:**
 
-| Status | Que significa |
-|--------|---------------|
-| `active` | En el campamento, trabajando |
-| `sick` | Enferma, no trabaja |
-| `injured` | Herida, no trabaja |
-| `deceased` | Fallecida, excluida de todas las cuentas |
-| `exploring` | En expedicion activa |
-| `traveling` | En transito en traslado intercampamento |
-| `resting / idle / out_of_camp` | Variantes de no disponible |
+| Status                         | Que significa                            |
+| ------------------------------ | ---------------------------------------- |
+| `active`                       | En el campamento, trabajando             |
+| `sick`                         | Enferma, no trabaja                      |
+| `injured`                      | Herida, no trabaja                       |
+| `deceased`                     | Fallecida, excluida de todas las cuentas |
+| `exploring`                    | En expedicion activa                     |
+| `traveling`                    | En transito en traslado intercampamento  |
+| `resting / idle / out_of_camp` | Variantes de no disponible               |
 
 ---
 
@@ -241,13 +242,13 @@ Entidad central del dominio. Representa a cada superviviente con su historia y e
 
 **¿Por que separar `person` de `user_account`?** Una persona puede existir en el sistema sin acceso al software (ninos, ancianos). Una cuenta puede existir sin persona asociada (admin del sistema). Separa identidad de negocio de credenciales de acceso.
 
-| Columna | Descripcion |
-|---------|-------------|
-| `camp_id` | Campamento activo del usuario |
-| `person_id` | OneToOne con persona (nullable) |
-| `role_id` | Rol del usuario |
-| `password_hash` | Hash bcrypt de la contrasena |
-| `last_access` | Ultima vez que inicio sesion |
+| Columna         | Descripcion                     |
+| --------------- | ------------------------------- |
+| `camp_id`       | Campamento activo del usuario   |
+| `person_id`     | OneToOne con persona (nullable) |
+| `role_id`       | Rol del usuario                 |
+| `password_hash` | Hash bcrypt de la contrasena    |
+| `last_access`   | Ultima vez que inicio sesion    |
 
 ---
 
@@ -255,13 +256,13 @@ Entidad central del dominio. Representa a cada superviviente con su historia y e
 
 **¿Por que existe si ya tienen Redis para sesiones?** Redis controla la inactividad en tiempo real (TTL). La tabla `session` es el historial persistente: permite saber cuantas sesiones tuvo un usuario, cuando se cerraron y si fue por inactividad (`auto_logout=true`) o voluntario.
 
-| Columna | Descripcion |
-|---------|-------------|
-| `token_hash` | Hash bcrypt del refresh token (no en claro por seguridad) |
-| `last_activity` | Ultima actividad registrada |
-| `expires_at` | Expiracion del refresh token (7 dias) |
-| `auto_logout` | `true` si cerro por inactividad |
-| `is_active` | Si la sesion esta activa |
+| Columna         | Descripcion                                               |
+| --------------- | --------------------------------------------------------- |
+| `token_hash`    | Hash bcrypt del refresh token (no en claro por seguridad) |
+| `last_activity` | Ultima actividad registrada                               |
+| `expires_at`    | Expiracion del refresh token (7 dias)                     |
+| `auto_logout`   | `true` si cerro por inactividad                           |
+| `is_active`     | Si la sesion esta activa                                  |
 
 ---
 
@@ -289,11 +290,11 @@ Catalogo centralizado: Food, Water, Hygiene, Defense, Medicine. Permite agregar 
 
 Clave primaria compuesta `(camp_id, resource_id)` — garantiza que no puede haber dos registros del mismo recurso para el mismo campamento. La restriccion esta en la BD, no solo en codigo.
 
-| Columna | Descripcion |
-|---------|-------------|
-| `current_quantity` | Stock actual |
-| `minimum_stock_required` | Umbral para disparar alerta |
-| `alert_active` | `true` si `current < minimum` |
+| Columna                  | Descripcion                   |
+| ------------------------ | ----------------------------- |
+| `current_quantity`       | Stock actual                  |
+| `minimum_stock_required` | Umbral para disparar alerta   |
+| `alert_active`           | `true` si `current < minimum` |
 
 ---
 
@@ -301,13 +302,13 @@ Clave primaria compuesta `(camp_id, resource_id)` — garantiza que no puede hab
 
 Nunca se borra. Es el historial inmutable de todas las operaciones de inventario. Tipos de movimiento:
 
-| Tipo | Cuando se genera |
-|------|-----------------|
-| `income / outcome` | Movimiento manual |
-| `daily_production` | Proceso diario (por trabajador) |
-| `daily_consumption` | Proceso diario (por persona en el camp) |
-| `transfer_in / transfer_out` | Traslado intercampamento |
-| `exploration_in / exploration_out` | Al crear/completar una expedicion |
+| Tipo                               | Cuando se genera                        |
+| ---------------------------------- | --------------------------------------- |
+| `income / outcome`                 | Movimiento manual                       |
+| `daily_production`                 | Proceso diario (por trabajador)         |
+| `daily_consumption`                | Proceso diario (por persona en el camp) |
+| `transfer_in / transfer_out`       | Traslado intercampamento                |
+| `exploration_in / exploration_out` | Al crear/completar una expedicion       |
 
 ---
 
@@ -321,13 +322,14 @@ Permiten sobreescribir los valores por defecto de produccion y consumo. Si no ex
 
 Ciclo de vida: `scheduled` → `in_progress` → `completed` / `cancelled`.
 
-| Columna | Descripcion |
-|---------|-------------|
-| `estimated_days` | Dias estimados de duracion |
-| `grace_days` | Dias de gracia antes de declarar perdida |
-| `real_return_date` | Cuando regresaron realmente |
+| Columna            | Descripcion                              |
+| ------------------ | ---------------------------------------- |
+| `estimated_days`   | Dias estimados de duracion               |
+| `grace_days`       | Dias de gracia antes de declarar perdida |
+| `real_return_date` | Cuando regresaron realmente              |
 
 Tablas relacionadas:
+
 - `exploration_person`: personas de la expedicion con `is_leader`
 - `exploration_resource`: recursos con `flow` (in = encontrados, out = llevados)
 
@@ -338,6 +340,7 @@ Tablas relacionadas:
 Estados del traslado: `pending` → `approved` → `in_transit` → `completed` (o `rejected` / `cancelled`).
 
 Tablas relacionadas:
+
 - `approval`: quien aprobo y cuando (doble aprobacion)
 - `request_resource_detail`: que recursos con cantidades solicitadas/aprobadas/recibidas
 - `request_person_detail`: que personas con `transfer_status`
@@ -348,13 +351,13 @@ Tablas relacionadas:
 
 Registra todo el proceso de admision con transparencia total.
 
-| Columna | Descripcion |
-|---------|-------------|
-| `tracking_code` | `ADM-2026-XXXXXX` para seguimiento publico sin auth |
-| `candidate_data` | JSON con los datos tal como los envio el candidato |
-| `raw_ai_response` | JSON con evaluacion NestJS + Python NLP + score combinado |
-| `suggested_decision` | Lo que la IA recomienda |
-| `final_human_decision` | Lo que el admin decidio (siempre prevalece) |
+| Columna                | Descripcion                                               |
+| ---------------------- | --------------------------------------------------------- |
+| `tracking_code`        | `ADM-2026-XXXXXX` para seguimiento publico sin auth       |
+| `candidate_data`       | JSON con los datos tal como los envio el candidato        |
+| `raw_ai_response`      | JSON con evaluacion NestJS + Python NLP + score combinado |
+| `suggested_decision`   | Lo que la IA recomienda                                   |
+| `final_human_decision` | Lo que el admin decidio (siempre prevalece)               |
 
 ---
 
@@ -374,16 +377,16 @@ Cuando una profesion queda sin el minimo de trabajadores, se puede asignar tempo
 
 **¿Por que vistas y no queries en el codigo?** Las vistas encapsulan consultas SQL complejas con multiples JOINs y agregaciones. Son reutilizables por multiples servicios, optimizables por PostgreSQL, y TypeORM las trata como entidades de solo lectura (`ViewEntity`) con el mismo API de repositorio que las tablas normales.
 
-| Vista | Proposito | Usada por |
-|-------|-----------|-----------|
-| `vw_camp_population_summary` | Poblacion, trabajadores activos, tasa de ocupacion | Dashboard, IA |
-| `vw_person_status_stats` | Conteo por estado (active, sick, etc.) | Dashboard, stats |
-| `vw_person_profession_stats` | Conteo por profesion con activos/inactivos | Dashboard, alertas |
-| `vw_inventory_status` | Inventario completo con nombre del recurso | Dashboard |
-| `vw_inventory_alert` | Solo recursos con `alert_active = true` | Dashboard, alertas |
-| `vw_transfer_camp_summary` | Resumen de traslados por campamento | Dashboard |
-| `vw_exploration_summary` | Exploraciones con personas y recursos | Dashboard |
-| `vw_active_temporary_assignment` | Asignaciones temporales activas | UsersService |
+| Vista                            | Proposito                                          | Usada por          |
+| -------------------------------- | -------------------------------------------------- | ------------------ |
+| `vw_camp_population_summary`     | Poblacion, trabajadores activos, tasa de ocupacion | Dashboard, IA      |
+| `vw_person_status_stats`         | Conteo por estado (active, sick, etc.)             | Dashboard, stats   |
+| `vw_person_profession_stats`     | Conteo por profesion con activos/inactivos         | Dashboard, alertas |
+| `vw_inventory_status`            | Inventario completo con nombre del recurso         | Dashboard          |
+| `vw_inventory_alert`             | Solo recursos con `alert_active = true`            | Dashboard, alertas |
+| `vw_transfer_camp_summary`       | Resumen de traslados por campamento                | Dashboard          |
+| `vw_exploration_summary`         | Exploraciones con personas y recursos              | Dashboard          |
+| `vw_active_temporary_assignment` | Asignaciones temporales activas                    | UsersService       |
 
 ---
 
@@ -391,107 +394,107 @@ Cuando una profesion queda sin el minimo de trabajadores, se puede asignar tempo
 
 ### AuthModule — Autenticacion
 
-| Metodo | Ruta | Auth | Descripcion |
-|--------|------|------|-------------|
-| POST | `/auth/login` | ❌ | Login con username/password |
-| POST | `/auth/logout` | ✅ | Cerrar sesion |
-| POST | `/auth/refresh` | ❌ | Renovar access token |
-| GET | `/auth/session-status` | ✅ | Ver TTL restante de sesion |
-| PATCH | `/auth/switch-camp` | ✅ | Cambiar campamento activo |
+| Metodo | Ruta                   | Auth | Descripcion                 |
+| ------ | ---------------------- | ---- | --------------------------- |
+| POST   | `/auth/login`          | ❌   | Login con username/password |
+| POST   | `/auth/logout`         | ✅   | Cerrar sesion               |
+| POST   | `/auth/refresh`        | ❌   | Renovar access token        |
+| GET    | `/auth/session-status` | ✅   | Ver TTL restante de sesion  |
+| PATCH  | `/auth/switch-camp`    | ✅   | Cambiar campamento activo   |
 
 ---
 
 ### CampsModule — Campamentos
 
-| Metodo | Ruta | Roles | Descripcion |
-|--------|------|-------|-------------|
-| POST | `/camps` | admin | Crear campamento + inicializar inventario |
-| GET | `/camps` | todos | Listar campamentos activos |
-| GET | `/camps/:id` | todos | Detalle + metricas de inventario |
-| PATCH | `/camps/:id` | admin | Actualizar |
-| DELETE | `/camps/:id` | admin | Soft delete |
+| Metodo | Ruta         | Roles | Descripcion                               |
+| ------ | ------------ | ----- | ----------------------------------------- |
+| POST   | `/camps`     | admin | Crear campamento + inicializar inventario |
+| GET    | `/camps`     | todos | Listar campamentos activos                |
+| GET    | `/camps/:id` | todos | Detalle + metricas de inventario          |
+| PATCH  | `/camps/:id` | admin | Actualizar                                |
+| DELETE | `/camps/:id` | admin | Soft delete                               |
 
 ---
 
 ### UsersModule — Personas y Profesiones
 
-| Metodo | Ruta | Roles | Descripcion |
-|--------|------|-------|-------------|
-| GET | `/users/persons` | admin, gestor, viajes | Listar con paginacion |
-| POST | `/users/persons` | admin | Crear persona |
-| PUT | `/users/persons/:id/status` | admin, gestor | Cambiar estado (sick, injured…) |
-| DELETE | `/users/persons/:id` | admin | Eliminar |
-| GET | `/users/professions/alerts/needing-workers` | admin, gestor | Profesiones bajo minimo |
-| POST | `/users/temporary-assignments` | admin, gestor | Asignar temporalmente a otra profesion |
-| GET | `/users/camp/:campId/balance` | admin, gestor, trabajador | Balance produccion-consumo |
-| GET | `/users/me/badges` | todos | Mis badges de gamificacion |
+| Metodo | Ruta                                        | Roles                     | Descripcion                            |
+| ------ | ------------------------------------------- | ------------------------- | -------------------------------------- |
+| GET    | `/users/persons`                            | admin, gestor, viajes     | Listar con paginacion                  |
+| POST   | `/users/persons`                            | admin                     | Crear persona                          |
+| PUT    | `/users/persons/:id/status`                 | admin, gestor             | Cambiar estado (sick, injured…)        |
+| DELETE | `/users/persons/:id`                        | admin                     | Eliminar                               |
+| GET    | `/users/professions/alerts/needing-workers` | admin, gestor             | Profesiones bajo minimo                |
+| POST   | `/users/temporary-assignments`              | admin, gestor             | Asignar temporalmente a otra profesion |
+| GET    | `/users/camp/:campId/balance`               | admin, gestor, trabajador | Balance produccion-consumo             |
+| GET    | `/users/me/badges`                          | todos                     | Mis badges de gamificacion             |
 
 ---
 
 ### ResourcesModule — Inventario
 
-| Metodo | Ruta | Roles | Descripcion |
-|--------|------|-------|-------------|
-| GET | `/resources/inventory/:campId` | admin, gestor, trabajador, viajes | Ver inventario |
-| GET | `/resources/inventory/:campId/alerts` | admin, gestor | Recursos bajo minimo |
-| PATCH | `/resources/inventory/:campId/:resourceId` | admin, gestor | Actualizar minimos/stock |
-| POST | `/resources/movements` | admin, gestor, trabajador | Registrar movimiento manual |
-| GET | `/resources/movements/:campId` | admin, gestor, trabajador | Historial |
-| POST | `/resources/daily-process/:campId` | admin, gestor | Ejecutar proceso diario manualmente |
+| Metodo | Ruta                                       | Roles                             | Descripcion                         |
+| ------ | ------------------------------------------ | --------------------------------- | ----------------------------------- |
+| GET    | `/resources/inventory/:campId`             | admin, gestor, trabajador, viajes | Ver inventario                      |
+| GET    | `/resources/inventory/:campId/alerts`      | admin, gestor                     | Recursos bajo minimo                |
+| PATCH  | `/resources/inventory/:campId/:resourceId` | admin, gestor                     | Actualizar minimos/stock            |
+| POST   | `/resources/movements`                     | admin, gestor, trabajador         | Registrar movimiento manual         |
+| GET    | `/resources/movements/:campId`             | admin, gestor, trabajador         | Historial                           |
+| POST   | `/resources/daily-process/:campId`         | admin, gestor                     | Ejecutar proceso diario manualmente |
 
 ---
 
 ### ExplorationsModule — Expediciones
 
-| Metodo | Ruta | Roles | Descripcion |
-|--------|------|-------|-------------|
-| POST | `/explorations` | admin, viajes | Crear expedicion |
-| GET | `/explorations` | admin, viajes, gestor | Listar |
-| PATCH | `/explorations/:id/depart` | admin, viajes | Marcar como en curso |
-| PATCH | `/explorations/:id/return` | admin, viajes | Registrar retorno + recursos encontrados |
-| DELETE | `/explorations/:id` | admin, viajes | Cancelar (solo si esta scheduled) |
+| Metodo | Ruta                       | Roles                 | Descripcion                              |
+| ------ | -------------------------- | --------------------- | ---------------------------------------- |
+| POST   | `/explorations`            | admin, viajes         | Crear expedicion                         |
+| GET    | `/explorations`            | admin, viajes, gestor | Listar                                   |
+| PATCH  | `/explorations/:id/depart` | admin, viajes         | Marcar como en curso                     |
+| PATCH  | `/explorations/:id/return` | admin, viajes         | Registrar retorno + recursos encontrados |
+| DELETE | `/explorations/:id`        | admin, viajes         | Cancelar (solo si esta scheduled)        |
 
 ---
 
 ### TransfersModule — Traslados Intercampamento
 
-| Metodo | Ruta | Roles | Descripcion |
-|--------|------|-------|-------------|
-| POST | `/transfers/requests` | admin, gestor, viajes | Crear solicitud |
-| GET | `/transfers/requests/camp/:campId` | admin, gestor, viajes | Solicitudes del campamento |
-| PATCH | `/transfers/requests/:id/approval` | admin, gestor, viajes | Aprobar / rechazar |
-| PATCH | `/transfers/requests/:id/arrive` | admin, gestor, viajes, trabajador | Registrar llegada |
-| GET | `/transfers/statistics/:campId` | admin, gestor | Estadisticas |
+| Metodo | Ruta                               | Roles                             | Descripcion                |
+| ------ | ---------------------------------- | --------------------------------- | -------------------------- |
+| POST   | `/transfers/requests`              | admin, gestor, viajes             | Crear solicitud            |
+| GET    | `/transfers/requests/camp/:campId` | admin, gestor, viajes             | Solicitudes del campamento |
+| PATCH  | `/transfers/requests/:id/approval` | admin, gestor, viajes             | Aprobar / rechazar         |
+| PATCH  | `/transfers/requests/:id/arrive`   | admin, gestor, viajes, trabajador | Registrar llegada          |
+| GET    | `/transfers/statistics/:campId`    | admin, gestor                     | Estadisticas               |
 
 ---
 
 ### AiModule — Admision con IA
 
-| Metodo | Ruta | Auth | Roles | Descripcion |
-|--------|------|------|-------|-------------|
-| POST | `/ai/admissions/submit` | ❌ | — | Enviar solicitud |
-| GET | `/ai/admissions/track/:code` | ❌ | — | Seguimiento publico |
-| GET | `/ai/admissions/pending` | ✅ | admin, gestor | Ver pendientes |
-| POST | `/ai/admissions/:id/review` | ✅ | admin | Revisar (aceptar/rechazar) |
-| POST | `/ai/admissions/:id/create-account` | ✅ | admin | Crear cuenta de usuario |
+| Metodo | Ruta                                | Auth | Roles         | Descripcion                |
+| ------ | ----------------------------------- | ---- | ------------- | -------------------------- |
+| POST   | `/ai/admissions/submit`             | ❌   | —             | Enviar solicitud           |
+| GET    | `/ai/admissions/track/:code`        | ❌   | —             | Seguimiento publico        |
+| GET    | `/ai/admissions/pending`            | ✅   | admin, gestor | Ver pendientes             |
+| POST   | `/ai/admissions/:id/review`         | ✅   | admin         | Revisar (aceptar/rechazar) |
+| POST   | `/ai/admissions/:id/create-account` | ✅   | admin         | Crear cuenta de usuario    |
 
 ---
 
 ### DashboardModule — Metricas
 
-| Metodo | Ruta | Roles | Descripcion |
-|--------|------|-------|-------------|
-| GET | `/dashboard/:campId` | admin, gestor | Metricas del campamento (cache 5min) |
-| GET | `/dashboard/leaderboard` | admin, gestor | Top 10 por SurvivalScore |
+| Metodo | Ruta                     | Roles         | Descripcion                          |
+| ------ | ------------------------ | ------------- | ------------------------------------ |
+| GET    | `/dashboard/:campId`     | admin, gestor | Metricas del campamento (cache 5min) |
+| GET    | `/dashboard/leaderboard` | admin, gestor | Top 10 por SurvivalScore             |
 
 ---
 
 ### HealthModule — Heartbeat (publicos)
 
-| Metodo | Ruta | Descripcion |
-|--------|------|-------------|
-| GET | `/health` | Estado de la API |
-| GET | `/health/server-time` | Hora centralizada del servidor |
+| Metodo | Ruta                  | Descripcion                    |
+| ------ | --------------------- | ------------------------------ |
+| GET    | `/health`             | Estado de la API               |
+| GET    | `/health/server-time` | Hora centralizada del servidor |
 
 ---
 
@@ -617,6 +620,7 @@ Para cada campamento activo:
 ### Filosofia: IA No Generativa (Caja de Cristal)
 
 El sistema usa **reglas deterministicas explicitas**, no modelos de Machine Learning. Esto significa:
+
 - La misma entrada siempre produce la misma salida
 - Cada criterio evaluado es visible y auditable
 - No hay archivos `.pkl` ni parametros ocultos
@@ -628,21 +632,22 @@ El enunciado exige que el proceso sea **transparente y justificable**. Un modelo
 
 **Componente NestJS (60% del score final):**
 
-*Reglas criticas — cortocircuitan la evaluacion normal:*
+_Reglas criticas — cortocircuitan la evaluacion normal:_
+
 - Condicion medica contagiosa → REJECT automatico
 - Campamento al 95%+ de capacidad sin habilidades criticas → REJECT
 - Deficit grave de comida y candidato sin habilidades productivas → REJECT
 - Deficit grave y candidato CON la habilidad urgente → ACCEPT inmediato
 
-*Score de 5 factores (si no aplica regla critica):*
+_Score de 5 factores (si no aplica regla critica):_
 
-| Factor | Max | Que evalua |
-|--------|-----|-----------|
-| Profession Need | 40 | Si el campamento necesita esa profesion |
-| Skills | 25 | Cantidad y anos de experiencia |
-| Health | 15 | Promedio health_status + physical_condition |
-| Resource Impact | 10 | Si produce recursos en deficit |
-| Risk Assessment | 10 | Evaluacion psicologica y antecedentes |
+| Factor          | Max | Que evalua                                  |
+| --------------- | --- | ------------------------------------------- |
+| Profession Need | 40  | Si el campamento necesita esa profesion     |
+| Skills          | 25  | Cantidad y anos de experiencia              |
+| Health          | 15  | Promedio health_status + physical_condition |
+| Resource Impact | 10  | Si produce recursos en deficit              |
+| Risk Assessment | 10  | Evaluacion psicologica y antecedentes       |
 
 Decision: ≥ 75 → RECOMMEND_ACCEPT · 50–74 → REQUIRES_REVIEW · < 50 → RECOMMEND_REJECT
 
@@ -650,7 +655,8 @@ Decision: ≥ 75 → RECOMMEND_ACCEPT · 50–74 → REQUIRES_REVIEW · < 50 →
 
 **Componente Python/FastAPI (40% del score final):**
 
-Microservicio separado que analiza el `personal_history` (texto libre) del candidato usando:
+Motor de reglas en Python (proceso aparte) que analiza el `personal_history` (texto libre) del candidato usando:
+
 - **Keywords deterministicos**: listas de palabras de infeccion, engano, trauma, habilidades
 - **Regex**: patrones de evasion ("no se", "no recuerdo", "tal vez")
 - **spaCy `es_core_news_sm`**: modelo preentrenado de espanol para tokenizacion
@@ -668,7 +674,7 @@ score_final = nestjs_score × 0.6 + python_nlp × 0.4
 
 Si Python no responde (timeout 5s):
   score_final = nestjs_score × 1.0
-  raw_ai_response.scoring_method = "nestjs_only (Python microservice unavailable)"
+  raw_ai_response.scoring_method = "nestjs_only (Python rules engine unavailable)"
 ```
 
 Si Python falla, el sistema NestJS sigue funcionando normalmente. Esto es **graceful degradation**: el fallo de un componente no bloquea el sistema.
@@ -692,10 +698,10 @@ La diferencia queda registrada en admin_notes para auditoria.
 
 ### XP y Niveles
 
-| Evento | XP Ganados |
-|--------|-----------|
-| Expedicion completada | +50 XP |
-| Traslado completado (personas que viajaron) | +25 XP |
+| Evento                                      | XP Ganados |
+| ------------------------------------------- | ---------- |
+| Expedicion completada                       | +50 XP     |
+| Traslado completado (personas que viajaron) | +25 XP     |
 
 Cada 100 XP → sube 1 nivel. Los XP restantes se guardan para el siguiente nivel.
 
@@ -703,10 +709,10 @@ Cada 100 XP → sube 1 nivel. Los XP restantes se guardan para el siguiente nive
 
 Guardados como array de strings en `person.achievements` (PostgreSQL array nativo).
 
-| Logro | Codigo | Condicion |
-|-------|--------|-----------|
-| Veterano del Paramo | `VETERANO_PARAMO` | 5 expediciones sobrevividas |
-| Sobreviviente Elite | `SOBREVIVIENTE_ELITE` | Alcanzar nivel 5 |
+| Logro               | Codigo                | Condicion                   |
+| ------------------- | --------------------- | --------------------------- |
+| Veterano del Paramo | `VETERANO_PARAMO`     | 5 expediciones sobrevividas |
+| Sobreviviente Elite | `SOBREVIVIENTE_ELITE` | Alcanzar nivel 5            |
 
 ### Leaderboard — SurvivalScore
 
@@ -727,32 +733,32 @@ Catalogo de insignias visuales (`asset`) que se pueden asignar a usuarios (`user
 
 ## 11. Cumplimiento de Requerimientos
 
-| Requerimiento del enunciado | Como se implemento |
-|-----------------------------|--------------------|
-| Acceso solo con rol especifico | Guards globales: `JwtAuthGuard` + `RolesGuard`. 6 roles RBAC configurados. |
-| Bloqueo por inactividad 20 min | Redis TTL 1200s. `SessionInactivityGuard` verifica en cada request. `SessionActivityInterceptor` renueva el TTL. |
-| Ingreso de persona con IA | `AiModule`: evaluacion hibrida NestJS 60% + Python NLP 40%. Transparente con `justification` y `raw_ai_response`. |
-| IA transparente y justificable | Reglas deterministicas (Caja de Cristal). Campo `justification` con desglose. Override humano con `final_human_decision`. |
-| Identificacion automatica SURVIVOR | `AdmissionReviewService` genera `SURVIVOR-xxx` al aceptar. |
-| Asignacion de profesion por IA | `matchProfession()` asigna la profesion mas necesaria segun habilidades del candidato. |
-| Gestion de estados de personas | 9 estados. `PUT /users/persons/:id/status`. `can_work` se actualiza automaticamente. |
-| Asignacion temporal de profesion | Tabla `temporary_assignment`. Endpoint `POST /users/temporary-assignments`. |
-| Conteo de recursos y alertas | `inventory.alert_active`. Endpoint `/alerts`. Vista `vw_inventory_alert`. |
-| Proceso diario automatico | BullMQ job cron `0 0 * * *`. `executeDailyProcess()` por campamento. |
-| Ajuste manual de produccion | `POST /resources/daily-production/:personId`. |
-| Exploraciones completas | CRUD con 4 estados. Transacciones. Raciones automaticas. Gamificacion al retornar. |
-| Sistema multi-campamento | `camp_id` en todas las entidades. JWT lleva `campId`. |
-| Traslados con doble aprobacion | `ApprovalsService` cuenta aprobaciones. Al llegar a 2 ejecuta `departTransfer()`. |
-| Auditoria de traslados | `audit_log` con old/new value en todas las operaciones criticas. |
-| Personas viajando con raciones | `travel_days × personas × consumo` descontado al aprobar traslado. |
-| Dashboard con metricas | `DashboardModule` con 7 vistas SQL, cache Redis 5min, leaderboard. |
-| Cambio de campamento reinicia sesion | `PATCH /auth/switch-camp` genera nuevos tokens JWT con el nuevo `campId`. |
-| Hora centralizada del servidor | `GET /health/server-time`. Usada en procesos criticos. |
-| API versionada | Global prefix `/api/v1`. |
-| Pruebas automaticas E2E | 44 tests Playwright contra API de produccion, 100% passing. |
-| Pruebas unitarias | 728 tests Jest, 63 suites, 100% passing. |
-| Desplegado en la nube | Render + Supabase. |
-| Roles definidos en enunciado | admin, trabajador, gestor_recursos, encargado_viajes + lider_campamento + supervisor. |
+| Requerimiento del enunciado          | Como se implemento                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Acceso solo con rol especifico       | Guards globales: `JwtAuthGuard` + `RolesGuard`. 6 roles RBAC configurados.                                                |
+| Bloqueo por inactividad 20 min       | Redis TTL 1200s. `SessionInactivityGuard` verifica en cada request. `SessionActivityInterceptor` renueva el TTL.          |
+| Ingreso de persona con IA            | `AiModule`: evaluacion hibrida NestJS 60% + Python NLP 40%. Transparente con `justification` y `raw_ai_response`.         |
+| IA transparente y justificable       | Reglas deterministicas (Caja de Cristal). Campo `justification` con desglose. Override humano con `final_human_decision`. |
+| Identificacion automatica SURVIVOR   | `AdmissionReviewService` genera `SURVIVOR-xxx` al aceptar.                                                                |
+| Asignacion de profesion por IA       | `matchProfession()` asigna la profesion mas necesaria segun habilidades del candidato.                                    |
+| Gestion de estados de personas       | 9 estados. `PUT /users/persons/:id/status`. `can_work` se actualiza automaticamente.                                      |
+| Asignacion temporal de profesion     | Tabla `temporary_assignment`. Endpoint `POST /users/temporary-assignments`.                                               |
+| Conteo de recursos y alertas         | `inventory.alert_active`. Endpoint `/alerts`. Vista `vw_inventory_alert`.                                                 |
+| Proceso diario automatico            | BullMQ job cron `0 0 * * *`. `executeDailyProcess()` por campamento.                                                      |
+| Ajuste manual de produccion          | `POST /resources/daily-production/:personId`.                                                                             |
+| Exploraciones completas              | CRUD con 4 estados. Transacciones. Raciones automaticas. Gamificacion al retornar.                                        |
+| Sistema multi-campamento             | `camp_id` en todas las entidades. JWT lleva `campId`.                                                                     |
+| Traslados con doble aprobacion       | `ApprovalsService` cuenta aprobaciones. Al llegar a 2 ejecuta `departTransfer()`.                                         |
+| Auditoria de traslados               | `audit_log` con old/new value en todas las operaciones criticas.                                                          |
+| Personas viajando con raciones       | `travel_days × personas × consumo` descontado al aprobar traslado.                                                        |
+| Dashboard con metricas               | `DashboardModule` con 7 vistas SQL, cache Redis 5min, leaderboard.                                                        |
+| Cambio de campamento reinicia sesion | `PATCH /auth/switch-camp` genera nuevos tokens JWT con el nuevo `campId`.                                                 |
+| Hora centralizada del servidor       | `GET /health/server-time`. Usada en procesos criticos.                                                                    |
+| API versionada                       | Global prefix `/api/v1`.                                                                                                  |
+| Pruebas automaticas E2E              | 44 tests Playwright contra API de produccion, 100% passing.                                                               |
+| Pruebas unitarias                    | 728 tests Jest, 63 suites, 100% passing.                                                                                  |
+| Desplegado en la nube                | Render + Supabase.                                                                                                        |
+| Roles definidos en enunciado         | admin, trabajador, gestor_recursos, encargado_viajes + lider_campamento + supervisor.                                     |
 
 ---
 
@@ -833,7 +839,7 @@ Solo puede cancelarse si esta en estado `scheduled`. Se hace rollback de recurso
 **¿Por que eligieron IA no generativa en lugar de GPT?**
 El enunciado exige que el proceso sea transparente y justificable. Un modelo ML es una "caja negra" que no puede explicar sus decisiones. Con reglas deterministicas, se puede mostrar exactamente que criterios se evaluaron y con que resultado. Ademas, no se requieren datos de entrenamiento, no tiene costo de API y siempre produce el mismo resultado para la misma entrada.
 
-**¿Que pasa si el microservicio Python no esta disponible?**
+**¿Que pasa si el motor de reglas Python no esta disponible?**
 Graceful degradation: `PythonAiService` tiene un timeout de 5 segundos con `AbortController`. Si falla, retorna `null`. En `AiService.submitAdmission()`, si el resultado Python es null, se usa el score de NestJS al 100%. El campo `scoring_method` en `raw_ai_response` queda como `"nestjs_only"` para auditoria. El sistema sigue funcionando sin el componente Python.
 
 **¿Por que el peso es 60% NestJS y 40% Python?**
@@ -851,9 +857,11 @@ Los tests tienen propositos distintos. Los unitarios son rapidos, prueban casos 
 
 **¿Como funcionan los tests unitarios en NestJS?**
 `TestingModule` crea un modulo de prueba con dependencias mockeadas. En lugar del repositorio TypeORM real, se inyecta un objeto con `jest.fn()`:
+
 ```typescript
 { provide: getRepositoryToken(Inventory), useValue: { findOne: jest.fn(), save: jest.fn() } }
 ```
+
 Esto permite probar la logica del servicio sin necesitar BD ni Redis.
 
 **¿Por que Playwright para los E2E si no tiene browser?**

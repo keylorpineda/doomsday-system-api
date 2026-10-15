@@ -25,6 +25,7 @@ import { CreateUserAccountDto } from "./dto/create-user-account.dto";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Public } from "../auth/decorators/public.decorator";
+import { EmitCampUpdate } from "../notifications/camp-update.decorator";
 
 @ApiTags("AI Admissions")
 @Controller("ai")
@@ -34,6 +35,7 @@ export class AiController {
   // ── Public ────────────────────────────────────────────────────────────────
 
   @Public()
+  @EmitCampUpdate("admissions")
   @Post("admissions/submit")
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: "Submit admission request (public)" })
@@ -50,6 +52,7 @@ export class AiController {
   }
 
   @Public()
+  @EmitCampUpdate("admissions", "persons")
   @Post("admissions/complete-registration")
   @ApiOperation({ summary: "Complete registration using email token" })
   @ApiBody({
@@ -146,6 +149,7 @@ export class AiController {
   // ── Admin: manual review ──────────────────────────────────────────────────
 
   @ApiBearerAuth()
+  @EmitCampUpdate("admissions")
   @Post("admissions/:id/review")
   @Roles("admin", "camp_leader", "travel_manager", "resource_manager")
   @ApiOperation({
@@ -163,6 +167,7 @@ export class AiController {
   // ── Admin: archive ────────────────────────────────────────────────────────
 
   @ApiBearerAuth()
+  @EmitCampUpdate("admissions")
   @Patch("admissions/:id/archive")
   @Roles("admin", "camp_leader", "travel_manager", "resource_manager")
   @ApiOperation({
@@ -180,6 +185,7 @@ export class AiController {
   // ── Admin: create account for accepted person ─────────────────────────────
 
   @ApiBearerAuth()
+  @EmitCampUpdate("admissions", "persons")
   @Post("admissions/:id/create-account")
   @Roles("admin", "camp_leader", "travel_manager", "resource_manager")
   @ApiOperation({ summary: "Create user account for accepted person" })

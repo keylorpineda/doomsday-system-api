@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  push:
+    branches: [develop, master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+
+# Un push nuevo al mismo PR/rama cancela la corrida anterior
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22 # Igual que la imagen de producción (node:22-alpine)
+  HUSKY: 0 # Los hooks de git no hacen falta en CI
+
+jobs:
+  quality:
+    name: Lint · Types · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versión de pnpm tomada de "packageManager" en package.json
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec eslint "{src,apps,libs}/**/*.ts"
+
+      - name: Type check
+        run: pnpm exec tsc --noEmit
+
+      - name: Build
+        run: pnpm build
+
+  test:
+    name: Unit tests (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versión de pnpm tomada de "packageManager" en package.json
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Jest
+        run: pnpm exec jest --ci --silent --shard=${{ matrix.shard }}/2
+
+  # Construye la imagen de producción (la que despliega Render) para detectar
+  # antes del merge cualquier cambio que rompa el Dockerfile
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Único check a marcar como requerido en la protección de ramas
+  ci:
+    name: CI
+    if: always()
+    needs: [quality, test, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all jobs passed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

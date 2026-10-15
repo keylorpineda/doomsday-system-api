@@ -39,8 +39,8 @@ export interface PythonNlpResult {
 }
 
 /**
- * Servicio que llama al microservicio Python de IA No Generativa.
- * Si el microservicio no esta disponible, retorna null (graceful fallback).
+ * Cliente HTTP del motor de reglas Python (IA No Generativa).
+ * Si el motor de reglas no esta disponible, retorna null (graceful fallback).
  */
 @Injectable()
 export class PythonAiService {

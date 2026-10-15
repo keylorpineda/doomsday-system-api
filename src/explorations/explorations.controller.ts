@@ -15,12 +15,14 @@ import { CreateExplorationDto } from "./dto/create-exploration.dto";
 import { ReturnExplorationDto } from "./dto/return-exploration.dto";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { EmitCampUpdate } from "../notifications/camp-update.decorator";
 
 @ApiTags("explorations")
 @Controller("explorations")
 export class ExplorationsController {
   constructor(private readonly explorationsService: ExplorationsService) {}
 
+  @EmitCampUpdate("explorations")
   @Post()
   @Roles("admin", "travel_manager", "resource_manager", "camp_leader")
   @ApiOperation({ summary: "Crear una nueva exploracion" })
@@ -66,6 +68,7 @@ export class ExplorationsController {
     return this.explorationsService.findById(id);
   }
 
+  @EmitCampUpdate("explorations")
   @Patch(":id/depart")
   @Roles("admin", "travel_manager", "resource_manager", "camp_leader")
   @ApiOperation({ summary: "Marcar exploracion como en curso (partida)" })
@@ -73,6 +76,7 @@ export class ExplorationsController {
     return this.explorationsService.depart(id, user?.id);
   }
 
+  @EmitCampUpdate("explorations")
   @Patch(":id/return")
   @Roles("admin", "travel_manager", "resource_manager", "camp_leader")
   @ApiOperation({ summary: "Registrar retorno de exploracion" })
@@ -84,6 +88,7 @@ export class ExplorationsController {
     return this.explorationsService.registerReturn(id, dto, user?.id);
   }
 
+  @EmitCampUpdate("explorations")
   @Delete(":id")
   @Roles("admin", "travel_manager", "resource_manager", "camp_leader")
   @ApiOperation({ summary: "Cancelar una exploracion programada" })

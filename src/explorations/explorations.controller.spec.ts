@@ -80,7 +80,7 @@ describe("ExplorationsController", () => {
 
     const result = await controller.findAll("3", "scheduled");
 
-    expect(service.findAll).toHaveBeenCalledWith(3, "scheduled");
+    expect(service.findAll).toHaveBeenCalledWith(3, "scheduled", 1, 20);
     expect(result).toEqual(explorations);
   });
 
@@ -89,7 +89,7 @@ describe("ExplorationsController", () => {
 
     await controller.findAll();
 
-    expect(service.findAll).toHaveBeenCalledWith(undefined, undefined);
+    expect(service.findAll).toHaveBeenCalledWith(undefined, undefined, 1, 20);
   });
 
   it("should get one exploration by id", async () => {

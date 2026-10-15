@@ -34,7 +34,10 @@ describe("RequestsService", () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue([{ id: 1 }]),
+        getManyAndCount: jest.fn().mockResolvedValue([[{ id: 1 }], 1]),
       }),
     };
 

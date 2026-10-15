@@ -89,7 +89,7 @@ This API handles much more than simple CRUD (Create, Read, Update, Delete). It f
   Camps can dispatch scouting missions to find resources. The API manages the entire lifecycle: scheduling the departure, tracking the mission status as 'IN PROGRESS', and upon return, automatically calculating and injecting the newly found scavenged resources directly into the camp's inventory logs.
 
 - **🤖 AI Admissions & Human Review:**
-  When new survivors seek entry to a camp, the API sends their profile to an integrated external AI microservice. The AI evaluates their survival skills and provides a transparent justification. However, the system requires a final Human Review by a high-ranking user to override or confirm the admission, keeping humans safely in control of automated decisions.
+  When new survivors seek entry to a camp, the API scores their profile with a deterministic rules engine (NestJS plus a Python NLP rules engine). It evaluates their survival skills and provides a transparent justification. However, the system requires a final Human Review by a high-ranking user to override or confirm the admission, keeping humans safely in control of automated decisions.
 
 - **🛡️ Strict Payload Validation & Global Error Handling:**
   We use `class-validator` combined with Data Transfer Objects (DTOs). If a client sends a request missing required fields, or the data types are wrong (e.g., a string instead of a number for a resource quantity), the framework automatically intercepts the request. It throws a clean 400 Bad Request error with an explicit array of what failed, without ever executing the controller business logic.
@@ -124,7 +124,7 @@ git clone https://github.com/keylorpineda/ProjectProgrammingIV-BackEnd.git
 cd ProjectProgrammingIV-BackEnd
 
 # 2. Install all heavy dependencies
-npm install
+pnpm install
 ```
 
 ### Configure Environment Variables
@@ -143,7 +143,7 @@ _Inside `.env`, make sure to provide valid `DATABASE_URL` credentials, a secure 
 
 ```bash
 # Start the server in watch mode (auto-reloads on file changes)
-npm run start:dev
+pnpm start:dev
 ```
 
 ---
@@ -154,19 +154,19 @@ We believe that a Doomsday System must be completely bulletproof. Therefore, the
 
 ### 📋 Quick Reference Commands
 
-| Command                      | Action                                                            |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `npm run test`               | Executes Jest unit tests — **724 tests total**                    |
-| `npm run test:cov`           | Executes unit tests and generates a detailed HTML coverage report |
-| `npm run test:playwright`    | Runs full HTTP E2E tests against the defined `API_BASE_URL`       |
-| `npm run test:playwright:ui` | Opens Playwright's UI Mode for visual test debugging              |
+| Command                   | Action                                                            |
+| ------------------------- | ----------------------------------------------------------------- |
+| `pnpm test`               | Executes Jest unit tests — **724 tests total**                    |
+| `pnpm test:cov`           | Executes unit tests and generates a detailed HTML coverage report |
+| `pnpm test:playwright`    | Runs full HTTP E2E tests against the defined `API_BASE_URL`       |
+| `pnpm test:playwright:ui` | Opens Playwright's UI Mode for visual test debugging              |
 
 ### 🔬 Unit Testing (Jest)
 
 Unit tests focus purely on the business logic inside our Services (`.service.ts`). We use Jest to mock out the database repositories, ensuring these tests run in milliseconds without requiring an active database connection. This proves that our math, permission checks, and logic branches work flawlessly.
 
 ```bash
-npm run test
+pnpm test
 ```
 
 **Expected Result Output:**
@@ -188,13 +188,13 @@ This requires zero local setup. It points the tests directly at the live Render 
 **PowerShell (Windows):**
 
 ```powershell
-$env:API_BASE_URL="https://doomsday-system-api.onrender.com/api/v1"; $env:TEST_USERNAME="admin"; $env:TEST_PASSWORD="Admin@1234!"; npm run test:playwright
+$env:API_BASE_URL="https://doomsday-system-api.onrender.com/api/v1"; $env:TEST_USERNAME="admin"; $env:TEST_PASSWORD="Admin@1234!"; pnpm test:playwright
 ```
 
 **Bash (macOS / Linux / WSL):**
 
 ```bash
-API_BASE_URL=https://doomsday-system-api.onrender.com/api/v1 TEST_USERNAME=admin TEST_PASSWORD="Admin@1234!" npm run test:playwright
+API_BASE_URL=https://doomsday-system-api.onrender.com/api/v1 TEST_USERNAME=admin TEST_PASSWORD="Admin@1234!" pnpm test:playwright
 ```
 
 #### ▶️ Option B — Run Against Local Development Server
@@ -202,8 +202,8 @@ API_BASE_URL=https://doomsday-system-api.onrender.com/api/v1 TEST_USERNAME=admin
 If you want to test changes you've made locally before deploying:
 
 1. Edit your `.env` to ensure `API_BASE_URL=http://localhost:3000/api/v1`
-2. Start the Nest server: `npm run start:dev`
-3. In a new terminal tab, run: `npm run test:playwright`
+2. Start the Nest server: `pnpm start:dev`
+3. In a new terminal tab, run: `pnpm test:playwright`
 
 ---
 
