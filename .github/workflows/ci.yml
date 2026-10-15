@@ -91,8 +91,14 @@ jobs:
         with:
           context: .
           push: false
+          load: true
+          tags: doomsday-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Arranque real sin DB: que todo lo que dist/ requiere exista en la imagen
+      - name: Verify runtime dependencies resolve
+        run: docker run --rm -v "$PWD/scripts:/checks:ro" doomsday-api:ci node /checks/verify-runtime-deps.cjs dist
 
   # Único check a marcar como requerido en la protección de ramas
   ci:
